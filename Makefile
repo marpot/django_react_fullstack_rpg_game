@@ -1,6 +1,6 @@
 # Start kontenerów w tle
 up:
-	docker compose --env-file .env.development -f docker compose.yml up -d
+	docker compose --env-file .env.development -f docker-compose.yml up -d
 
 # Zatrzymanie kontenerów
 down:

@@ -1,5 +1,9 @@
 from django.contrib import admin
-from .models import CustomUser, PlayerProfile, PlayerCharacter
+from django.contrib.auth import get_user_model
+from .models import PlayerCharacter
+from .models import PlayerProfile
+
+User = get_user_model()
 
 @admin.register(PlayerCharacter)
 class PlayerCharacterAdmin(admin.ModelAdmin):

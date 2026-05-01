@@ -1,8 +1,9 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.tokens import RefreshToken
 from .models import PlayerCharacter
+import logging
 
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
@@ -44,64 +45,59 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
 
-
-class UserLoginSerializer(serializers.Serializer):
-    username = serializers.CharField(required=False)
-    email = serializers.EmailField(required=False)
-    password = serializers.CharField(write_only=True)
-
     def validate(self, attrs):
-        # Krok A: Zawsze pokazujemy co dostajemy z frontendu
-        print("=== [LOGIN DEBUG] START ===", flush=True)
-        print(f"DEBUG LOGIN - Otrzymane dane: {attrs}", flush=True)
+        if User.objects.filter(username=attrs['username']).exists():
+            raise serializers.ValidationError({"username": "Username already exists"})
+        
+        if User.objects.filter(email=attrs['email']).exists():
+            raise serializers.ValidationError({"email": "Email already exists"})
+            
+        return attrs
 
-        # Krok B: Wyciągamy pola
-        email = attrs.get('email')
-        username = attrs.get('username')
-        password = attrs.get('password')
+#LEGACY CODE - DO NOT DELETE
+# class UserLoginSerializer(serializers.Serializer):
+#     username = serializers.CharField(required=False, allow_blank=True)
+#     email = serializers.EmailField(required=False, allow_blank=True)
+#     password = serializers.CharField()
 
-        # Debug - zobaczymy co dokładnie dostajemy
-        print(f"DEBUG LOGIN - Otrzymane dane: {attrs}", flush=True)
+#     def validate(self, attrs):
+#         username = attrs.get("username")
+#         email = attrs.get("email")
+#         password = attrs.get("password")
 
-        # Krok C: Sprawdzamy czy jest hasło
-        if not password:
-            print("DEBUG LOGIN - ERROR: No password provided", flush=True)
-            raise serializers.ValidationError({"detail": "Hasło jest wymagane."})
+#         logger.info(f"LOGIN ATTEMPT: username={username}, email={email}")
 
-        # Krok D: Sprawdzamy czy jest chociaż jeden login (email lub username)
-        if not email and not username:
-            print("DEBUG LOGIN - ERROR: Neither email nor username provided", flush=True)
-            raise serializers.ValidationError({"detail": "Email lub username jest wymagany."})
+#         if not password:
+#             logger.warning("LOGIN FAILED: missing password")
+#             raise serializers.ValidationError({"detail": "Password is required"})
 
-        # Krok E: Logowanie przez email (priorytet)
-        if email:
-            print(f"DEBUG LOGIN - Próba logowania przez EMAIL: {email}", flush=True)
-            try:
-                user = User.objects.get(email=email)
-                print(f"DEBUG LOGIN - Znaleziono użytkownika po emailu: {user.username} (id={user.id})", flush=True)
-            except User.DoesNotExist:
-                print("DEBUG LOGIN - Nie znaleziono użytkownika o podanym emailu", flush=True)
-                raise serializers.ValidationError({"detail": "Nieprawidłowe dane logowania."})
-        # Krok F: Logowanie przez username (jeśli nie było emaila)
-        else:
-            print(f"DEBUG LOGIN - Próba logowania przez USERNAME: {username}", flush=True)
-            user = User.objects.filter(username=username).first()
-            if not user:
-                print("DEBUG LOGIN - Nie znaleziono użytkownika o podanym username", flush=True)
-                raise serializers.ValidationError({"detail": "Nieprawidłowe dane logowania."})
+#         if not username and not email:
+#             logger.warning("LOGIN FAILED: missing identifier")
+#             raise serializers.ValidationError({
+#                 "detail": "Provide username or email"
+#             })
 
-        if not user.check_password(password):
-            print("DEBUG LOGIN - Hasło niepoprawne", flush=True)
-            raise serializers.ValidationError({"detail": "Nieprawidłowe dane logowania."})
+#         user = None
 
-        print(f"DEBUG LOGIN - Logowanie udane dla użytkownika: {user.username}", flush=True)
-        print("=== [LOGIN DEBUG] END ===\n", flush=True)
+#         if email:
+#             user = User.objects.filter(email=email).first()
+#         else:
+#             user = User.objects.filter(username=username).first()
 
-        refresh = RefreshToken.for_user(user)
+#         if not user:
+#             logger.warning(f"LOGIN FAILED: user not found ({username or email})")
+#             raise serializers.ValidationError({
+#                 "detail": "Invalid credentials"
+#             })
 
-        return {
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-            'userId': user.id,
-            'username': user.username,
-        }
+#         if not user.check_password(password):
+#             logger.warning(f"LOGIN FAILED: wrong password ({user.username})")
+#             raise serializers.ValidationError({
+#                 "detail": "Invalid credentials"
+#             })
+
+#         logger.info(f"LOGIN SUCCESS: user_id={user.id}")
+
+#         return {
+#             "user": user
+#         }

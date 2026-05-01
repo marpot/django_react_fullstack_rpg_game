@@ -4,13 +4,67 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-wss865iy-nc8egt#ojk_0(!94e55eqq3#wq1mefawuv(7^81ja'
+# =========================
+# SECURITY
+# =========================
+
+SECRET_KEY = os.getenv(
+    'SECRET_KEY',
+    'django-insecure-wss865iy-nc8egt#ojk_0(!94e55eqq3#wq1mefawuv(7^81ja'
+)
 
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*']  # Zezwalaj na wszystkie hosty
+ALLOWED_HOSTS = ['*']
 
-# CORS configuration
+# =========================
+# APPLICATIONS
+# =========================
+
+INSTALLED_APPS = [
+    # Django core
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+
+    # external
+    'rest_framework',
+    'corsheaders',
+    'django_extensions',
+
+    # project apps
+    'users.apps.UsersConfig',
+    'accounts.apps.AccountsConfig',   # API layer (login/register)
+    'chat.apps.ChatConfig',
+    'game.apps.GameConfig',
+    'world.apps.WorldConfig',
+    'core.apps.CoreConfig',
+]
+
+# =========================
+# MIDDLEWARE
+# =========================
+
+MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+# =========================
+# CORS
+# =========================
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
@@ -32,46 +86,35 @@ CORS_ALLOW_HEADERS = [
     'accept-encoding',
 ]
 
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-
-    'rest_framework',
-    'corsheaders',
-
-    'accounts.apps.AccountsConfig',
-    'accounts.users.apps.UsersConfig',
-    'accounts.characters.apps.CharactersConfig',
-
-    'chat.apps.ChatConfig',
-    'game.apps.GameConfig',
-    'world.apps.WorldConfig',
-    'core.apps.CoreConfig',                
-
-    'django_extensions',
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://localhost:\d+$",
 ]
 
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
 ]
+
+# =========================
+# INTERNAL / DEBUG
+# =========================
 
 INTERNAL_IPS = [
     '127.0.0.1',
     'localhost',
 ]
 
+# =========================
+# URLS / ASGI / WSGI
+# =========================
+
 ROOT_URLCONF = 'rpg_project.urls'
+WSGI_APPLICATION = 'rpg_project.wsgi.application'
+ASGI_APPLICATION = "rpg_project.asgi.application"
+
+# =========================
+# TEMPLATES
+# =========================
 
 TEMPLATES = [
     {
@@ -89,21 +132,10 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'rpg_project.wsgi.application'
+# =========================
+# DATABASE
+# =========================
 
-ASGI_APPLICATION = "rpg_project.asgi.application"
-
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [('redis', 6379)],
-        },
-    },
-}
-
-
-# Database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -116,20 +148,12 @@ DATABASES = {
     }
 }
 
+# =========================
+# AUTH
+# =========================
 
+AUTH_USER_MODEL = 'users.CustomUser'
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-]
-
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^http://localhost:\d+$",
-]
-
-
-
-# Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -145,41 +169,42 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Localization settings
+# =========================
+# INTERNATIONALIZATION
+# =========================
+
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Warsaw'
+
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
+# =========================
+# STATIC FILES
+# =========================
+
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 STATICFILES_DIRS = [
     BASE_DIR / "rpg_project" / "static",
 ]
 
-ADMIN_MEDIA_PREFIX = '/static/admin/'
-
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# REST Framework Settings
+# =========================
+# REST FRAMEWORK
+# =========================
+
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
+    'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
+    ),
 }
 
-AUTH_USER_MODEL = 'users.CustomUser'
-
-SECURE_SSL_REDIRECT = False
-SECURE_HSTS_SECONDS = 3600
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-
-CORS_LOGGING = False
-CORS_LOG_LEVEL = 'DEBUG'
+# =========================
+# SIMPLE JWT
+# =========================
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
@@ -187,31 +212,76 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
+# =========================
+# CHANNELS (WebSockets)
+# =========================
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('redis', 6379)],
+        },
+    },
+}
+
+# =========================
+# CACHE
+# =========================
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.getenv('REDIS_URL', 'redis://redis:6379/1'),
+    }
+}
+
+# =========================
+# CELERY
+# =========================
+
+CELERY_BROKER_URL = "redis://redis:6379/0"
+CELERY_RESULT_BACKEND = "redis://redis:6379/0"
+
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "Europe/Warsaw"
+
+# =========================
+# SECURITY HEADERS
+# =========================
+
+SECURE_SSL_REDIRECT = False
+SECURE_HSTS_SECONDS = 3600
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# =========================
+# LOGGING
+# =========================
+
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'format': '{levelname} {asctime} {module} {pathname}:{lineno} {message}',
             'style': '{',
         },
         'simple': {
             'format': '{levelname} {message}',
             'style': '{',
         },
-        'detailed': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {pathname}:{lineno} {message}',
-            'style': '{',
-        },
     },
-    'filters': {
-        'require_debug_true': {
-            '()': 'django.utils.log.RequireDebugTrue',
-        },
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse',
-        },
-    },
+
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
@@ -220,26 +290,22 @@ LOGGING = {
         },
         'file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
-            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'filename': LOG_DIR / 'django.log',
+            'maxBytes': 5 * 1024 * 1024,
             'backupCount': 5,
             'formatter': 'verbose',
             'level': 'INFO',
         },
         'error_file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'error.log',
-            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'filename': LOG_DIR / 'error.log',
+            'maxBytes': 5 * 1024 * 1024,
             'backupCount': 5,
-            'formatter': 'detailed',
+            'formatter': 'verbose',
             'level': 'ERROR',
-        },
-        'mail_admins': {
-            'level': 'ERROR',
-            'filters': ['require_debug_false'],
-            'class': 'django.utils.log.AdminEmailHandler',
         },
     },
+
     'loggers': {
         'django': {
             'handlers': ['console', 'file', 'error_file'],
@@ -247,51 +313,29 @@ LOGGING = {
             'propagate': True,
         },
         'django.request': {
-            'handlers': ['error_file', 'mail_admins'],
+            'handlers': ['error_file'],
             'level': 'ERROR',
             'propagate': False,
         },
         'accounts': {
-            'handlers': ['console', 'file', 'error_file'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
-            'propagate': True,
         },
         'game': {
-            'handlers': ['console', 'file', 'error_file'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
-            'propagate': True,
         },
         'world': {
-            'handlers': ['console', 'file', 'error_file'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
-            'propagate': True,
         },
         'chat': {
-            'handlers': ['console', 'file', 'error_file'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
-            'propagate': True,
         },
         'core': {
-            'handlers': ['console', 'file', 'error_file'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
-            'propagate': True,
         },
     },
 }
-
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': 'redis://redis:6379/1',
-    }
-}
-
-CELERY_BROKER_URL = "redis://redis:6379/0"
-CELERY_RESULT_BACKEND = "redis://redis:6379/0"
-CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
-
-# CELERY CONFIG
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = "Europe/Warsaw"

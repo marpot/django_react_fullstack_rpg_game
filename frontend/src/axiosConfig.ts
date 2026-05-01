@@ -1,21 +1,39 @@
-import axios, { AxiosResponse } from 'axios';
+import axios from "axios";
 
-axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8001';
+const api = axios.create({
+  baseURL: "http://localhost:8001/api",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 
-axios.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('access_token');
+// Endpointy publiczne (bez JWT)
+const PUBLIC_ENDPOINTS = [
+  "/accounts/register/",
+  "/accounts/login/",
+];
 
-        if (token) {
-            config.headers = config.headers ?? {};
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
+// INTERCEPTOR
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("access");
 
-    },
-    (error) =>  Promise.reject(error)
+    const url = config.url || "";
+
+    const isPublic = PUBLIC_ENDPOINTS.some((endpoint) =>
+      url.includes(endpoint)
+    );
+
+    // Dodaj token tylko do chronionych endpointów
+    if (token && !isPublic) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
-export type { AxiosResponse };
-
-export default axios;
+export default api;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from '../axiosConfig';
+import api from '../axiosConfig';
 import { Link, useNavigate } from 'react-router-dom';
 
 interface RegisterPageProps {
@@ -31,20 +31,23 @@ const RegisterPage: React.FC<RegisterPageProps> = () => {
     };
 
     try {
-      const response = await axios.post('/api/accounts/register/', data);
-      if (response.status === 201) {
+      const response = await api.post('/accounts/register/', data);
+      if (response.status >= 200 && response.status < 300) {
         setMessage('Rejestracja zakończona sukcesem!');
         setError('');
-      } else {
-        throw new Error('Nieoczekiwana odpowiedź z serwera');
-      }
+
+        setTimeout(() => navigate('/login'), 1000);
+      } 
     } catch (err: any) {
-      if (err.response && err.response.data) {
-        setError('Błąd rejestracji: ' + err.response.data);
-      } else {
-        setError('Błąd rejestracji: Nieznany błąd');
-      }
-      setMessage('');
+        console.error('REGISTER ERROR:', err);
+
+        const msg =
+        err?.response?.data
+          ? JSON.stringify(err.response.data)
+          : 'Nieznany błąd';
+
+    setError('Błąd rejestracji: ' + msg);
+    setMessage('');
     }
   }
   return (

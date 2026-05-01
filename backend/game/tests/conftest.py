@@ -1,6 +1,6 @@
 import pytest
 from world.models import Adventure
-from accounts.users.models import CustomUser
+from users.models import CustomUser
 from world.models import Location
 
 @pytest.fixture
