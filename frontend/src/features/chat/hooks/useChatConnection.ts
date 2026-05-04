@@ -65,7 +65,7 @@ export const useChatConnection = (roomId: string, username: string) => {
           {
             id: Date.now(),
             text: data.message,
-            user: data.sender || "Nieznajomy",
+            user: data.username || "Nieznajomy",
           },
         ]);
       },

@@ -1,279 +1,208 @@
+```md
+# RPG Game Platform
 
+## 🚀 Project Overview
 
-```markdown
-# RPG Game
+This is a full-stack **real-time RPG game platform** built with Django and React.
 
-## Project Description
+Players can:
+- register and authenticate via JWT
+- create and join game rooms
+- interact with dynamic story events
+- communicate in real-time via WebSocket chat
 
-This project is an RPG game where players can log in, register, create rooms, and interact with the storyline. Players make decisions that impact the development of the plot. The game is designed to be dynamic and interactive.
+The system is designed as a **modular, event-driven backend architecture** similar to a lightweight multiplayer game server.
 
-## Technologies Used
+---
 
-- **Backend**: Django, Django REST Framework
-- **Frontend**: React
-- **Authentication**: JWT (JSON Web Tokens)
-- **Database**: SQLite (may switch to PostgreSQL for production)
-- **WebSocket**: Django Channels (for real-time communication)
-- **Containerization**: Docker & Docker Compose
-- **Dev tools**: Makefile for common commands
-
-## Features
+## 🧠 Key Features
 
 ### Backend
-
-1. **Player registration and login** using JWT.
-2. **Player profiles** with editable data.
-3. **Creating and joining game rooms**.
-4. **Game model** with a history of events and player actions.
+- JWT authentication (SimpleJWT)
+- REST API (Django REST Framework)
+- Real-time communication (Django Channels + WebSockets)
+- Modular domain-driven architecture:
+  - `users` → authentication & profiles
+  - `world` → game world content
+  - `game` → core gameplay logic (events, decisions)
+  - `chat` → real-time communication layer
 
 ### Frontend
+- React (Webpack dev server)
+- Feature-based architecture (`features/chat`)
+- WebSocket integration with reconnection logic
+- Centralized API client (Axios)
 
-1. **Login and registration UI**.
-2. **Dashboard** – view after login, access to game rooms.
-3. **Gameplay interface** – displaying event history and player choices.
+---
 
-### Future Plans
+## 🏗 Architecture
 
-1. **Scenario creator** – a tool for generating game scenarios.
-2. **Combat system** and **player collaboration** features.
-3. **Custom RPG-style dark UI** styled with SCSS.
+### System Design
 
-## Development Setup (Docker + Makefile)
-
-Make sure you have **Docker** and **Docker Compose** installed.
-
-### Quick Start
-
-```bash
-make up        # Start containers
-make down      # Stop containers
-make logs      # View live logs
 ```
 
-### Useful Commands
+Frontend (React)
+|
+| REST API + WebSocket (JWT)
+v
+Backend (Django + DRF + Channels)
+|
++----------------------+
+|                      |
+v                      v
+PostgreSQL            Redis
 
-| Command               | Description                              |
-|------------------------|------------------------------------------|
-| `make build`           | Build all containers                     |
-| `make restart`         | Rebuild and restart the entire project   |
-| `make backend`         | Access backend container (Django)        |
-| `make frontend`        | Access frontend container (React)        |
-| `make migrate`         | Run Django database migrations           |
-| `make makemigrations`  | Generate Django migration files          |
-| `make collectstatic`   | Collect Django static files              |
-| `make createsuperuser` | Create a Django superuser                |
-| `make test-backend`    | Run backend tests                        |
-| `make test-frontend`   | Run frontend tests                       |
-| `make ps`              | Show container status                    |
+````
 
-## Manual Installation (without Docker)
+### Communication Layers
 
-### Backend (Django)
+- REST API → business logic (game, users, world)
+- WebSocket → real-time chat & events
+- JWT → authentication for both HTTP & WS
 
-1. Install the required packages:
+---
 
-```bash
-pip install -r requirements.txt
-```
+## ⚙️ Development Setup
 
-2. Apply database migrations:
-
-```bash
-python manage.py migrate
-```
-
-3. Run the backend server:
-
-```bash
-daphne -b 0.0.0.0 -p 8000 rpg_project.asgi:application
-```
-
-### Frontend (React)
-
-1. Install the required packages:
-
-```bash
-npm install
-```
-
-2. Run the frontend app:
-
-```bash
-npm start
-```
-
-### Docker Integration
-
-To simplify the setup and management of both backend and frontend containers, you can use the provided `Makefile` commands. Here are the common commands:
-
-#### Start Containers
-
-To start the containers in the background:
+### 1. Backend (Docker)
 
 ```bash
 make up
+````
+
+Runs:
+
+* Django backend
+* PostgreSQL
+* Redis
+
+Backend:
+
+```
+http://localhost:8001
 ```
 
-#### Stop Containers
+---
 
-To stop the containers:
+### 2. Frontend (Recommended: local dev)
 
 ```bash
-make down
+cd frontend
+npm install
+npm run dev
 ```
 
-#### Build Containers
+Frontend:
 
-To rebuild the containers:
+```
+http://localhost:3000
+```
+
+---
+
+### 3. Full stack (optional)
 
 ```bash
-make build
+make up-full
 ```
 
-#### View Logs
+Includes:
 
-To view the logs of the containers in real-time:
+* backend
+* database
+* redis
+* celery workers
+* frontend (docker mode)
 
-```bash
-make logs
+---
+
+## 📡 WebSocket (Real-time Chat)
+
+```text
+ws://localhost:8001/ws/chat/<room_id>/?token=<JWT>
 ```
 
-#### Restart Project
+Features:
 
-To restart the project (stop, build, start, and view logs):
+* JWT-authenticated WebSocket connection
+* automatic reconnect logic
+* real-time message broadcasting
 
-```bash
-make restart
+---
+
+## 🔧 Tech Stack
+
+**Backend:**
+
+* Django
+* Django REST Framework
+* Django Channels
+* PostgreSQL
+* Redis
+
+**Frontend:**
+
+* React
+* Webpack
+* Axios
+* SCSS
+
+**DevOps:**
+
+* Docker
+* Docker Compose
+* Makefile automation
+
+---
+
+## 🧩 Design Decisions
+
+### Why Django Channels?
+
+Used to enable real-time WebSocket communication for chat and future game events.
+
+### Why feature-based frontend structure?
+
+To improve scalability and maintainability as the project grows.
+
+### Why Docker only for backend?
+
+Frontend runs locally for:
+
+* faster hot reload
+* lower resource usage
+* better DX during development
+
+---
+
+## 📈 Future Improvements
+
+* turn-based combat system
+* AI-generated story scenarios (LLM integration)
+* game state persistence per room
+* matchmaking system
+* observability (logging + metrics)
+
+---
+
+## 👨‍💻 Author
+
+Marcin Potoczny
+
+---
+
+## 🧠 Project Status
+
+MVP stage:
+
+* authentication complete
+* real-time chat working
+* modular backend architecture implemented
+* frontend fully refactored
+
+Next milestone:
+👉 game mechanics layer (events + combat system)
+
 ```
 
-#### Access Backend (Django) Container
-
-To enter the backend (Django) container:
-
-```bash
-make backend
-```
-
-#### Access Frontend (React) Container
-
-To enter the frontend (React) container:
-
-```bash
-make frontend
-```
-
-#### Django Migrations
-
-To apply Django migrations:
-
-```bash
-make migrate
-```
-
-#### Generate Django Migrations
-
-To generate Django migrations:
-
-```bash
-make makemigrations
-```
-
-#### Collect Static Files (Django)
-
-To collect static files in Django:
-
-```bash
-make collectstatic
-```
-
-#### Create Django Superuser
-
-To create a Django superuser:
-
-```bash
-make createsuperuser
-```
-
-#### Backend Testing
-
-To run backend tests:
-
-```bash
-make test-backend
-```
-
-#### Frontend Testing
-
-To run frontend tests:
-
-```bash
-make test-frontend
-```
-
-#### View Container Status
-
-To view the status of the containers:
-
-```bash
-make ps
-```
-
-## Collaboration
-
-If you want to contribute to the project:
-
-1. Clone the repository.
-2. Create a new branch:
-
-```bash
-git checkout -b feature/my-feature
-```
-
-3. Make changes and commit them.
-4. Push changes to your fork:
-
-```bash
-git push origin feature/my-feature
-```
-
-5. Create a pull request.
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
-## Authors
-
-- Marcin Potoczny
-
-## Architecture Diagram
-
-          +---------------------+
-          |     Frontend        |
-          |  (React + SCSS)     |
-          |---------------------|
-          | Runs in Docker      |
-          | Communicates via    |
-          | HTTP/HTTPS (REST)   |
-          +----------+----------+
-                     |
-                     v
-          +---------------------+
-          |      Backend        |
-          |  (Django + DRF)     |
-          |---------------------|
-          | REST API & JWT Auth |
-          | Django Channels     |
-          | Runs in Docker      |
-          +----------+----------+
-                     |
-    +----------------+----------------+
-    |                                 |
-    v                                 v
-
-+------------------+ +---------------------+
-| Database         | | WebSockets Server  |
-| (SQLite/PG)      | | (Django Channels)  |
-+------------------+ +---------------------+
-
-Jeśli chcesz, mogę jeszcze dorzucić diagram architektury albo dodać przykład `.env.development`. Chcesz coś takiego?
+---
