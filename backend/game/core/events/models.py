@@ -1,6 +1,6 @@
 from django.db import models
-from accounts.users.models import CustomUser
-from adventures.models import Adventure, Location
+from users.models import CustomUser
+from world.models import Adventure, Location
 
 class GameEvent(models.Model):
     EVENT_TYPES = [

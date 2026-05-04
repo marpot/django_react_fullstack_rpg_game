@@ -1,6 +1,5 @@
 from django.db import models
-from adventures.models import Adventure, Location
-from accounts.characters.models import PlayerCharacter
+from accounts.models import PlayerCharacter
 
 class GameSession(models.Model):
     player = models.ForeignKey(PlayerCharacter, on_delete=models.CASCADE, related_name="sessions")
@@ -25,9 +24,9 @@ class GameEvent(models.Model):
     ]
 
     # Basic fields
-    adventure = models.ForeignKey(Adventure, on_delete=models.CASCADE, related_name="game_events")
+    adventure = models.ForeignKey('world.Adventure', on_delete=models.CASCADE, related_name="game_events")
     player = models.ForeignKey(PlayerCharacter, on_delete=models.CASCADE, related_name="game_events")
-    location = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True, blank=True, related_name="game_events")
+    location = models.ForeignKey('world.Location', on_delete=models.SET_NULL, null=True, blank=True, related_name="game_events")
     description = models.TextField()
     event_type = models.CharField(max_length=20, choices=EVENT_TYPES, default='story')
     timestamp = models.DateTimeField(auto_now_add=True)

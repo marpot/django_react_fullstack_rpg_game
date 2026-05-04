@@ -1,71 +1,74 @@
 services:
   db:
     image: postgres:14
-    env_file:
-      - .env.development
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: django_rpg
     volumes:
       - db_data:/var/lib/postgresql/data
-    hostname: db
-    networks:
-      - rpg_network
     ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "django_rpg", "-h", "db", "-p", "5432"]
-      interval: 10s
-      retries: 5
-      start_period: 10s
-      timeout: 5s
+      - "5433:5432"
+    networks:
+      - backend_net
 
   redis:
-    image: redis:latest
+    image: redis:7
     restart: always
-    ports:
-      - "6379:6379"
     networks:
-      - rpg_network
-    env_file:
-      - .env.development
+      - backend_net
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    build: ./backend
     env_file:
-      - .env.development
-    ports:
-      - "8000:8000"
+      - .env.docker
     volumes:
       - ./backend:/app
-      - ./backend/wait-for-it.sh:/app/wait-for-it.sh
+    ports:
+      - "8001:8000"
+    command: /app/entrypoints/web.sh
     depends_on:
       - db
       - redis
-    command: bash -c "./wait-for-it.sh db:5432 -- python manage.py migrate --noinput && daphne -b 0.0.0.0 -p 8000 rpg_project.asgi:application"
+    restart: unless-stopped
     networks:
-      - rpg_network
+      - backend_net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
+  celery:
+    build: ./backend
     env_file:
-      - .env.development
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - .env.docker
+    command: celery -A app worker -l info --concurrency=1
     depends_on:
-      - backend
+      - db
+      - redis
+    restart: unless-stopped
     networks:
-      - rpg_network
-    environment:
-      - CHOKIDAR_USEPOLLING=true
+      - backend_net
+    profiles: ["full"]
+
+  celery-beat:
+    build: ./backend
+    env_file:
+      - .env.docker
+    command: celery -A app beat -l info --max-interval=30
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    networks:
+      - backend_net
+    profiles: ["full"]
+
+networks:
+  backend_net:
+    driver: bridge
 
 volumes:
   db_data:
-
-networks:
-  rpg_network:
-    driver: bridge

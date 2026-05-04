@@ -1,6 +1,7 @@
 import pytest
-from accounts.users.models import CustomUser
-from game.models import PlayerCharacter, GameEvent, GameSession
+from users.models import CustomUser
+from accounts.models import PlayerCharacter
+from game.models import GameEvent, GameSession
 from game.tests.conftest import test_adventure, test_user
 
 @pytest.fixture

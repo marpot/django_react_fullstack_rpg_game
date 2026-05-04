@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import axios from 'axios';
+import { api } from '../../api/client'
 
 const useCreateRoomForm = (onRoomCreated: () => void) => {
-  const [roomName, setRoomName] = useState<string>('');
+  const [roomName, setRoomName] = useState('');
   const [adventureId, setAdventureId] = useState<number | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -18,44 +18,33 @@ const useCreateRoomForm = (onRoomCreated: () => void) => {
       return;
     }
 
-    const token = localStorage.getItem('access');
-    
-    if (!token) {
-      setError('Brak tokenu autoryzacyjnego.');
-      setLoading(false);
-      return;
-    }
-
     try {
-      const response = await axios.post(
-        'http://localhost:8000/api/chat/rooms/',
-        {
-          name: roomName,
-          adventure: adventureId ?? null,
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          withCredentials: true,
-        }
-      );
+      const response = await api.post('/chat/rooms/', {
+        name: roomName,
+        adventure: adventureId ?? null,
+      });
 
       if (response.status === 201) {
         setRoomName('');
         setAdventureId(null);
         onRoomCreated();
-      } else {
-        setError('Nie udało się utworzyć pokoju. Spróbuj ponownie później.');
       }
-    } catch (error: any) {
-      setError('Nie udało się utworzyć pokoju. Spróbuj ponownie później.');
+    } catch (error) {
+      setError('Nie udało się utworzyć pokoju.');
     } finally {
       setLoading(false);
     }
   };
 
-  return { roomName, setRoomName, adventureId, setAdventureId, handleSubmit, loading, error };
+  return {
+    roomName,
+    setRoomName,
+    adventureId,
+    setAdventureId,
+    handleSubmit,
+    loading,
+    error
+  };
 };
 
-export default useCreateRoomForm; 
+export default useCreateRoomForm;

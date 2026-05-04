@@ -59,13 +59,15 @@ class GameEventViewSet(viewsets.ModelViewSet):
 
         return queryset
     
-    @action(detail=False, methods=['get'], url_path='history/(?P<location_id>\d+)')
-    def history(self, request, location_id):
-        """
-        Zwraca historię zdarzeń w porządku malejącym dla danej lokacji.
-        Endpoint: /api/events/history/{location_id}/
-        """
-        events = GameEvent.objects.filter(location_id=location_id).order_by('-timestamp')
+    @action(detail=False, methods=['get'])
+    def history(self, request):
+        location_id = request.query_params.get('location_id')
+
+        if location_id:
+            events = GameEvent.objects.filter(location_id=location_id).order_by('-timestamp')
+        else:
+            events = GameEvent.objects.none()
+
         serializer = GameEventSerializer(events, many=True)
         return Response(serializer.data)
 

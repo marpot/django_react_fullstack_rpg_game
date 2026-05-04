@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from adventures.models import Adventure
+from world.models import Adventure
 
 class Room(models.Model):
     name = models.CharField(max_length=255, unique=True)

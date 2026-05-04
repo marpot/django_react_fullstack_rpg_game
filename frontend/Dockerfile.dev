@@ -1,5 +1,5 @@
 # Użycie lekkiego obrazu Node.js
-FROM node:16-alpine
+FROM node:18-alpine
 
 # Ustaw katalog roboczy
 WORKDIR /app
@@ -20,4 +20,4 @@ ENV NODE_ENV=development
 EXPOSE 3000
 
 # Uruchom dev server
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]

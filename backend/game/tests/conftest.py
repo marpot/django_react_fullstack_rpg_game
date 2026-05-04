@@ -1,7 +1,7 @@
 import pytest
-from adventures.models import Adventure
-from accounts.users.models import CustomUser
-from game.models import Location
+from world.models import Adventure
+from users.models import CustomUser
+from world.models import Location
 
 @pytest.fixture
 def test_adventure(db, test_user):

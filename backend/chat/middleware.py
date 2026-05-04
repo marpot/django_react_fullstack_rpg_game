@@ -1,9 +1,5 @@
 import os
 import django
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'rpg_project.settings')
-django.setup()
-
 from urllib.parse import parse_qs
 from channels.middleware import BaseMiddleware
 from django.contrib.auth.models import AnonymousUser
@@ -13,6 +9,10 @@ from django.contrib.auth import get_user_model
 from jwt import decode as jwt_decode
 from django.conf import settings
 from channels.db import database_sync_to_async
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'rpg_project.settings')
+django.setup()
+
 
 User = get_user_model()
 

@@ -1,51 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AxiosResponse } from 'axios'; // Zmieniony import
 
 import RoomList from '../components/RoomList';
-import ChatLobby from '../components/Chat/ChatLobby';
+import Chat from '../features/chat/Chat';
 import CreateRoomForm from '../components/CreateRoomForm';
 
-import axios from '../axiosConfig'; // Zmieniony import
+import { api } from '../api/client';
+
 import 'bulma/css/bulma.min.css';
 import { Room } from '../../types/types';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [showCreateRoomForm, setShowCreateRoomForm] = useState<boolean>(false);
-
-  const Authorization = 'Authorization';
-  const token = localStorage.getItem('access'); 
 
   useEffect(() => {
-    axios.get<Room[]>('/api/chat/rooms/', { 
-      headers: {
-        [Authorization]: `Bearer ${token}`,
-      }
-    })
-      .then((response: AxiosResponse<Room[]>) => {
+    const fetchRooms = async () => {
+      try {
+        setLoading(true);
+
+        // ✔ ZMIANA 1: axios instance (OK)
+        const response = await api.get<Room[]>('/chat/rooms/');
+
         console.log("📌 Otrzymane dane:", response.data);
 
-        if (Array.isArray(response.data)) {
-          const updatedRooms: Room[] = response.data.map((room: any) => ({
-            id: String(room.id),  // Zamiana id na string
-            name: room.name ?? 'Nieznana nazwa',
-            adventure: String(room.adventure ?? ''), // Zamiana adventure na string
-          }));
-          setRooms(updatedRooms);
-        } else {
-          setError("Błąd podczas przetwarzania danych.");
-        }
-        setLoading(false);
-      })
-      .catch(error => {
-        setError("Błąd podczas pobierania pokoi.");
-        setLoading(false);
+        // ✔ ZMIANA 2: usunięcie ręcznego mapowania stringów (opcjonalne)
+        setRooms(response.data);
+
+      } catch (error) {
         console.error(error);
-      });
+        setError("Błąd podczas pobierania pokoi.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRooms();
   }, []);
 
   const navigateToRoom = (roomId: string) => {
@@ -56,35 +49,43 @@ const Dashboard = () => {
     navigate(`/room/${roomId}`);
   };
 
-  const handleRoomCreated = () => {
-    setShowCreateRoomForm(false);
-  };
-
   return (
     <div className="hero is-fullheight">
-      <div className="hero-body is-fullheight has-background-dark">
+      <div className="hero-body has-background-dark">
         <div className="container">
-          <h1 className="title has-text-warning has-text-centered">Labirynt Przygód</h1>
+          <h1 className="title has-text-warning has-text-centered">
+            Labirynt Przygód
+          </h1>
 
-          {loading && <div className="notification is-info">Ładowanie...</div>}
-          {error && <div className="notification is-danger">{error}</div>}
+          {loading && (
+            <div className="notification is-info">Ładowanie...</div>
+          )}
+
+          {error && (
+            <div className="notification is-danger">{error}</div>
+          )}
+
           <div className="columns">
             <div className="column is-6">
-              <div className="box has-background-dark has-text-black">
+              <div className="box has-background-dark">
                 {!loading && rooms.length === 0 ? (
-                  <p className="has-text-centered">Brak dostępnych pokoi.</p>
+                  <p className="has-text-centered">
+                    Brak dostępnych pokoi.
+                  </p>
                 ) : (
                   <RoomList rooms={rooms} onRoomClick={navigateToRoom} />
                 )}
               </div>
             </div>
+
             <div className="column is-6">
-              <div className="box has-background-dark has-text-black">
+              <div className="box has-background-dark">
                 <h2 className="title has-text-primary">Poczekalnia</h2>
-                <ChatLobby />
+                <Chat />
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>

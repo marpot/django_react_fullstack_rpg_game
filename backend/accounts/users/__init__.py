@@ -1,1 +1,0 @@
-default_app_config = 'accounts.users.apps.UsersConfig' 

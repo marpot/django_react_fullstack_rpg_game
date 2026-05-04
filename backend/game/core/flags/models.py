@@ -1,6 +1,6 @@
 from django.db import models
-from accounts.users.models import CustomUser
-from adventures.models import Adventure
+from users.models import CustomUser
+from world.models import Adventure
 
 class Flag(models.Model):
     adventure = models.ForeignKey(Adventure, on_delete=models.CASCADE)

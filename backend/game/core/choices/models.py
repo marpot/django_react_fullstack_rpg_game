@@ -1,5 +1,5 @@
 from django.db import models
-from accounts.users.models import CustomUser
+from users.models import CustomUser
 from game.core.events.models import GameEvent
 
 class Choice(models.Model):
