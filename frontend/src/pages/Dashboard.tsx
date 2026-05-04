@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AxiosResponse } from 'axios';
 
 import RoomList from '../components/RoomList';
 import Chat from '../features/chat/Chat';
-
 import CreateRoomForm from '../components/CreateRoomForm';
-import axios from '../axiosConfig';
+
+import { api } from '../api/client';
 
 import 'bulma/css/bulma.min.css';
 import { Room } from '../../types/types';
@@ -17,26 +16,20 @@ const Dashboard = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [showCreateRoomForm, setShowCreateRoomForm] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchRooms = async () => {
       try {
         setLoading(true);
 
-        const response: AxiosResponse<Room[]> = await axios.get(
-          '/api/chat/rooms/'
-        );
+        // ✔ ZMIANA 1: axios instance (OK)
+        const response = await api.get<Room[]>('/chat/rooms/');
 
         console.log("📌 Otrzymane dane:", response.data);
 
-        const updatedRooms: Room[] = response.data.map((room: any) => ({
-          id: String(room.id),
-          name: room.name ?? 'Nieznana nazwa',
-          adventure: String(room.adventure ?? ''),
-        }));
+        // ✔ ZMIANA 2: usunięcie ręcznego mapowania stringów (opcjonalne)
+        setRooms(response.data);
 
-        setRooms(updatedRooms);
       } catch (error) {
         console.error(error);
         setError("Błąd podczas pobierania pokoi.");

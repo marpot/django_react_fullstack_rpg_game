@@ -6,33 +6,16 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: django_rpg
-
     volumes:
       - db_data:/var/lib/postgresql/data
-
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-
-    networks:
-      - backend_net
-
     ports:
       - "5433:5432"
+    networks:
+      - backend_net
 
   redis:
     image: redis:7
     restart: always
-
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
     networks:
       - backend_net
 
@@ -40,84 +23,48 @@ services:
     build: ./backend
     env_file:
       - .env.docker
-
     volumes:
       - ./backend:/app
-
     ports:
       - "8001:8000"
-
     command: /app/entrypoints/web.sh
-
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
+      - db
+      - redis
     restart: unless-stopped
-
     networks:
       - backend_net
-
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:8000/health/"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
 
   celery:
     build: ./backend
     env_file:
       - .env.docker
-
-    command: /app/entrypoints/worker.sh
-
+    command: celery -A app worker -l info --concurrency=1
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
+      - db
+      - redis
     restart: unless-stopped
-
     networks:
       - backend_net
+    profiles: ["full"]
 
   celery-beat:
     build: ./backend
     env_file:
       - .env.docker
-
-    command: /app/entrypoints/beat.sh
-
+    command: celery -A app beat -l info --max-interval=30
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
-    restart: unless-stopped
-
-    networks:
-      - backend_net
-
-  frontend:
-    build: 
-      context: ./frontend
-      dockerfile: Dockerfile.dev
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    working_dir: /app
-    command: npm run dev
-    environment:
-      - CHOKIDAR_USEPOLLING=true
+      - db
+      - redis
     restart: unless-stopped
     networks:
       - backend_net
+    profiles: ["full"]
 
 networks:
   backend_net:

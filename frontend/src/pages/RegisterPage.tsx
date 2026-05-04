@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api from '../axiosConfig';
+import { api } from '../api/client'
 import { Link, useNavigate } from 'react-router-dom';
 
 interface RegisterPageProps {
@@ -36,7 +36,7 @@ const RegisterPage: React.FC<RegisterPageProps> = () => {
         setMessage('Rejestracja zakończona sukcesem!');
         setError('');
 
-        setTimeout(() => navigate('/login'), 1000);
+        setTimeout(() => navigate('/'), 1000);
       } 
     } catch (err: any) {
         console.error('REGISTER ERROR:', err);

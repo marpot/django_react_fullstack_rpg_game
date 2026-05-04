@@ -2,6 +2,8 @@
 set -e
 
 echo "🚀 Backend starting..."
+export PYTHONUNBUFFERED=1
+export DJANGO_SETTINGS_MODULE=rpg_project.settings
 
 DB_HOST="${DB_HOST:-db}"
 DB_NAME="${POSTGRES_DB:-django_rpg}"

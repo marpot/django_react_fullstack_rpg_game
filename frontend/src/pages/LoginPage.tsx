@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api from '../axiosConfig';
+import { api } from '../api/client'
 import { useNavigate, Link } from 'react-router-dom';
 import LoginForm from '../components/LoginPage/LoginForm';
 import LoginError from '../components/LoginPage/LoginError';

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ChatSocket } from "../services/chatSocket";
 import { ChatReconnect } from "../logic/chatReconnect";
 import { ChatMessage } from "./useChat";
+import { config } from "../../../config/appConfig";
 
 export const useChatConnection = (roomId: string, username: string) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -29,7 +30,7 @@ export const useChatConnection = (roomId: string, username: string) => {
   const connect = useCallback(() => {
     if (!roomId || !accessToken) return;
 
-    const wsUrl = `${process.env.REACT_APP_WS_URL}/ws/chat/${roomId}/?token=${accessToken}`;
+    const wsUrl = `${config.WS_URL}/ws/chat/${roomId}/?token=${accessToken}`;
 
     socketRef.current?.disconnect();
 

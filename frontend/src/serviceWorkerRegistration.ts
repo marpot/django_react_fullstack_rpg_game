@@ -1,5 +1,5 @@
 // serviceWorkerRegistration.ts
-
+import { config } from "../src/config/appConfig";
 // Rejestracja Service Worker dla PWA
 const isLocalhost = Boolean(
     window.location.hostname === 'localhost' ||

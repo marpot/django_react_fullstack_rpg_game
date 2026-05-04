@@ -1,9 +1,42 @@
 {
     "git.ignoreLimitWarning": true,
+
     "python.testing.pytestArgs": [
         "backend"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-    "makefile.configureOnOpen": true
+    "makefile.configureOnOpen": true,
+
+    "files.watcherExclude": {
+        "**/node_modules/**": true,
+        "**/.git/**": true,
+        "**/build/**": true,
+        "**/dist/**": true,
+        "**/.venv/**": true,
+        "**/__pycache__/**": true,
+        "**/frontend/node_modules/**": true
+    },
+
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/.venv": true,
+        "**/build": true,
+        "**/dist": true,
+        "**/frontend/node_modules": true
+    },
+
+    "files.exclude": {
+        "**/.venv": true,
+        "**/__pycache__": true,
+        "**/frontend/node_modules": true
+    },
+
+    "python.analysis.autoSearchPaths": false,
+    "python.analysis.useLibraryCodeForTypes": false,
+
+    "typescript.tsserver.maxTsServerMemory": 1024,
+
+    "git.autorefresh": false,
+    "search.followSymlinks": false
 }

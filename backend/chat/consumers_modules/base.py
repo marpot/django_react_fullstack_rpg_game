@@ -78,6 +78,15 @@ class BaseConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         raise NotImplementedError
 
+    async def chat_message(self, event):
+        message = event.get("message")
+        username = event.get("username")
+
+        await self.send(text_data=json.dumps({
+            "message": message,
+            "username": username
+            }))
+
     async def send_message(self, message, username):
         await self.channel_layer.group_send(
             self.room_group_name,

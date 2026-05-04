@@ -3,6 +3,7 @@ import EventList from './EventList';
 import EventHistoryLoader from './EventHistoryLoader';
 import EventHistoryError from './EventHistoryError';
 import { GameEventType } from '../../../../types/types';
+import { api } from '../../../api/client'
 
 interface EventHistoryContainerProps {
   roomId: string;
@@ -14,37 +15,34 @@ const EventHistoryContainer: React.FC<EventHistoryContainerProps> = ({ roomId })
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let isMounted = true; // Flaga do zapobiegania wyścigom danych
+    let isMounted = true;
 
     const fetchEvents = async () => {
       try {
-        const response = await fetch(`/api/game/events/history/${roomId}`); 
-        if (!response.ok) {
-          throw new Error('Błąd podczas ładowania wydarzeń');
-        }
-        const data = await response.json();
-        if (isMounted) {
-          setEvents(data);
-          setLoading(false);
-        }
+        const response = await api.get(`/game/events/history/${roomId}`);
+
+        if (!isMounted) return;
+
+        setEvents(response.data);
+        setLoading(false);
       } catch (err: any) {
-        if (isMounted) {
-          setError(err.message);
-          setLoading(false);
-        }
+        if (!isMounted) return;
+
+        setError(err?.message ?? 'Błąd podczas ładowania wydarzeń');
+        setLoading(false); // ❗ BRAKOWAŁO TEGO
       }
     };
 
     fetchEvents();
 
     return () => {
-      isMounted = false; // Czyszczenie efektu
+      isMounted = false;
     };
-  }, [roomId]); // roomId jako zależność
+  }, [roomId]);
 
   if (loading) return <EventHistoryLoader />;
   if (error) return <EventHistoryError message={error} />;
-  
+
   return <EventList events={events} />;
 };
 
