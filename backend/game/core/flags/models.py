@@ -1,5 +1,5 @@
 from django.db import models
-from accounts.users.models import CustomUser
+from users.models import CustomUser
 from world.models import Adventure
 
 class Flag(models.Model):

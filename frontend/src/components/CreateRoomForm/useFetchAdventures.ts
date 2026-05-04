@@ -1,46 +1,18 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../../api/client'
 
 const useFetchAdventures = () => {
   const [adventures, setAdventures] = useState<{ id: number; title: string }[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAdventures = async () => {
-      setLoading(true);
       try {
-        const token = localStorage.getItem('token') || 
-                     localStorage.getItem('access') || 
-                     localStorage.getItem('accessToken');
-        
-        console.log('Token:', token);
-
-        if (!token) {
-          setError('Brak tokenu autoryzacyjnego.');
-          setLoading(false);
-          return;
-        }
-
-        const response = await axios.get('http://localhost:8001/api/adventures/', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          withCredentials: true
-        });
-
-        console.log('Response:', response);
-
-        if (response.data) {
-          setAdventures(response.data);
-        } else {
-          setError('Nie udało się pobrać przygód.');
-        }
+        const response = await api.get('/adventures/');
+        setAdventures(response.data);
       } catch (err) {
-        console.error('Error:', err);
-        setError('Nie udało się pobrać przygód.');
+        setError('Błąd podczas pobierania przygód');
       } finally {
         setLoading(false);
       }

@@ -1,8 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Chat from '../components/Chat/ChatRoom';
-import './css/RoomPage.css';
-import { Room } from '../../types/types';
+import Chat from '../features/chat/Chat';
 import EventHistoryContainer from '../components/Room/EventHistory/EventHistoryContainer';
 
 

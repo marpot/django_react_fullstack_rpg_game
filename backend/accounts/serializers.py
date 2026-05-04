@@ -1,9 +1,11 @@
 from rest_framework import serializers
-from django.contrib.auth import get_user_model  							# Używamy get_user_model, aby odwołać się do niestandardowego modelu użytkownika, jeśli jest zdefiniowany
-from rest_framework_simplejwt.tokens import RefreshToken  					# Importujemy RefreshToken, który będzie generować tokeny JWT
+from django.contrib.auth import get_user_model
 from .models import PlayerCharacter
+import logging
 
-User = get_user_model()  # Przypisujemy do zmiennej User model użytkownika
+logger = logging.getLogger(__name__)
+User = get_user_model()
+
 
 class PlayerCharacterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -19,7 +21,6 @@ class PlayerCharacterSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        # Inicjalizacja pól JSON jeśli nie są podane
         if 'equipment' not in validated_data:
             validated_data['equipment'] = {}
         if 'inventory' not in validated_data:
@@ -32,34 +33,71 @@ class PlayerCharacterSerializer(serializers.ModelSerializer):
             validated_data['progress'] = {}
         return super().create(validated_data)
 
+
 class UserRegisterSerializer(serializers.ModelSerializer):
-    username = serializers.CharField() 
-    password = serializers.CharField(write_only=True)  						# Zdefiniowanie pola hasła jako tylko do zapisu (write_only=True)
+    password = serializers.CharField(write_only=True)
 
     class Meta:
-        model = User  														# Określamy, że ten serializer dotyczy modelu User
-        fields = ['username', 'email', 'password']  						# Pola, które będą używane w rejestracji
+        model = User
+        fields = ['username', 'email', 'password']
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)  					# Nadpisujemy metodę create, aby stworzyć użytkownika
-        return user  														# Zwracamy stworzonego użytkownika
-
-class UserLoginSerializer(serializers.Serializer):
-    username = serializers.CharField()  									# Pole dla nazwy użytkownika
-    password = serializers.CharField()  									# Pole dla hasła
+        user = User.objects.create_user(**validated_data)
+        return user
 
     def validate(self, attrs):
-        username = attrs.get('username')  									# Pobieramy dane wejściowe z atrybutów
-        password = attrs.get('password')  									# Pobieramy dane wejściowe z atrybutów
+        if User.objects.filter(username=attrs['username']).exists():
+            raise serializers.ValidationError({"username": "Username already exists"})
+        
+        if User.objects.filter(email=attrs['email']).exists():
+            raise serializers.ValidationError({"email": "Email already exists"})
+            
+        return attrs
 
-        user = User.objects.filter(username=username).first()  				# Szukamy użytkownika w bazie danych po nazwie użytkownika
+#LEGACY CODE - DO NOT DELETE
+# class UserLoginSerializer(serializers.Serializer):
+#     username = serializers.CharField(required=False, allow_blank=True)
+#     email = serializers.EmailField(required=False, allow_blank=True)
+#     password = serializers.CharField()
 
-        if not user or not user.check_password(password):  					# Jeśli użytkownik nie istnieje lub hasło jest niepoprawne, zgłaszamy błąd
-            raise serializers.ValidationError("Invalid credentials")  		# Zgłaszamy błąd walidacji, jeśli dane są niepoprawne
+#     def validate(self, attrs):
+#         username = attrs.get("username")
+#         email = attrs.get("email")
+#         password = attrs.get("password")
 
-        refresh = RefreshToken.for_user(user)  								# Jeśli wszystko jest w porządku (użytkownik istnieje, hasło poprawne), tworzymy tokeny JWT
-        return {  															# Zwracamy oba tokeny: refresh i access (token odświeżania i dostępowy)
-            'refresh': str(refresh),  										# Zwracamy token odświeżania jako string
-            'access': str(refresh.access_token),  	
-            'userId': user.id,			                                    # Zwracamy userId			
-        }
+#         logger.info(f"LOGIN ATTEMPT: username={username}, email={email}")
+
+#         if not password:
+#             logger.warning("LOGIN FAILED: missing password")
+#             raise serializers.ValidationError({"detail": "Password is required"})
+
+#         if not username and not email:
+#             logger.warning("LOGIN FAILED: missing identifier")
+#             raise serializers.ValidationError({
+#                 "detail": "Provide username or email"
+#             })
+
+#         user = None
+
+#         if email:
+#             user = User.objects.filter(email=email).first()
+#         else:
+#             user = User.objects.filter(username=username).first()
+
+#         if not user:
+#             logger.warning(f"LOGIN FAILED: user not found ({username or email})")
+#             raise serializers.ValidationError({
+#                 "detail": "Invalid credentials"
+#             })
+
+#         if not user.check_password(password):
+#             logger.warning(f"LOGIN FAILED: wrong password ({user.username})")
+#             raise serializers.ValidationError({
+#                 "detail": "Invalid credentials"
+#             })
+
+#         logger.info(f"LOGIN SUCCESS: user_id={user.id}")
+
+#         return {
+#             "user": user
+#         }

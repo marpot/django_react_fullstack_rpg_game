@@ -1,58 +1,82 @@
-# Start kontenerów w tle
+# ========== CONFIG ==========
+COMPOSE=docker compose --env-file .env.development -f docker-compose.yml
+
+# ========== START / STOP ==========
+
+# Lekki tryb (codzienna praca)
 up:
-	docker compose --env-file .env.development -f docker compose.yml up -d
+	$(COMPOSE) up -d backend db redis
 
-# Zatrzymanie kontenerów
+# Pełny stack (frontend + celery)
+up-full:
+	$(COMPOSE) --profile full up -d
+
+# Stop wszystkiego
 down:
-	docker compose down
+	$(COMPOSE) down
 
-# Budowanie kontenerów
-build:
-	COMPOSE_BAKE=true docker compose build
-
-# Podgląd logów na żywo
-logs:
-	docker compose logs -f
-
-# Restart projektu - zatrzymaj, zbuduj, uruchom, pokaż logi
+# Restart (lekki)
 restart:
-	docker compose down
-	COMPOSE_BAKE=true docker compose build
-	docker compose up -d
-	docker compose logs -f
+	$(COMPOSE) down
+	COMPOSE_BAKE=true $(COMPOSE) build
+	$(COMPOSE) up -d backend db redis
 
-# Wejście do kontenera backend (Django)
+# Restart full stack
+restart-full:
+	$(COMPOSE) down
+	COMPOSE_BAKE=true $(COMPOSE) build
+	$(COMPOSE) --profile full up -d
+
+# ========== BUILD ==========
+
+build:
+	COMPOSE_BAKE=true $(COMPOSE) build
+
+# ========== LOGS ==========
+
+logs:
+	$(COMPOSE) logs -f
+
+logs-backend:
+	$(COMPOSE) logs -f backend
+
+logs-celery:
+	$(COMPOSE) logs -f celery
+
+# ========== SHELL ==========
+
 backend:
-	docker compose exec backend bash
+	$(COMPOSE) exec backend bash
 
-# Wejście do kontenera frontend (React)
 frontend:
-	docker compose exec frontend sh
+	$(COMPOSE) exec frontend sh
 
-# Migracje Django
+# ========== DJANGO ==========
+
 migrate:
-	docker compose exec backend python manage.py migrate
+	$(COMPOSE) exec backend python manage.py migrate
 
-# Generowanie migracji Django
 makemigrations:
-	docker compose exec backend python manage.py makemigrations
+	$(COMPOSE) exec backend python manage.py makemigrations
 
-# Zbieranie staticfiles Django
 collectstatic:
-	docker compose exec backend python manage.py collectstatic --noinput
+	$(COMPOSE) exec backend python manage.py collectstatic --noinput
 
-# Tworzenie superusera Django
 createsuperuser:
-	docker compose exec backend python manage.py createsuperuser
+	$(COMPOSE) exec backend python manage.py createsuperuser
 
-# Testowanie backendu (Django)
+# ========== TESTY ==========
+
 test-backend:
-	docker compose exec backend python manage.py test
+	$(COMPOSE) exec backend python manage.py test
 
-# Testowanie frontendu (React)
 test-frontend:
-	docker compose exec frontend npm test
+	$(COMPOSE) exec frontend npm test
 
-# Podgląd statusu kontenerów
+# ========== DEBUG ==========
+
 ps:
-	docker compose ps
+	$(COMPOSE) ps
+
+stats:
+	docker stats

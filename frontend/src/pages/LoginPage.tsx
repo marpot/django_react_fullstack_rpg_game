@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from '../axiosConfig';
+import { api } from '../api/client'
 import { useNavigate, Link } from 'react-router-dom';
 import LoginForm from '../components/LoginPage/LoginForm';
 import LoginError from '../components/LoginPage/LoginError';
@@ -10,10 +10,12 @@ const LoginPage: React.FC = () => {
 
   const handleSubmit = async ({ username, password }: { username: string; password: string }) => {
     try {
-      const response = await axios.post(`/api/accounts/login/`, {
+      const response = await api.post(`/accounts/login/`, {
         username,
         password,
       });
+      
+      console.log('✅ LOGIN OK:', response.data);
 
       const { access, refresh } = response.data;
       localStorage.setItem('access_token', access);

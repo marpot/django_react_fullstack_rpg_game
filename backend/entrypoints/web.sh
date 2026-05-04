@@ -2,6 +2,8 @@
 set -e
 
 echo "🚀 Backend starting..."
+export PYTHONUNBUFFERED=1
+export DJANGO_SETTINGS_MODULE=rpg_project.settings
 
 DB_HOST="${DB_HOST:-db}"
 DB_NAME="${POSTGRES_DB:-django_rpg}"
@@ -43,5 +45,6 @@ python manage.py migrate --noinput
 echo "📦 Collecting static..."
 python manage.py collectstatic --noinput
 
-echo "🚀 Starting server..."
-exec python manage.py runserver 0.0.0.0:8000
+echo "🚀 Starting ASGI server (Daphne)..."
+
+exec daphne -b 0.0.0.0 -p 8000 rpg_project.asgi:application
