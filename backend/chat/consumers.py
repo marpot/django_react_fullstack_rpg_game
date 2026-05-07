@@ -1,3 +1,4 @@
-from .consumers_modules import chat_consumer, game_consumer
+from .consumers_modules.chat_consumer import ChatConsumer
+from .consumers_modules.game_consumer import GameConsumer
 
-__all__ = ['chat_consumer', 'game_consumer']
+__all__ = ["ChatConsumer", "GameConsumer"]
