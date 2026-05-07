@@ -40,16 +40,20 @@ class PlayerCharacter(models.Model):
     dexterity = models.IntegerField(default=10)
     intelligence = models.IntegerField(default=10)
 
-    current_location = models.CharField(
-        max_length=100,
+    adventure = models.ForeignKey(
+        "world.Adventure",
+        on_delete=models.SET_NULL,
         null=True,
-        blank=True
+        blank=True,
+        related_name="players"
     )
 
-    adventure = models.CharField(
-        max_length=100,
+    current_location = models.ForeignKey(
+        "world.Location",
+        on_delete=models.SET_NULL,
         null=True,
-        blank=True
+        blank=True,
+        related_name="players"
     )
 
     stats = models.JSONField(default=dict)

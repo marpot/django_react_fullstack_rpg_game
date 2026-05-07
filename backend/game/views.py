@@ -1,30 +1,122 @@
-from django.shortcuts import render
 from rest_framework import viewsets, filters, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
 from .models import GameSession, GameEvent
 from .serializers import GameSessionSerializer, GameEventSerializer
 
+from game.services.combat_service import CombatService
+from game.services.dice_service import DiceService
+
+
 class GameSessionViewSet(viewsets.ModelViewSet):
     """
-    ViewSet do zarządzania sesjami gry.
-    ModelViewSet automatycznie tworzy wszystkie endpointy CRUD:
-    - GET /api/sessions/ - lista wszystkich sesji
-    - POST /api/sessions/ - tworzenie nowej sesji
-    - GET /api/sessions/{id}/ - szczegóły sesji
-    - PUT/PATCH /api/sessions/{id}/ - aktualizacja sesji
-    - DELETE /api/sessions/{id}/ - usunięcie sesji
+    GameSession API ViewSet.
+
+    Handles lifecycle of game sessions and triggers gameplay actions.
+
+    Responsibilities:
+        - CRUD for GameSession
+        - Trigger combat via /fight/ endpoint
+
+    Endpoints:
+        GET    /api/sessions/          - list sessions
+        POST   /api/sessions/          - create session
+        GET    /api/sessions/{id}/     - retrieve session
+        PUT    /api/sessions/{id}/     - update session
+        DELETE /api/sessions/{id}/     - delete session
+
+    Custom actions:
+        POST /api/sessions/{id}/fight/ - simulate combat encounter
+
+    Notes:
+        Business logic is delegated to service layer (CombatService).
+        ViewSet only orchestrates request/response flow.
     """
+
     queryset = GameSession.objects.all()
     serializer_class = GameSessionSerializer
 
+    def _resolve_fight(self, attacker, defender):
+        """
+        Resolves combat using service layer.
+
+        Flow:
+            - Initializes DiceService (Random Number Generator)
+            - Passes dependencies to CombatService
+            - Executes combat rules
+
+        Returns:
+            CombatResult: result of fight simulation
+        """
+        dice = DiceService(seed=1)
+        combat = CombatService(dice)
+        return combat.resolve(attacker, defender)
+
+    @action(detail=True, methods=['post'])
+    def fight(self, request, pk=None):
+        """
+        Triggers combat encounter for current session.
+
+        Request:
+            enemy - target entity (temporary placeholder)
+
+        Process:
+            1. Get session player
+            2. Resolve combat via service layer
+            3. Save result as GameEvent
+            4. Return combat outcome
+
+        Returns:
+            JSON with CombatResult data
+        """
+        session = self.get_object()
+
+        attacker = session.player
+        defender = request.data.get("enemy")
+
+        result = self._resolve_fight(attacker, defender)
+
+        GameEvent.objects.create(
+            player=session.player,
+            description=f"Fight result: {result.winner}",
+            event_type="combat",
+            event_data={
+                "attacker_damage": result.attacker_damage,
+                "defender_damage": result.defender_damage,
+            }
+        )
+
+        return Response({
+            "result": result.__dict__,
+        })
+
+
 class GameEventViewSet(viewsets.ModelViewSet):
     """
-    ViewSet do zarządzania zdarzeniami w grze.
-    Rozszerza ModelViewSet o dodatkowe funkcje filtrowania i wyszukiwania.
+    GameEvent API ViewSet.
+
+    Provides access to game world events and supports:
+        - filtering
+        - searching
+        - ordering
+        - history retrieval
+
+    Endpoints:
+        GET    /api/events/
+        GET    /api/events/{id}/
+        POST   /api/events/
+        PUT    /api/events/{id}/
+        DELETE /api/events/{id}/
+
+    Custom actions:
+        GET  /api/events/history/
+        POST /api/events/{id}/add_choice/
     """
+
     queryset = GameEvent.objects.all()
     serializer_class = GameEventSerializer
+
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['description', 'event_type']
     ordering_fields = ['timestamp']
@@ -32,23 +124,26 @@ class GameEventViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        Nadpisuje domyślną metodę do pobierania danych.
-        Pozwala na filtrowanie zdarzeń po różnych parametrach.
+        Filters events based on query parameters.
 
-        Przykłady użycia:
-        - /api/events/?player=1 - zdarzenia dla konkretnego gracza
-        - /api/events/?adventure=1 - zdarzenia dla konkretnej przygody
-        - /api/events/?event_type=story - zdarzenia określonego typu
+        Supported filters:
+            - player (int)
+            - adventure (int)
+            - event_type (str)
+
+        Returns:
+            QuerySet[GameEvent]
         """
         queryset = GameEvent.objects.all()
-        player_id = self.request.query_params.get('player', None)
-        adventure_id = self.request.query_params.get('adventure', None)
-        event_type = self.request.query_params.get('event_type', None)
+
+        player_id = self.request.query_params.get('player')
+        adventure_id = self.request.query_params.get('adventure')
+        event_type = self.request.query_params.get('event_type')
 
         if player_id and not player_id.isdigit():
-            raise serializers.ValidationError('Player ID must be an integer')
+            raise serializers.ValidationError('Player ID must be integer')
         if adventure_id and not adventure_id.isdigit():
-            raise serializers.ValidationError('Adventure ID must be an integer')
+            raise serializers.ValidationError('Adventure ID must be integer')
 
         if player_id:
             queryset = queryset.filter(player_id=player_id)
@@ -58,9 +153,18 @@ class GameEventViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(event_type=event_type)
 
         return queryset
-    
+
     @action(detail=False, methods=['get'])
     def history(self, request):
+        """
+        Returns event history for specific location.
+
+        Query params:
+            location_id (int)
+
+        Returns:
+            List[GameEvent]
+        """
         location_id = request.query_params.get('location_id')
 
         if location_id:
@@ -74,19 +178,21 @@ class GameEventViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def add_choice(self, request, pk=None):
         """
-        Dodatkowa akcja do dodawania wyborów do zdarzenia.
-        Tworzy nowy endpoint: /api/events/{id}/add_choice/
-        
-        Przykład użycia:
-        POST /api/events/1/add_choice/
-        {
-            "text": "Wybierz tę opcję",
-            "next_location": 2,
-            "consequences": {"health": -10}
-        }
+        Adds a choice to a game event.
+
+        Request body:
+            text (str)
+            next_location (int)
+            consequences (dict)
+
+        Endpoint:
+            POST /api/events/{id}/add_choice/
+
+        Delegates logic to serializer.
         """
         event = self.get_object()
         serializer = self.get_serializer(event)
-        choice_data = request.data
-        serializer.add_choice(choice_data)
+
+        serializer.add_choice(request.data)
+
         return Response(serializer.data)

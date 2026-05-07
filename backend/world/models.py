@@ -4,20 +4,34 @@ from django.conf import settings
 class Adventure(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
-    creator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="world")
-    locations = models.ManyToManyField('Location', related_name='world', blank=True)  # Opcjonalne przypisanie lokalizacji
+
+    creator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="world"
+        )
+
     def __str__(self):
         return self.title
 
 class Location(models.Model):
-    adventure = models.ForeignKey(Adventure, on_delete=models.CASCADE, null=True, blank=True)  # Przygoda opcjonalna
+    adventure = models.ForeignKey(
+        Adventure,
+        on_delete=models.CASCADE,
+        related_name="locations",
+        null=True,
+        blank=True)
+
     title = models.CharField(max_length=255)
     description = models.TextField()
     order = models.PositiveIntegerField(default=0)
-    
-    def __str__(self):
-        return self.title if self.adventure is None else f"{self.adventure.title} - {self.title}"
 
+    def __str__(self):
+        return(
+            self.title
+            if self.adventure is None
+            else f"{self.adventure.title} - {self.title}"
+        )
     class Meta:
         verbose_name_plural = "locations"
         ordering = ['order']

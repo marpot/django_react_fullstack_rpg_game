@@ -16,7 +16,7 @@ def test_adventure_serializer():
 
     user = create_user()
 
-    adventure = Adventure.objects.create(title='Test Adventure', description='Test Description')
+    adventure = Adventure.objects.create(title='Test Adventure', description='Test Description', creator=user)
     serializer = AdventureSerializer(adventure)
 
     assert serializer.data['title'] == 'Test Adventure'
@@ -29,7 +29,7 @@ def test_location_serializer():
 
     user = create_user()
 
-    adventure = Adventure.objects.create(title='Test Title', description='Test Description')
+    adventure = Adventure.objects.create(title='Test Title', description='Test Description', creator=user)
     location = Location.objects.create(adventure=adventure, title='Test Title', description='Test Description')
     serialized_location = LocationSerializer(location)
 
@@ -43,7 +43,7 @@ def test_choice_serializer():
     """ Test the serialization of a Choice instance. """
     user = create_user()
 
-    adventure = Adventure.objects.create(title='Test Adventure', description='Test Description')
+    adventure = Adventure.objects.create(title='Test Adventure', description='Test Description', creator=user)
     location = Location.objects.create(adventure=adventure, title='Test Location', description='Test Description')
     choice = Choice.objects.create(location=location, title='Test Choice', description='Test Description')
     serializer = ChoiceSerializer(choice)
@@ -56,6 +56,7 @@ def test_choice_serializer():
 @pytest.mark.django_db
 def test_adventure_serializer_create():
     """ Test the creation of an Adventure instance through AdventureSerializer. """
+    user = create_user()
 
     data = {'title': 'Test Adventure', 'description': 'Test Description'}
     
@@ -63,7 +64,7 @@ def test_adventure_serializer_create():
     
     assert serializer.is_valid()
     
-    adventure = serializer.save()
+    adventure = serializer.save(creator=user)
     
     assert adventure.title == 'Test Adventure'
     assert adventure.description == 'Test Description'
@@ -72,8 +73,9 @@ def test_adventure_serializer_create():
 @pytest.mark.django_db
 def test_location_serializer_create():
     """ Test the creation of a Location instance through LocationSerializer. """
+    user = create_user()
 
-    adventure = Adventure.objects.create(title='Test Adventure', description='Test Description')
+    adventure = Adventure.objects.create(title='Test Adventure', description='Test Description', creator=user)
     
     data = {'title': 'Test Location', 'description': 'Test Description', 'adventure': adventure.id}
     
@@ -91,8 +93,10 @@ def test_location_serializer_create():
 @pytest.mark.django_db
 def test_choice_serializer_create():
     """ Test the creation of a Choice instance through ChoiceSerializer. """
+
+    user = create_user()
     
-    adventure = Adventure.objects.create(title='Test Adventure', description='Test Description')
+    adventure = Adventure.objects.create(title='Test Adventure', description='Test Description', creator=user)
     
     location = Location.objects.create(adventure=adventure, title='Test Location', description='Test Description')
     

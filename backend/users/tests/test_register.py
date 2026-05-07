@@ -6,14 +6,15 @@ from rest_framework.test import APIClient
 @pytest.mark.django_db
 def test_user_register():
     client = APIClient()
+
     data = {
-        'username': 'testuser',
-        'email': 'testuser@example.com',
-        'password': 'testpassword123',
+        "username": "testuser",
+        "email": "testuser@example.com",
+        "password": "testpassword123",
     }
 
-    response = client.post(reverse('register'), data, format='json')
+    response = client.post(reverse("register"), data, format="json")
 
     assert response.status_code == status.HTTP_201_CREATED
-    assert response.data['username'] == data['username']
-    assert response.data['email'] == data['email'] 
+    assert "access" in response.data
+    assert "userId" in response.data
