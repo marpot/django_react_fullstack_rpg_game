@@ -6,19 +6,23 @@ class ChoiceInline(admin.TabularInline):
     extra = 1
     fk_name = 'location'
 
+class LocationInline(admin.TabularInline):
+    model = Location
+    extra = 1
+
 @admin.register(Adventure)
 class AdventureAdmin(admin.ModelAdmin):
     list_display = ('title', 'creator')
-    filter_horizontal = ('locations',)  
-   
+    inlines = [LocationInline]
+
 
 @admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
-    list_display = ('title', 'order') 
+    list_display = ('title', 'order')
     list_filter = ('order',)
     search_fields = ('title',)
     ordering = ['order']
-    inlines = [ChoiceInline]  
+    inlines = [ChoiceInline]
 
 @admin.register(Choice)
 class ChoiceAdmin(admin.ModelAdmin):
