@@ -6,8 +6,8 @@ from .views import  (
 )
 
 urlpatterns = [
-    path('', AdventureListCreateView.as_view(), name='adventure-list-create'),
-    path('<int:pk>/', AdventureDetailView.as_view(), name='adventure-detail'),
+    path('adventures/', AdventureListCreateView.as_view(), name='adventure-list-create'),
+    path('adventures/<int:pk>/', AdventureDetailView.as_view(), name='adventure-detail'),
     
     path('locations/', LocationListCreateView.as_view(), name='location-list-create'),
     path('locations/<int:pk>/', LocationDetailView.as_view(), name='location-detail'),
