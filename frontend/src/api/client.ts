@@ -5,6 +5,9 @@ const PUBLIC_ENDPOINTS = [
   "/auth/register",
   "/auth/login",
   "/auth/refresh",
+];
+
+const LEGACY_PUBLIC_ENDPOINTS = [
   "/accounts/login/",
   "/accounts/register/",
   "/accounts/token/refresh/",
@@ -19,9 +22,9 @@ export const api = axios.create({
 api.interceptors.request.use((request) => {
   const token = localStorage.getItem("access_token");
 
-  const isPublic = PUBLIC_ENDPOINTS.some((url) =>
-    request.url?.includes(url),
-  );
+  const isPublic =
+    PUBLIC_ENDPOINTS.some((url) => request.url?.includes(url)) ||
+    LEGACY_PUBLIC_ENDPOINTS.some((url) => request.url?.includes(url));
 
   if (token && !isPublic) {
     request.headers.Authorization = `Bearer ${token}`;
