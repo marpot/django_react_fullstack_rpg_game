@@ -54,6 +54,7 @@ pyOpenSSL==25.0.0
 PySocks==1.7.1
 
 pytest==8.3.4
+pytest-asyncio
 pytest-django==4.9.0
 
 redis==5.2.1

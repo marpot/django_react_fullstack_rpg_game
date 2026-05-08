@@ -9,7 +9,7 @@ const useFetchAdventures = () => {
   useEffect(() => {
     const fetchAdventures = async () => {
       try {
-        const response = await api.get('/world/adventures');
+        const response = await api.get('/adventures/');
         setAdventures(response.data);
       } catch (err) {
         setError('Błąd podczas pobierania przygód');
