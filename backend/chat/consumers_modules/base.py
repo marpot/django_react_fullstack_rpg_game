@@ -10,33 +10,44 @@ import json
 class BaseConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
+        print("=== WS CONNECT START ===")
+
         self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
         self.room_group_name = self.get_room_group_name()
+
+        print("ROOM:", self.room_name)
 
         token = self.get_token_from_query_string()
 
         if not token:
+            print("NO TOKEN")
             await self.close(code=4001)
             return
 
         try:
             user = await self.authenticate_user(token)
+            print("AUTH USER:", user)
 
         except ExpiredSignatureError:
+            print("TOKEN EXPIRED")
             await self.close(code=4002)
             return
 
         except DecodeError:
+            print("TOKEN INVALID")
             await self.close(code=4003)
             return
 
-        except Exception:
+        except Exception as e:
+            print("AUTH ERROR", e)
             await self.close(code=4004)
             return
 
         self.scope["user"] = user
 
         await self.accept()
+
+        print("WS ACCEPTED")
 
         await self.channel_layer.group_add(
             self.room_group_name,
@@ -96,3 +107,8 @@ class BaseConsumer(AsyncWebsocketConsumer):
                 "username": username,
             }
         )
+
+    async def send_error_message(self, error):
+        await self.send(text_data=json.dumps({
+            "error": error
+        }))
