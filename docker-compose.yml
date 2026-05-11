@@ -25,6 +25,9 @@ services:
       - .env.docker
     volumes:
       - ./backend:/app
+
+    user: "${UID:-1000}:${GID:-1000}"
+    
     ports:
       - "8001:8000"
     command: /app/entrypoints/web.sh

@@ -1,5 +1,5 @@
 # ========== CONFIG ==========
-COMPOSE=docker compose --env-file .env.development -f docker-compose.yml
+COMPOSE=docker compose --env-file .env.docker -f docker-compose.yml
 
 # ========== START / STOP ==========
 
