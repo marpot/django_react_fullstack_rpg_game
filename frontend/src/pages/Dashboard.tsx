@@ -9,6 +9,8 @@ import { api } from '../api/client';
 
 import 'bulma/css/bulma.min.css';
 import { Room } from '../../types/types';
+import useFetchAdventures from 'src/components/CreateRoomForm/useFetchAdventures';
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -16,6 +18,8 @@ const Dashboard = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  const {adventures} = useFetchAdventures();
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -73,7 +77,9 @@ const Dashboard = () => {
                     Brak dostępnych pokoi.
                   </p>
                 ) : (
-                  <RoomList rooms={rooms} onRoomClick={navigateToRoom} />
+                  <RoomList 
+                  rooms={rooms}
+                  onRoomClick={navigateToRoom} />
                 )}
               </div>
             </div>

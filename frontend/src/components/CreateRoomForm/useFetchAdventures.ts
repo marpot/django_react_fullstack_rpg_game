@@ -7,9 +7,13 @@ const useFetchAdventures = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+      console.log('🔥 useFetchAdventures mounted');
     const fetchAdventures = async () => {
       try {
-        const response = await api.get('/adventures/');
+        const response = await api.get('/world/adventures/');
+        
+        console.log('ADVENTURES API RESPONSE:', response.data);
+
         setAdventures(response.data);
       } catch (err) {
         setError('Błąd podczas pobierania przygód');
