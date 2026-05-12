@@ -1,6 +1,7 @@
 import json
 from .base import BaseConsumer
 from game_instances.services.llm.llm_service import LLMService
+from game.core.action_processor import ActionProcessor
 
 
 class GameConsumer(BaseConsumer):
@@ -22,25 +23,12 @@ class GameConsumer(BaseConsumer):
 
             print("LLM Result:", parsed)
 
-            # ===============================
-            # COMBAT SYSTEM (TEMP DISABLED)
-            # ===============================
-            """
-            if parsed["action"] == "attack":
-                attacker = SimplePlayer()
-                defender = SimpleEnemy()
+            processor = ActionProcessor()
 
-                combat = CombatService(DiceService())
-                result = combat.resolve(attacker, defender)
+            result = processor.process(parsed)
 
-                await self.send_message(str(result), username)
-            """
-            # ===============================
-
-
-            # 2. NA RAZIE TYLKO OUTPUT (bez combat, bez modeli)
             await self.send_message(
-                str(parsed),
+                str(result),
                 self.scope["user"].username
             )
 
