@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'django_extensions',
 
     # project apps
+    'game_instances.apps.GameInstancesConfig',
     'users.apps.UsersConfig',
     'accounts.apps.AccountsConfig',   # API layer (login/register)
     'chat.apps.ChatConfig',
