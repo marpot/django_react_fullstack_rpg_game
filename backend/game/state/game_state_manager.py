@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from game.state.runtime.models import Player
 
 @dataclass
 class Enemy:
@@ -12,8 +13,8 @@ class Enemy:
 @dataclass
 class RoomState:
     name: str
-    players: dict = field(default_factory=dict)
-    enemies: dict = field(default_factory=dict)
+    players: dict[int, Player] = field(default_factory=dict)
+    enemies: dict[str, Enemy] = field(default_factory=dict)
 
 class GameStateManager:
     """
@@ -23,6 +24,9 @@ class GameStateManager:
 
     def __init__(self):
         self.rooms: dict[str, RoomState] = {}
+
+    def get_room(self, room_name: str) -> RoomState | None:
+        return self.rooms.get(room_name)
 
     def get_or_create_room(self, room_name: str) -> RoomState:
         if room_name not in self.rooms:
@@ -51,8 +55,16 @@ class GameStateManager:
     
     def get_player(self, room_name: str, user_id: int):
         room = self.get_or_create_room(room_name)
-        return room.players.get(user_id)
+        player = room.players.get(user_id)
+        if player:
+            return player
+        
+        return None
     
-    def add_player(self, room_name: str, user_id: int, player_obj):
+    def add_player(self, room_name: str, user_id: int, player: Player):
         room = self.get_or_create_room(room_name)
-        room.players[user_id] = player_obj
+        room.players[user_id] = player
+
+    def add_enemy(self, room_name: str, enemy):
+        room = self.get_or_create_room(room_name)
+        room.enemies[enemy.id] = enemy
