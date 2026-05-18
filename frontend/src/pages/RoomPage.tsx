@@ -3,38 +3,53 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Chat from '../features/chat/Chat';
 import EventHistoryContainer from '../components/Room/EventHistory/EventHistoryContainer';
 
-
 const RoomPage: React.FC = () => {
-  const { roomId } = useParams<{ roomId: string }>();  // Pobieramy roomId z parametrów URL
+  const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
 
-
   if (!roomId) {
-    return <div>Brak dostępnego pokoju.</div>;  // Jeśli roomId nie istnieje, wyświetl komunikat
+    return <div>Brak dostępnego pokoju.</div>;
   }
 
   return (
-    <div className="room-page columns is-gapless is-fullheight">
+    <div
+      className="room-page columns is-gapless"
+      style={{ height: "100vh", overflow: "hidden" }}
+    >
       <aside className="column is-3 p-4 has-background-grey-dark">
         <h2 className="title is-4 has-text-white">🧙‍♂️ Postacie</h2>
-        <ul className="player-list">
+
+        <ul className="player-list has-text-white">
           <li>Thalion - HP: 20/20</li>
           <li>Grom - HP: 18/25</li>
         </ul>
-        <button className="button is-danger mt-4" onClick={() => navigate('/dashboard')}>⬅ Powrót</button>
+
+        <button
+          className="button is-danger mt-4"
+          onClick={() => navigate('/dashboard')}
+        >
+          ⬅ Powrót
+        </button>
       </aside>
 
       <main className="column is-6 p-4 has-background-dark">
-        <h1 className="title has-text-white has-text-centered">🏰 Pokój: {roomId}</h1>
+        <h1 className="title has-text-white has-text-centered">
+          🏰 Pokój: {roomId}
+        </h1>
+
         <div className="story-log">
           <EventHistoryContainer roomId={roomId} />
         </div>
-        <button className="button is-primary mt-4 ml-5">🎲 Rzuć Kością</button>
+
+        <button className="button is-primary mt-4 ml-5">
+          🎲 Rzuć Kością
+        </button>
       </main>
 
-      <aside className="column is-3 p-4 has-background-grey-dark is-fullheight">
+      <aside className="column is-3 p-4 has-background-grey-dark is-flex is-flex-direction-column">
         <h2 className="title is-4 has-text-white">💬 Czat</h2>
-        <div className="chat-container">
+
+        <div className="chat-container is-flex-grow-1 is-flex is-flex-direction-column" style={{ height: "100%" }}>
           <Chat roomId={roomId} />
         </div>
       </aside>
