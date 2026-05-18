@@ -1,78 +1,39 @@
-import jwt
-from jwt import ExpiredSignatureError, DecodeError
-from django.conf import settings
-from django.contrib.auth import get_user_model
-from urllib.parse import parse_qs
-from channels.generic.websocket import AsyncWebsocketConsumer
 import json
+import logging
+from channels.generic.websocket import AsyncWebsocketConsumer
+
+logger = logging.getLogger("chat")
 
 
 class BaseConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
-        print("=== WS CONNECT START ===")
-
         self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
         self.room_group_name = self.get_room_group_name()
 
+        user = self.scope.get("user")
+
+        print("=== WS CONNECT ===")
         print("ROOM:", self.room_name)
+        print("GROUP:", self.room_group_name)
+        print("USER:", user)
+        print("CHANNEL:", self.channel_name)
 
-        token = self.get_token_from_query_string()
-
-        if not token:
-            print("NO TOKEN")
-            await self.close(code=4001)
-            return
-
-        try:
-            user = await self.authenticate_user(token)
-            print("AUTH USER:", user)
-
-        except ExpiredSignatureError:
-            print("TOKEN EXPIRED")
-            await self.close(code=4002)
-            return
-
-        except DecodeError:
-            print("TOKEN INVALID")
+        if not user or not user.is_authenticated:
+            print("WS REJECTED: unauthenticated")
             await self.close(code=4003)
             return
 
-        except Exception as e:
-            print("AUTH ERROR", e)
-            await self.close(code=4004)
-            return
-
-        self.scope["user"] = user
-
         await self.accept()
-
-        print("WS ACCEPTED")
 
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
 
+        print("WS ACCEPTED + JOINED GROUP")
+
         await self.on_connect()
-
-    def get_token_from_query_string(self):
-        query_string = parse_qs(self.scope["query_string"].decode())
-        return query_string.get("token", [None])[0]
-
-    async def authenticate_user(self, token):
-        payload = jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=["HS256"]
-        )
-
-        User = get_user_model()
-
-        try:
-            return await User.objects.aget(id=payload["user_id"])
-        except User.DoesNotExist:
-            raise Exception("USER_NOT_FOUND")
 
     def get_room_group_name(self):
         return f"{self.__class__.__name__.lower()}_{self.room_name}"
@@ -81,24 +42,32 @@ class BaseConsumer(AsyncWebsocketConsumer):
         pass
 
     async def disconnect(self, close_code):
+        print("WS DISCONNECT:", self.room_group_name)
+
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
         )
 
     async def receive(self, text_data):
+        print("=== WS RECEIVE ===")
+        print("RAW:", text_data)
         raise NotImplementedError
 
     async def chat_message(self, event):
-        message = event.get("message")
-        username = event.get("username")
+        print("=== CHAT MESSAGE EVENT RECEIVED ===")
+        print("EVENT:", event)
 
         await self.send(text_data=json.dumps({
-            "message": message,
-            "username": username
-            }))
+            "message": event.get("message"),
+            "username": event.get("username"),
+        }))
 
     async def send_message(self, message, username):
+        print("=== GROUP SEND ===")
+        print("GROUP:", self.room_group_name)
+        print("MSG:", message)
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -107,8 +76,3 @@ class BaseConsumer(AsyncWebsocketConsumer):
                 "username": username,
             }
         )
-
-    async def send_error_message(self, error):
-        await self.send(text_data=json.dumps({
-            "error": error
-        }))

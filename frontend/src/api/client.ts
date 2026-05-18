@@ -14,7 +14,7 @@ const LEGACY_PUBLIC_ENDPOINTS = [
 ];
 
 export const api = axios.create({
-  baseURL: `${config.API_URL}/api`,
+  baseURL: `/api`,
   withCredentials: true,
 });
 
