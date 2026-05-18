@@ -3,25 +3,27 @@ type Config = {
   WS_URL: string;
 };
 
-const getBaseUrl = () => {
-  const host = window.location.hostname;
+const isLocal =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
 
+const getApiUrl = () => {
   if (process.env.REACT_APP_API_URL) {
     return process.env.REACT_APP_API_URL;
   }
 
-  if (host === "localhost" || host === "127.0.0.1") {
-    return "http://localhost:8001";
+  return isLocal ? "http://localhost:8001" : window.location.origin;
+};
+
+const getWsUrl = () => {
+  if (process.env.REACT_APP_WS_URL) {
+    return process.env.REACT_APP_WS_URL;
   }
 
-  return "http://backend:8000";
+  return isLocal ? "ws://localhost:8001" : `ws://${window.location.host}`;
 };
 
 export const config: Config = {
-  API_URL: getBaseUrl(),
-  WS_URL:
-    process.env.REACT_APP_WS_URL ||
-    (window.location.hostname === "localhost"
-      ? "ws://localhost:8001"
-      : "ws://backend:8000")
+  API_URL: getApiUrl(),
+  WS_URL: getWsUrl(),
 };

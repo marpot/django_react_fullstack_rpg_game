@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ChatSocket } from "../services/chatSocket";
 import { ChatReconnect } from "../logic/chatReconnect";
 import { ChatMessage } from "./useChat";
-import { config } from "../../../config/appConfig";
 
 export const useChatConnection = (
   roomId: string,
@@ -37,22 +36,17 @@ export const useChatConnection = (
   // CONNECT
   // =========================
   const connect = useCallback(() => {
-    if (isConnectingRef.current) {
-      return;
-    }
-
-    if (!roomId || !accessToken) {
-      return;
-    }
+    if (isConnectingRef.current) return;
+    if (!roomId || !accessToken) return;
 
     isConnectingRef.current = true;
 
-    const wsUrl = `${config.WS_URL}/ws/chat/${roomId}/`;
+    // 🔥 PROXY-BASED WS (NIE HARDCORE HOST)
+    const wsUrl = `/ws/chat/${roomId}/`;
 
     socketRef.current?.disconnect();
 
     const socket = new ChatSocket(wsUrl);
-
     socketRef.current = socket;
 
     if (!reconnectRef.current) {
@@ -64,7 +58,6 @@ export const useChatConnection = (
         console.log("[useChatConnection] connected");
 
         setIsConnected(true);
-
         isConnectingRef.current = false;
 
         reconnectRef.current?.reset();
@@ -74,7 +67,6 @@ export const useChatConnection = (
         console.warn("[useChatConnection] disconnected");
 
         setIsConnected(false);
-
         socketRef.current = null;
 
         isConnectingRef.current = false;
@@ -109,19 +101,15 @@ export const useChatConnection = (
   // LIFECYCLE
   // =========================
   useEffect(() => {
-    if (!isTokenValid) {
-      return;
-    }
+    if (!isTokenValid) return;
 
     connect();
 
     return () => {
       socketRef.current?.disconnect();
-
       socketRef.current = null;
 
       reconnectRef.current?.reset();
-
       isConnectingRef.current = false;
     };
   }, [isTokenValid, connect]);

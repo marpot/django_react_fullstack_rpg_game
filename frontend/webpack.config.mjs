@@ -64,13 +64,13 @@ export default {
     proxy: [
       {
         context: ['/api'],
-        target: `http://${backendHost}:8000`,
+        target: `http://${backendHost}:8001`,
         changeOrigin: true,
         secure: false
       },
       {
         context: ['/ws/chat'],
-        target: `ws://${backendHost}:8000`,
+        target: `ws://${backendHost}:8001`,
         ws: true,
         changeOrigin: true,
         secure: false

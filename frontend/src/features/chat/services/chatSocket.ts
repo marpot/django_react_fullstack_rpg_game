@@ -9,9 +9,7 @@ type ErrorHandler = (error: Event) => void;
 type CloseHandler = () => void;
 type OpenHandler = () => void;
 
-
 export class ChatSocket {
-  
   private socket: WebSocket | null = null;
   private url: string;
 
@@ -33,11 +31,10 @@ export class ChatSocket {
     onOpen?: OpenHandler;
   }) {
     if (
-      this.isConnecting || 
-      this.socket?.readyState === WebSocket.OPEN || 
+      this.isConnecting ||
+      this.socket?.readyState === WebSocket.OPEN ||
       this.socket?.readyState === WebSocket.CONNECTING
     ) {
-      console.warn("[ChatSocket] connection already connected or connecting");
       return;
     }
 
@@ -63,7 +60,6 @@ export class ChatSocket {
     this.socket = new WebSocket(wsUrl);
 
     this.socket.onopen = () => {
-      console.log("[ChatSocket] connected");
       this.isConnecting = false;
       this.onOpen?.();
     };
@@ -80,17 +76,14 @@ export class ChatSocket {
     this.socket.onerror = (event) => {
       console.error("[ChatSocket] error", event);
       this.onError?.(event);
-
-      this.socket?.close();
     };
 
     this.socket.onclose = () => {
-      console.warn("[ChatSocket] closed");
       this.socket = null;
       this.isConnecting = false;
       this.onClose?.();
     };
-}
+  }
 
   send(payload: ChatSocketMessage) {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
@@ -103,7 +96,6 @@ export class ChatSocket {
 
   disconnect() {
     if (this.socket) {
-      this.socket.onclose = null;
       this.socket.close();
       this.socket = null;
     }
