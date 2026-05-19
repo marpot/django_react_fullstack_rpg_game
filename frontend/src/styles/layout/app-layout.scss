@@ -1,0 +1,16 @@
+.app-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+  background: #0f0f14;
+}
+
+.app-sidebar {
+  background: rgba(0, 0, 0, 0.4);
+  border-right: 1px solid rgba(201, 162, 74, 0.15);
+}
+
+.app-main {
+  padding: 24px;
+  overflow: auto;
+}

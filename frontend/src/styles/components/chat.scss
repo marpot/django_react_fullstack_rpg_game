@@ -1,7 +1,95 @@
-@use "../tokens/index" as *;
+@use "../tokens/index" as tokens;
 
+/* MAIN CHAT WRAPPER */
 .chat-container {
   height: 100%;
   display: flex;
   flex-direction: column;
+
+  overflow: hidden;
+}
+
+/* MESSAGES AREA */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* INPUT ROW (KLUCZOWY FIX LAYOUTU) */
+.chat-input-row {
+  display: flex;
+  gap: 10px;
+
+  align-items: center;
+
+  padding: 12px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  background: rgba(0, 0, 0, 0.15);
+
+  box-sizing: border-box;
+}
+
+/* INPUT */
+.chat-input {
+  flex: 1;
+  min-width: 0; /* FIX overflow */
+
+  height: 42px;
+
+  padding: 0 12px;
+
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  border-radius: tokens.$radius-md;
+
+  color: tokens.$color-text;
+
+  outline: none;
+
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-input:focus {
+  border-color: tokens.$color-primary;
+  box-shadow: 0 0 0 2px rgba(201, 162, 74, 0.2);
+}
+
+/* SEND BUTTON */
+.chat-send-button {
+  flex-shrink: 0;
+
+  height: 42px;
+
+  padding: 0 16px;
+
+  border-radius: tokens.$radius-md;
+
+  background: tokens.$color-primary;
+  color: #0f0f14;
+
+  border: none;
+
+  cursor: pointer;
+
+  font-weight: 600;
+
+  white-space: nowrap;
+
+  transition: filter 0.2s ease, transform 0.1s ease;
+}
+
+.chat-send-button:hover {
+  filter: brightness(1.1);
+}
+
+.chat-send-button:active {
+  transform: scale(0.98);
 }

@@ -3,26 +3,35 @@
   background: #0f0f14;
   color: #fff;
   padding: 24px;
+  overflow-x: hidden;
 }
 
+/* WRAPPER */
 .dashboard-container {
   max-width: 1200px;
   margin: 0 auto;
+
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
+/* TITLE */
 .dashboard-title {
   text-align: center;
   font-size: 32px;
-  margin-bottom: 24px;
+  margin-bottom: 8px;
   color: #c9a24a;
   letter-spacing: 2px;
 }
 
-/* GRID */
+/* GRID 2 MAIN SECTIONS */
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
+
+  align-items: start;
 }
 
 /* CARD */
@@ -33,13 +42,23 @@
   padding: 16px;
 
   backdrop-filter: blur(6px);
+
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+
+  overflow: visible;
+  position: relative;
 }
 
-/* HEADERS */
+/* SECTION TITLE */
 .dashboard-section-title {
   font-size: 18px;
   margin-bottom: 12px;
   color: #c9a24a;
+
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* STATES */
@@ -59,9 +78,76 @@
   margin-bottom: 16px;
 }
 
+/* ROOM GRID FIX (NAJWAŻNIEJSZE) */
+.room-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+
+  width: 100%;
+  overflow-x: hidden;
+
+  padding-top: 6px;
+}
+
+/* ROOM CARD */
+.room-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+
+  padding: 14px;
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  min-height: 110px;
+}
+
+.room-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(201, 162, 74, 0.6);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+}
+
+.room-title {
+  font-size: 15px;
+  color: #c9a24a;
+  margin-bottom: 6px;
+}
+
+.room-subtitle {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.room-hint {
+  font-size: 11px;
+  opacity: 0.5;
+  margin-top: 6px;
+}
+
 /* RESPONSIVE */
 @media (max-width: 900px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard-page {
+    padding: 14px;
+  }
+
+  .dashboard-title {
+    font-size: 24px;
+  }
+
+  .room-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 }
