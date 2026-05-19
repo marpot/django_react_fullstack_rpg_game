@@ -1,38 +1,45 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-interface SidebarProps {
-  // no props
-}
 
-interface MenuItem {
-  label: string;
-  url: string;
-}
-
-const Sidebar: React.FC<SidebarProps> = () => {
+const Sidebar: React.FC = () => {
   const navigate = useNavigate();
 
-  const menuItems: MenuItem[] = [
-    { label: 'Dashboard', url: '/dashboard' },
-    { label: 'Profil', url: '/profile' },
-    { label: 'Twórz pokój', url: '/create-room' },
-    { label: 'Ustawienia', url: '/settings' },
-    { label: 'Wyloguj się', url: '/' },
-  ];
+  const go = (path: string) => {
+    navigate(path);
+  };
+
+  const logout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh');
+    navigate('/');
+  };
 
   return (
-    <aside className="menu is-gray hover:is-gold">
-      <p className="menu-label mt-5 has-text-centered">Panel kontrolny</p>
-      <ul className="menu-list has-text-centered">
-        {menuItems.map((menuItem, index) => (
-          <li key={index}>
-            <Link to={menuItem.url} className="button is-fullwidth">
-              {menuItem.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
+    <aside className="sidebar">
+      <div className="sidebar-title">⚔ Panel Kontrolny</div>
+
+      <div className="sidebar-nav">
+        <button className="sidebar-btn" onClick={() => go('/dashboard')}>
+          Dashboard
+        </button>
+
+        <button className="sidebar-btn" onClick={() => go('/profile')}>
+          Profil
+        </button>
+
+        <button className="sidebar-btn" onClick={() => go('/create-room')}>
+          Twórz pokój
+        </button>
+
+        <button className="sidebar-btn" onClick={() => go('/settings')}>
+          Ustawienia
+        </button>
+
+        <button className="sidebar-btn danger" onClick={logout}>
+          Wyloguj się
+        </button>
+      </div>
     </aside>
   );
 };

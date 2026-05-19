@@ -7,13 +7,14 @@ interface Props {
 
 const MainLayout: React.FC<Props> = ({ children }) => {
   return (
-    <div className="columns">
-      <div className="column is-one-fifth">
+    <div className="app-layout">
+      <aside className="app-sidebar">
         <Sidebar />
-      </div>
-      <div className="column">
+      </aside>
+
+      <main className="app-main">
         {children}
-      </div>
+      </main>
     </div>
   );
 };

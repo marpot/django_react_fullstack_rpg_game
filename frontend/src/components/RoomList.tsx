@@ -3,16 +3,15 @@ import React from 'react';
 type Room = {
   id: string;
   name: string;
-  adventure: number | null;
   adventure_title?: string;
 };
 
-type RoomListProps = {
+type Props = {
   rooms: Room[];
   onRoomClick: (roomId: string) => void;
 };
 
-const RoomList: React.FC<RoomListProps> = ({ rooms, onRoomClick }) => {
+const RoomList: React.FC<Props> = ({ rooms, onRoomClick }) => {
   return (
     <div className="room-grid">
       {rooms.map((room) => (
@@ -21,16 +20,16 @@ const RoomList: React.FC<RoomListProps> = ({ rooms, onRoomClick }) => {
           className="room-card"
           onClick={() => onRoomClick(room.id)}
         >
-          <h3 className="room-card-title">
-            {room.name || 'Brak nazwy pokoju'}
+          <h3 className="room-title">
+            {room.name}
           </h3>
 
-          <p className="room-card-subtitle">
+          <p className="room-subtitle">
             {room.adventure_title ?? 'Brak przygody'}
           </p>
 
-          <p className="room-card-description">
-            Dołącz do tego pokoju i rozpocznij grę!
+          <p className="room-hint">
+            Kliknij aby dołączyć
           </p>
         </div>
       ))}
