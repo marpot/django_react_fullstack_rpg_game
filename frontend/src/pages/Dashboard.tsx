@@ -3,93 +3,92 @@ import { useNavigate } from 'react-router-dom';
 
 import RoomList from '../components/RoomList';
 import Chat from '../features/chat/Chat';
-import CreateRoomForm from '../components/CreateRoomForm';
 
 import { api } from '../api/client';
-
-import 'bulma/css/bulma.min.css';
 import { Room } from '../../types/types';
-import useFetchAdventures from 'src/components/CreateRoomForm/useFetchAdventures';
 
+import '../styles/pages/dashboard.scss';
 
 const Dashboard = () => {
   const navigate = useNavigate();
 
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const {adventures} = useFetchAdventures();
-
   useEffect(() => {
+    let mounted = true;
+
     const fetchRooms = async () => {
       try {
         setLoading(true);
-
-        // ✔ ZMIANA 1: axios instance (OK)
         const response = await api.get<Room[]>('/chat/rooms/');
 
-        console.log("📌 Otrzymane dane:", response.data);
-
-        // ✔ ZMIANA 2: usunięcie ręcznego mapowania stringów (opcjonalne)
-        setRooms(response.data);
-
-      } catch (error) {
-        console.error(error);
-        setError("Błąd podczas pobierania pokoi.");
+        if (mounted) {
+          setRooms(response.data);
+        }
+      } catch {
+        if (mounted) {
+          setError('Błąd podczas pobierania pokoi.');
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchRooms();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const navigateToRoom = (roomId: string) => {
     if (!roomId) {
-      setError("Nieprawidłowy identyfikator pokoju.");
+      setError('Nieprawidłowy identyfikator pokoju.');
       return;
     }
     navigate(`/room/${roomId}`);
   };
 
   return (
-    <div className="hero is-fullheight">
-      <div className="hero-body has-background-dark">
-        <div className="container">
-          <h1 className="title has-text-warning has-text-centered">
-            Labirynt Przygód
-          </h1>
+    <div className="dashboard-page">
+      <div className="dashboard-container">
 
-          {loading && (
-            <div className="notification is-info">Ładowanie...</div>
-          )}
+        <h1 className="dashboard-title">
+          Labirynt Przygód
+        </h1>
 
-          {error && (
-            <div className="notification is-danger">{error}</div>
-          )}
+        {loading && (
+          <div className="dashboard-info">Ładowanie...</div>
+        )}
 
-          <div className="columns">
-            <div className="column is-6">
-              <div className="box has-background-dark">
-                {!loading && rooms.length === 0 ? (
-                  <p className="has-text-centered">
-                    Brak dostępnych pokoi.
-                  </p>
-                ) : (
-                  <RoomList 
-                  rooms={rooms}
-                  onRoomClick={navigateToRoom} />
-                )}
-              </div>
-            </div>
+        {error && (
+          <div className="dashboard-error">{error}</div>
+        )}
 
-            <div className="column is-6">
-              <div className="box has-background-dark">
-                <h2 className="title has-text-primary">Poczekalnia</h2>
-                <Chat />
-              </div>
-            </div>
+        <div className="dashboard-grid">
+
+          <div className="dashboard-card">
+            <h2 className="dashboard-section-title">
+              Pokoje
+            </h2>
+
+            {!loading && rooms.length === 0 ? (
+              <p>Brak dostępnych pokoi</p>
+            ) : (
+              <RoomList rooms={rooms} onRoomClick={navigateToRoom} />
+            )}
+          </div>
+
+          <div className="dashboard-card">
+            <h2 className="dashboard-section-title">
+              Poczekalnia
+            </h2>
+
+            <Chat />
           </div>
 
         </div>

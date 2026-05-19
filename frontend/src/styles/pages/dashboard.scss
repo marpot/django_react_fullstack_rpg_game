@@ -1,0 +1,67 @@
+.dashboard-page {
+  min-height: 100vh;
+  background: #0f0f14;
+  color: #fff;
+  padding: 24px;
+}
+
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboard-title {
+  text-align: center;
+  font-size: 32px;
+  margin-bottom: 24px;
+  color: #c9a24a;
+  letter-spacing: 2px;
+}
+
+/* GRID */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* CARD */
+.dashboard-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+
+  backdrop-filter: blur(6px);
+}
+
+/* HEADERS */
+.dashboard-section-title {
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: #c9a24a;
+}
+
+/* STATES */
+.dashboard-info {
+  padding: 12px;
+  background: rgba(100, 100, 255, 0.15);
+  border: 1px solid rgba(100, 100, 255, 0.3);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.dashboard-error {
+  padding: 12px;
+  background: rgba(255, 80, 80, 0.15);
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}

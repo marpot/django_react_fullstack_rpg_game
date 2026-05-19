@@ -1,0 +1,157 @@
+@use "sass:color";
+@use "../tokens/index" as tokens;
+
+* {
+  box-sizing: border-box;
+}
+
+/* ROOT PAGE */
+.login-page {
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 24px; /* KLUCZ FIX */
+
+  position: relative;
+  overflow: hidden;
+
+  background: radial-gradient(circle at top, #1a1a22, #0f0f14);
+
+  color: tokens.$color-text;
+}
+
+/* BACKGROUND LAYERS */
+.login-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background:
+    radial-gradient(circle at 20% 30%, rgba(201,162,74,0.18), transparent 45%),
+    radial-gradient(circle at 80% 40%, rgba(120,120,255,0.10), transparent 50%),
+    radial-gradient(circle at 50% 80%, rgba(0,0,0,0.7), transparent 60%);
+
+  filter: blur(50px);
+  opacity: 0.9;
+  z-index: 0;
+}
+
+.login-page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background:
+    radial-gradient(circle, transparent 40%, rgba(0,0,0,0.85) 100%),
+    repeating-radial-gradient(
+      circle at center,
+      rgba(255,255,255,0.02) 1px,
+      transparent 2px,
+      transparent 20px
+    );
+
+  z-index: 0;
+}
+
+/* PANEL */
+.login-panel {
+  position: relative;
+  z-index: 1;
+
+  width: 100%;
+  max-width: 420px;
+
+  padding: 32px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(0, 0, 0, 0.2)
+  );
+
+  border: 1px solid rgba(201, 162, 74, 0.25);
+  border-radius: 12px;
+
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  backdrop-filter: blur(6px);
+}
+
+/* FORM */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* INPUT (ONLY ONE SYSTEM) */
+.app-input {
+  width: 100%;
+  padding: 12px 14px;
+
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  border-radius: 8px;
+
+  color: tokens.$color-text;
+  outline: none;
+
+  transition: 0.2s ease;
+}
+
+.app-input:focus {
+  border-color: tokens.$color-primary;
+  box-shadow: 0 0 0 2px rgba(201, 162, 74, 0.2);
+}
+
+/* BUTTON */
+.btn-primary {
+  width: 100%;
+  padding: 12px;
+
+  border-radius: 8px;
+  border: none;
+
+  background: linear-gradient(
+    180deg,
+    tokens.$color-primary,
+    color.adjust(tokens.$color-primary, $lightness: -10%)
+  );
+
+  color: tokens.$color-bg;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+/* TYPO */
+.login-title {
+  text-align: center;
+  color: tokens.$color-primary;
+  margin: 0;
+}
+
+.login-subtitle {
+  text-align: center;
+  color: tokens.$color-muted;
+  margin: 0;
+  font-size: 14px;
+}

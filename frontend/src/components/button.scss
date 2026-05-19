@@ -1,0 +1,30 @@
+@use "../tokens/index" as tokens;
+@use "sass:color";
+
+.btn-primary {
+  width: 100%;
+  padding: tokens.$space-3;
+
+  background: linear-gradient(
+    180deg,
+    tokens.$color-primary,
+    color.adjust(tokens.$color-primary, $lightness: -10%)
+  );
+
+  color: tokens.$color-bg;
+
+  border-radius: tokens.$radius-md;
+
+  font-weight: tokens.$font-bold;
+  cursor: pointer;
+
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+}

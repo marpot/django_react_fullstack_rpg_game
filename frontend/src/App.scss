@@ -1,26 +1,69 @@
-/* Efekt szkła dla room-box */
-.room-box {
-  position: relative;
-  background: rgba(255, 255, 255, 0.51);
-  border-radius: 16px;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10.6px);
-  -webkit-backdrop-filter: blur(10.6px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  overflow: hidden; /* Ukrywanie nadmiaru elementu poza granicami */
-  transition: transform 0.2s ease-in-out;
+/* App.scss */
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-/* Efekt przy najechaniu */
-.room-box:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+body {
+  background: #0f0f14;
+  color: #f5f1e6;
+
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+
+  overflow-x: hidden; /* tylko poziome zabezpieczenie */
 }
 
-/* Jeśli chcesz, aby cała strona była bez scrolla */
-.no-scroll {
-  height: 100vh;
-  overflow: hidden;
+/* ROOT APP WRAPPER */
+.app {
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+}
+
+/* MAIN APP AREA */
+.app-content {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+}
+
+/* GLOBAL RESET PROBLEMATIC STYLES (WAŻNE) */
+* {
+  box-sizing: border-box;
+}
+
+/* USUWAMY KLASY BLOKUJĄCE FLOW (zastępują 100vh hacki) */
+.fullscreen {
+  min-height: 100vh;
+  display: flex;
+}
+
+/* SAFE SCROLL AREA (dla dashboard/rooms/chat) */
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* LOGIN / AUTH OVERRIDE SAFE ZONE */
+.auth-layout {
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 24px;
+}
+
+/* NO GLOBAL OVERFLOW HIDDEN (celowo brak!) */
+
+/* DEBUG HELP (opcjonalne) */
+.debug {
+  border: 1px solid red;
 }

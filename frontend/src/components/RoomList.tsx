@@ -12,39 +12,28 @@ type RoomListProps = {
   onRoomClick: (roomId: string) => void;
 };
 
-const RoomList: React.FC<RoomListProps> = ({
-  rooms,
-  onRoomClick,
-}) => {
+const RoomList: React.FC<RoomListProps> = ({ rooms, onRoomClick }) => {
   return (
-    <div className="container">
-      <div className="columns is-multiline">
+    <div className="room-grid">
+      {rooms.map((room) => (
+        <div
+          key={room.id}
+          className="room-card"
+          onClick={() => onRoomClick(room.id)}
+        >
+          <h3 className="room-card-title">
+            {room.name || 'Brak nazwy pokoju'}
+          </h3>
 
-        {rooms.map((room) => {
-          
-          return (
-            <div className="column is-one-third" key={room.id}>
-              <div
-                className="box p-4 is-flex is-flex-direction-column has-text-centered room-box has-background-primary-15"
-                onClick={() => onRoomClick(room.id)}
-              >
-                <h3 className="title is-4 has-text-primary">
-                  {room.name || 'Brak nazwy pokoju'}
-                </h3>
+          <p className="room-card-subtitle">
+            {room.adventure_title ?? 'Brak przygody'}
+          </p>
 
-                <p className="subtitle is-6 has-text-white">
-                  {room.adventure_title ?? 'Brak przygody'}
-                </p>
-
-                <p className="subtitle is-6 has-text-white">
-                  Dołącz do tego pokoju i rozpocznij grę!
-                </p>
-              </div>
-            </div>
-          );
-        })}
-
-      </div>
+          <p className="room-card-description">
+            Dołącz do tego pokoju i rozpocznij grę!
+          </p>
+        </div>
+      ))}
     </div>
   );
 };
