@@ -3,7 +3,7 @@ import { api } from '../api/client';
 import { Link, useNavigate } from 'react-router-dom';
 
 import '../components/RegisterPage/RegisterPage.scss';
-import TextInput from '../components/ui/TextInput';
+import TextInput from 'src/components/ui/TextInput';
 
 const RegisterPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -16,14 +16,17 @@ const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const data = { username, email, password };
-
     try {
-      const response = await api.post('/accounts/register/', data);
+      const response = await api.post('/accounts/register/', {
+        username,
+        email,
+        password,
+      });
 
       if (response.status >= 200 && response.status < 300) {
         setMessage('Rejestracja zakończona sukcesem!');
         setError('');
+
         setTimeout(() => navigate('/'), 1000);
       }
     } catch (err: any) {
@@ -37,12 +40,12 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="register-page">
-      <div className="register-panel">
+    <div className="register-page login-page">
+      <div className="register-panel login-panel">
 
-        <h1 className="register-title">Rejestracja</h1>
+        <h1 className="login-title">Rejestracja</h1>
 
-        <p className="register-subtitle">
+        <p className="login-subtitle">
           Stwórz konto i rozpocznij przygodę
         </p>
 
@@ -56,7 +59,6 @@ const RegisterPage: React.FC = () => {
             placeholder="Nazwa użytkownika"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            required
           />
 
           <TextInput
@@ -64,7 +66,6 @@ const RegisterPage: React.FC = () => {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
           />
 
           <TextInput
@@ -72,7 +73,6 @@ const RegisterPage: React.FC = () => {
             placeholder="Hasło"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
           />
 
           <button className="btn-primary" type="submit">
@@ -81,9 +81,9 @@ const RegisterPage: React.FC = () => {
 
         </form>
 
-        <div className="register-footer">
-          <Link to="/">Masz już konto? Zaloguj się</Link>
-        </div>
+        <p className="login-footer">
+          Masz już konto? <Link to="/">Zaloguj się</Link>
+        </p>
 
       </div>
     </div>
