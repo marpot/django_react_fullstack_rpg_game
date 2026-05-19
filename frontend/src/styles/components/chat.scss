@@ -1,3 +1,5 @@
+@use "../tokens/index" as *;
+
 .chat-container {
   height: 100%;
   display: flex;

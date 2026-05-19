@@ -1,5 +1,6 @@
 @use "./base/index" as base;
-@use "./variables/index" as *;
+
+@use "./tokens/index" as *;
 
 @use "./layout/grid";
 @use "./layout/room";
