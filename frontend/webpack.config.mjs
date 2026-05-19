@@ -19,9 +19,17 @@ export default {
         use: 'ts-loader',
         exclude: /node_modules/,
       },
+
+      //CSS
       {
         test: /\.css$/,
         use: ['style-loader', 'css-loader'],
+      },
+
+      //SCSS
+      {
+        test: /\.scss$/,
+        use: ['style-loader', 'css-loader', 'sass-loader'],
       },
       {
         test: /\.(png|svg|jpg|gif)$/,
