@@ -1,7 +1,28 @@
-$bg-dark: #0f0f0f;
-$panel-dark: #1a1a1a;
-$text-primary: #ffffff;
-$text-muted: #a1a1a1;
-$accent: #7c3aed;
-$danger: #ef4444;
-$success: #22c55e;
+$color-bg: #0f0f14;
+$color-panel: #1a1a22;
+
+$color-text: #f5f1e6;
+$color-muted: #b8b2a6;
+
+$color-gold: #c9a24a;
+$color-danger: #c94a4a;
+
+$color-wood-dark: #2b1d14;
+$color-wood-light: #5a3e2b;
+
+// BACKGROUND
+$bg-dark: #0f0f14;
+$bg-panel: #1a1a22;
+
+// TEXT
+$text-main: #f5f1e6;      // pergamin
+$text-muted: #b8b2a6;
+
+// ACCENTS (RPG)
+$gold: #c9a24a;           // złoto UI
+$wood-dark: #2b1d14;      // drewno
+$wood-light: #5a3e2b;
+
+// STATES
+$danger: #c94a4a;
+$success: #4ac96a;
