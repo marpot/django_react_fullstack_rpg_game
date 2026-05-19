@@ -1,0 +1,26 @@
+@use "../tokens/index" as tokens;
+
+.app-input {
+  width: 100%;
+  padding: tokens.$space-3;
+
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  border-radius: tokens.$radius-md;
+
+  color: tokens.$color-text;
+
+  outline: none;
+
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.app-input:focus {
+  border-color: tokens.$color-primary;
+  box-shadow: 0 0 0 2px rgba(201, 162, 74, 0.2);
+}
+
+.app-input::placeholder {
+  color: rgba(245, 241, 230, 0.6);
+}

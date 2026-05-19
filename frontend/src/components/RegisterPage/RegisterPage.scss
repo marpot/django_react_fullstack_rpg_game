@@ -1,44 +1,18 @@
 @use "sass:color";
 @use "../../styles/tokens/index" as tokens;
 
-.login-page {
+.register-page {
   min-height: 100vh;
-
   display: flex;
   justify-content: center;
   align-items: center;
 
-  background: radial-gradient(
-    circle at top,
-    #1a1a22,
-    #0f0f14
-  );
-
+  background: radial-gradient(circle at top, #1a1a22, #0f0f14);
   color: tokens.$color-text;
 }
 
-.label {
-  display: block;
-  margin-bottom: tokens.$space-2;
-
-  color: tokens.$color-primary;
-  font-size: tokens.$font-size-sm;
-
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-
-  opacity: 0.9;
-}
-
-input::placeholder {
-  color: rgba(245, 241, 230, 0.6);
-  opacity: 1; /* Firefox fix */
-}
-
-.login-panel {
-  width: 100%;
-  max-width: 520px;
-
+.register-panel {
+  width: 380px;
   padding: tokens.$space-6;
 
   background: linear-gradient(
@@ -52,25 +26,19 @@ input::placeholder {
 
   box-shadow: tokens.$shadow-lg;
   backdrop-filter: blur(6px);
-
-  display: flex;
-  flex-direction: column;
 }
 
-.login-title {
+.register-title {
   font-size: tokens.$font-size-2xl;
   text-align: center;
   color: tokens.$color-primary;
-
   margin-bottom: tokens.$space-5;
-  letter-spacing: 2px;
 }
 
-.login-subtitle {
+.register-subtitle {
   font-size: tokens.$font-size-lg;
   text-align: center;
   color: tokens.$color-muted;
-
   margin-bottom: tokens.$space-5;
 }
 
@@ -82,23 +50,19 @@ input {
   border: 1px solid rgba(255, 255, 255, 0.1);
 
   border-radius: tokens.$radius-md;
-
   color: tokens.$color-text;
-  outline: none;
 
-  transition: border 0.2s ease, box-shadow 0.2s ease;
+  margin-bottom: tokens.$space-3;
 }
 
 input:focus {
   border-color: tokens.$color-primary;
-  box-shadow: 0 0 0 2px rgba(201, 162, 74, 0.2);
+  outline: none;
 }
 
 .btn-primary {
   width: 100%;
-  display: block;
-
-  margin-top: tokens.$space-2;
+  margin-top: tokens.$space-4;
 
   background: linear-gradient(
     180deg,
@@ -111,22 +75,17 @@ input:focus {
   padding: tokens.$space-3;
   border-radius: tokens.$radius-md;
 
-  font-weight: tokens.$font-bold;
+  font-weight: tokens.$font-weight-bold;
   cursor: pointer;
 
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease;
 }
 
 .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
 }
 
-.btn-primary:active {
-  transform: translateY(1px);
-}
-
-.login-footer {
+.register-footer {
   margin-top: tokens.$space-4;
   text-align: center;
 
@@ -138,4 +97,19 @@ input:focus {
       text-decoration: underline;
     }
   }
+}
+
+.form-success {
+  color: tokens.$color-success;
+  margin-bottom: tokens.$space-3;
+}
+
+.form-error {
+  color: tokens.$color-danger;
+  margin-bottom: tokens.$space-3;
+}
+
+input::placeholder {
+  color: rgba(245, 241, 230, 0.6);
+  opacity: 1; /* Firefox fix */
 }

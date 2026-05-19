@@ -1,20 +1,11 @@
 import React, { useState } from 'react';
-import { api } from '../api/client'
+import { api } from '../api/client';
 import { Link, useNavigate } from 'react-router-dom';
 
-interface RegisterPageProps {
-  
-}
+import '../components/RegisterPage/RegisterPage.scss';
+import TextInput from '../components/ui/TextInput';
 
-interface RegisterPageState {
-  username: string;
-  email: string;
-  password: string;
-  message: string;
-  error: string;
-}
-
-const RegisterPage: React.FC<RegisterPageProps> = () => {
+const RegisterPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,101 +15,77 @@ const RegisterPage: React.FC<RegisterPageProps> = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const data = {
-      username,
-      email,
-      password
-    };
+
+    const data = { username, email, password };
 
     try {
       const response = await api.post('/accounts/register/', data);
+
       if (response.status >= 200 && response.status < 300) {
         setMessage('Rejestracja zakończona sukcesem!');
         setError('');
-
         setTimeout(() => navigate('/'), 1000);
-      } 
+      }
     } catch (err: any) {
-        console.error('REGISTER ERROR:', err);
+      const msg = err?.response?.data
+        ? JSON.stringify(err.response.data)
+        : 'Nieznany błąd';
 
-        const msg =
-        err?.response?.data
-          ? JSON.stringify(err.response.data)
-          : 'Nieznany błąd';
-
-    setError('Błąd rejestracji: ' + msg);
-    setMessage('');
+      setError('Błąd rejestracji: ' + msg);
+      setMessage('');
     }
-  }
+  };
+
   return (
-    <div>
-      <section className="section">
-        <div className="container">
-          <h1 className="title has-text-centered">Rejestracja</h1>
-          {message && <p style={{ color: 'green' }}>{message}</p>}
-          {error && <p style={{ color: 'red' }}>{error}</p>}
-          
-          <form onSubmit={handleSubmit}>
-            {/* Pole użytkownika */}
-            <div className="field">
-              <label className="label" htmlFor="username">Nazwa użytkownika:</label>
-              <div className="control">
-                <input
-                  className="input"
-                  type="text"
-                  id="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
+    <div className="register-page">
+      <div className="register-panel">
 
-            {/* Pole email */}
-            <div className="field">
-              <label className="label" htmlFor="email">Email:</label>
-              <div className="control">
-                <input
-                  className="input"
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
+        <h1 className="register-title">Rejestracja</h1>
 
-            {/* Pole hasła */}
-            <div className="field">
-              <label className="label" htmlFor="password">Hasło:</label>
-              <div className="control">
-                <input
-                  className="input"
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
+        <p className="register-subtitle">
+          Stwórz konto i rozpocznij przygodę
+        </p>
 
-            {/* Przycisk */}
-            <div className="field">
-              <div className="control">
-                <button className="button is-primary is-fullwidth" type="submit">
-                  Zarejestruj się
-                </button>
-              </div>
-            </div>
+        {message && <p className="form-success">{message}</p>}
+        {error && <p className="form-error">{error}</p>}
 
-          	<div className="field has-text-centered">
-            	<p>Masz już konto? <Link to="/">Zaloguj się</Link></p>
-          	</div>
-          </form>
+        <form onSubmit={handleSubmit}>
+
+          <TextInput
+            type="text"
+            placeholder="Nazwa użytkownika"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+
+          <TextInput
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+
+          <TextInput
+            type="password"
+            placeholder="Hasło"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+
+          <button className="btn-primary" type="submit">
+            Zarejestruj się
+          </button>
+
+        </form>
+
+        <div className="register-footer">
+          <Link to="/">Masz już konto? Zaloguj się</Link>
         </div>
-      </section>
+
+      </div>
     </div>
   );
 };
