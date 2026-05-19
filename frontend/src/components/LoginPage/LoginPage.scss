@@ -1,0 +1,112 @@
+@use "sass:color";
+@use "../../styles/tokens/index" as tokens;
+
+.login-page {
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background: radial-gradient(
+    circle at top,
+    #1a1a22,
+    #0f0f14
+  );
+
+  color: tokens.$color-text;
+}
+
+.login-panel {
+  width: 380px;
+  padding: tokens.$space-6;
+
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(0, 0, 0, 0.2)
+  );
+
+  border: 1px solid rgba(201, 162, 74, 0.25);
+  border-radius: tokens.$radius-lg;
+
+  box-shadow: tokens.$shadow-lg;
+  backdrop-filter: blur(6px);
+}
+
+.login-title {
+  font-size: tokens.$font-size-2xl;
+  text-align: center;
+  color: tokens.$color-primary;
+
+  margin-bottom: tokens.$space-5;
+
+  letter-spacing: 2px;
+}
+
+.login-subtitle {
+  font-size: tokens.$font-size-lg;
+  text-align: center;
+  color: tokens.$color-muted;
+
+  margin-bottom: tokens.$space-5;
+}
+
+input {
+  width: 100%;
+  padding: tokens.$space-3;
+
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  border-radius: tokens.$radius-md;
+
+  color: tokens.$color-text;
+  outline: none;
+
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus {
+  border-color: tokens.$color-primary;
+  box-shadow: 0 0 0 2px rgba(201, 162, 74, 0.2);
+}
+
+.btn-primary {
+  margin-top: tokens.$space-4;
+
+  background: linear-gradient(
+    180deg,
+    tokens.$color-primary,
+    color.adjust(tokens.$color-primary, $lightness: -10%)
+  );
+
+  color: tokens.$color-bg;
+
+  padding: tokens.$space-3;
+  border-radius: tokens.$radius-md;
+
+  font-weight: tokens.$font-bold;
+  cursor: pointer;
+
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+.login-footer {
+  margin-top: tokens.$space-4;
+  text-align: center;
+
+  a {
+    color: tokens.$color-primary;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

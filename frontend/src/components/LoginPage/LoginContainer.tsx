@@ -3,11 +3,12 @@ import styles from '../css/login-dark.scss';
 
 type Props = {
     children: React.ReactNode;
+    className?: string;
 }
 
-const LoginContainer = ({ children }: Props) => {
+const LoginContainer = ({ children, className }: Props) => {
     return (
-        <div className="login-container">
+        <div className={`login-container ${className || ''}`}>
             <div className="background-elements">
                 <div className="castle"></div>
             </div>

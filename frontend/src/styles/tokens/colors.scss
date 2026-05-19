@@ -1,16 +1,10 @@
-@use "../variables/colors" as v;
+$color-bg: #0f0f14;
+$color-panel: #1a1a22;
 
-/* BACKGROUND */
-$color-bg: v.$bg-dark;
-$color-surface: v.$bg-panel;
+$color-text: #f5f1e6;
+$color-muted: #b8b2a6;
 
-/* TEXT */
-$color-text: v.$text-main;
-$color-text-muted: v.$text-muted;
+$color-primary: #c9a24a;
+$color-danger: #c94a4a;
 
-/* ACCENTS */
-$color-primary: v.$gold;
-
-/* STATES */
-$color-danger: v.$danger;
-$color-success: v.$success;
+$color-success: #4ac96a;
