@@ -10,29 +10,29 @@ const ChatInput: React.FC<ChatInputProps> = ({ sendMessage }) => {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!messageInput.trim()) return;
-    sendMessage(messageInput);
+
+    const trimmed = messageInput.trim();
+    if (!trimmed) return;
+
+    sendMessage(trimmed);
     setMessageInput('');
   };
 
   return (
-    <form onSubmit={handleSubmit} className="chat-form">
-      <div className="field has-addons">
-        <div className="control is-expanded">
-          <input
-            className="input"
-            type="text"
-            value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
-            placeholder="Napisz wiadomość..."
-          />
-        </div>
-        <div className="control">
-          <button type="submit" className="button is-info">
-            Wyślij
-          </button>
-        </div>
-      </div>
+    <form onSubmit={handleSubmit} className="chat-input-row">
+
+      <input
+        className="app-input chat-input"
+        type="text"
+        value={messageInput}
+        onChange={(e) => setMessageInput(e.target.value)}
+        placeholder="Napisz wiadomość..."
+      />
+
+      <button type="submit" className="chat-send-button">
+        Wyślij
+      </button>
+
     </form>
   );
 };
