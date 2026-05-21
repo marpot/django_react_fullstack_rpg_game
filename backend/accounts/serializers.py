@@ -6,6 +6,21 @@ import logging
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
+class CharacterSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        """
+            Lightweight serializer used for:
+            - profile page
+            - character selection screen
+            - dashboard lists
+
+            Purpose:
+            Avoid sending full RPG state (stats, JSON fields, relations)
+            when only summary information is needed by UI.
+        """
+
+        model = PlayerCharacter
+        fields = ['id', 'name', 'level', 'is_active', 'health', 'max_health']
 
 class PlayerCharacterSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
