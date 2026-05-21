@@ -8,30 +8,58 @@ User = get_user_model()
 
 
 class PlayerCharacterSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
+
     class Meta:
         model = PlayerCharacter
-        fields = '__all__'
+        fields = [
+            "id",
+            "username",
+            "email",
+
+            "name",
+            "level",
+            "experience",
+
+            "health",
+            "max_health",
+            "mana",
+            "max_mana",
+
+            "strength",
+            "dexterity",
+            "intelligence",
+
+            "adventure",
+            "current_location",
+
+            "created_at",
+            "updated_at",
+        ]
+
         read_only_fields = ('created_at', 'updated_at')
 
     def validate(self, data):
-        if data.get('health', 0) > data.get('max_health', 100):
-            raise serializers.ValidationError("Health cannot exceed max_health")
-        if data.get('mana', 0) > data.get('max_mana', 50):
-            raise serializers.ValidationError("Mana cannot exceed max_mana")
-        return data
+        health = data.get('health')
+        max_health = data.get('max_health')
 
-    def create(self, validated_data):
-        if 'equipment' not in validated_data:
-            validated_data['equipment'] = {}
-        if 'inventory' not in validated_data:
-            validated_data['inventory'] = []
-        if 'skills' not in validated_data:
-            validated_data['skills'] = []
-        if 'status_effects' not in validated_data:
-            validated_data['status_effects'] = []
-        if 'progress' not in validated_data:
-            validated_data['progress'] = {}
-        return super().create(validated_data)
+
+        if health is not None and max_health is not None:
+            if health > max_health:
+                raise serializers.ValidationError({
+                    "health": "Health cannot exceed max health"
+                })
+            
+            mana = data.get('mana')
+            max_mana = data.get('max_mana')
+
+            if mana is not None and max_mana is not None:
+                if mana > max_mana:
+                    raise serializers.ValidationError({
+                        "mana": "Mana cannot exceed max mana"
+                    })
+        return data
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
