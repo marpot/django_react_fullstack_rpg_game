@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Chat from "../features/chat/Chat";
 import EventHistoryContainer from "../components/Room/EventHistory/EventHistoryContainer";
 import "../styles/pages/room-page.scss";
-import Button from "src/components/ui/Button/Button";
+import Button from "../components/ui/Button/Button";
 
 const RoomPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();

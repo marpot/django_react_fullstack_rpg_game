@@ -46,10 +46,10 @@ const Room: React.FC = () => {
 
   return (
     <div className="room-container">
-      <h2 className="title is-size-2 has-text-centered has-text-weight-bold">
+      <h2 className="room-title-main">
         Pokój: {roomData.name || 'Brak nazwy pokoju'}
       </h2>
-      <h3 className="subtitle is-4 has-text-centered">
+      <h3 className="room-subtitle">
         Przygoda: {roomData.adventure_title || 'Brak przygody'}
       </h3>
       <Chat roomId={roomId} />
