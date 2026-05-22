@@ -1,0 +1,44 @@
+.btn {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+
+  font-weight: 600;
+  transition: all 0.2s ease;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* PRIMARY */
+.btn-primary {
+  background: #c9a24a;
+  color: #0f0f14;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+}
+
+/* DANGER */
+.btn-danger {
+  background: #d64545;
+  color: white;
+}
+
+.btn-danger:hover {
+  filter: brightness(1.1);
+}
+
+/* SECONDARY */
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+/* FULL WIDTH */
+.btn-full {
+  width: 100%;
+}

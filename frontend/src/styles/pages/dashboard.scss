@@ -116,9 +116,9 @@
 
 .room-list-wrapper {
   flex: 1;
-  min-height: 0;      /* 🔴 KLUCZ (flex bug fix) */
-  overflow-y: auto;   /* 🔴 lokalny scroll */
-  padding-right: 6px; /* opcjonalnie, żeby scroll nie „kleił się” */
+  min-height: 0;      
+  overflow-y: auto;   
+  padding-right: 6px; 
 }
 
 .room-title {

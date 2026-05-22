@@ -23,7 +23,7 @@ const RoomPage: React.FC = () => {
         </ul>
 
         <button
-          className="btn btn-danger"
+          className="btn-danger"
           onClick={() => navigate("/dashboard")}
         >
           Powrót
@@ -38,7 +38,7 @@ const RoomPage: React.FC = () => {
           <EventHistoryContainer roomId={roomId} />
         </div>
 
-        <button className="btn btn-primary">
+        <button className="btn-primary">
           🎲 Rzuć kością
         </button>
       </main>
