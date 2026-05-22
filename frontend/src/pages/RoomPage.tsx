@@ -1,58 +1,56 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import Chat from '../features/chat/Chat';
-import EventHistoryContainer from '../components/Room/EventHistory/EventHistoryContainer';
+import React from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import Chat from "../features/chat/Chat";
+import EventHistoryContainer from "../components/Room/EventHistory/EventHistoryContainer";
+import "../styles/pages/room-page.scss";
 
 const RoomPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
 
-  if (!roomId) {
-    return <div>Brak dostępnego pokoju.</div>;
-  }
+  if (!roomId) return <div>Brak pokoju</div>;
 
   return (
-    <div
-      className="room-page columns is-gapless"
-      style={{ height: "100vh", overflow: "hidden" }}
-    >
-      <aside className="column is-3 p-4 has-background-grey-dark">
-        <h2 className="title is-4 has-text-white">🧙‍♂️ Postacie</h2>
+    <div className="room-layout">
+      
+      {/* LEFT PANEL */}
+      <aside className="room-sidebar">
+        <h2 className="room-title">🧙 Postacie</h2>
 
-        <ul className="player-list has-text-white">
+        <ul className="player-list">
           <li>Thalion - HP: 20/20</li>
           <li>Grom - HP: 18/25</li>
         </ul>
 
         <button
-          className="button is-danger mt-4"
-          onClick={() => navigate('/dashboard')}
+          className="btn btn-danger"
+          onClick={() => navigate("/dashboard")}
         >
-          ⬅ Powrót
+          Powrót
         </button>
       </aside>
 
-      <main className="column is-6 p-4 has-background-dark">
-        <h1 className="title has-text-white has-text-centered">
-          🏰 Pokój: {roomId}
-        </h1>
+      {/* CENTER PANEL */}
+      <main className="room-main">
+        <h1 className="room-header">🏰 Pokój: {roomId}</h1>
 
-        <div className="story-log">
+        <div className="room-story">
           <EventHistoryContainer roomId={roomId} />
         </div>
 
-        <button className="button is-primary mt-4 ml-5">
-          🎲 Rzuć Kością
+        <button className="btn btn-primary">
+          🎲 Rzuć kością
         </button>
       </main>
 
-      <aside className="column is-3 p-4 has-background-grey-dark is-flex is-flex-direction-column">
-        <h2 className="title is-4 has-text-white">💬 Czat</h2>
-
-        <div className="chat-container is-flex-grow-1 is-flex is-flex-direction-column" style={{ height: "100%" }}>
+      {/* RIGHT PANEL */}
+      <aside className="room-chat">
+        <h2 className="room-title">💬 Czat</h2>
+        <div className="chat-wrapper">
           <Chat roomId={roomId} />
         </div>
       </aside>
+
     </div>
   );
 };
