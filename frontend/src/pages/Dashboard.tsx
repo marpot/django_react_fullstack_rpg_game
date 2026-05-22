@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import RoomList from '../components/RoomList';
+import MainLayout from '../components/MainLayout';
+
 import Chat from '../features/chat/Chat';
 
 import { api } from '../api/client';
@@ -54,8 +56,8 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="dashboard-page">
-      <div className="dashboard-container">
+      <div className="dashboard-page">
+        <div className="dashboard-container">
 
         <h1 className="dashboard-title">
           Labirynt Przygód
@@ -96,6 +98,7 @@ const Dashboard = () => {
         </div>
       </div>
     </div>
+  
   );
 };
 
