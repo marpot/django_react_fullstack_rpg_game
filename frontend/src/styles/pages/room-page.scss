@@ -5,6 +5,9 @@
   overflow: hidden;
 }
 
+.room-layout > * {
+  min-height: 0;
+}
 /* LEFT */
 .room-sidebar {
   padding: 16px;
@@ -36,8 +39,10 @@
 .room-chat {
   padding: 16px;
   background: #1f1f1f;
+
   display: flex;
   flex-direction: column;
+
   overflow: hidden;
   min-height: 0;
 }
@@ -45,7 +50,15 @@
 .chat-wrapper {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-wrapper > * {
+  flex: 1;
+  min-height: 0;
+  display: flex;
 }
 
 /* TYPO */
