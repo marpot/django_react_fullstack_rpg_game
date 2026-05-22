@@ -12,101 +12,50 @@ class GameSession(models.Model):
         return f"{self.player.name} - {self.player.adventure.title} (Session)"
 
 class GameEvent(models.Model):
-    EVENT_TYPES = [
-        ('story', 'Story'),
-        ('choice', 'Choice'),
-        ('combat', 'Combat'),
-        ('item', 'Item'),
-        ('status', 'Status'),
-        ('quest', 'Quest'),
-        ('shop', 'Shop'),
-        ('treasure', 'Treasure'),
-    ]
+    class EventType(models.TextChoices):
+        STORY = 'story', 'Story'
+        CHOICE = 'choice', 'Choice'
+        COMBAT = 'combat', 'Combat'
+        ITEM = 'item', 'Item'
+        STATUS = 'status', 'Status'
+        QUEST = 'quest', 'Quest'
+        SHOP = 'shop', 'Shop'
+        TREASURE = 'treasure', 'Treasure'
 
-    # Basic fields
     adventure = models.ForeignKey('world.Adventure', on_delete=models.CASCADE, related_name="game_events")
     player = models.ForeignKey(PlayerCharacter, on_delete=models.CASCADE, related_name="game_events")
-    location = models.ForeignKey('world.Location', on_delete=models.SET_NULL, null=True, blank=True, related_name="game_events")
+    location = models.ForeignKey('world.Location', on_delete=models.SET_NULL, null=True, blank=True)
+
     description = models.TextField()
-    event_type = models.CharField(max_length=20, choices=EVENT_TYPES, default='story')
+    event_type = models.CharField(max_length=20, choices=EventType.choices)
+
     timestamp = models.DateTimeField(auto_now_add=True)
 
-    # Requirements and flags
-    required_flags = models.JSONField(default=list, blank=True)  # Flags required to activate the event
-    blocking_flags = models.JSONField(default=list, blank=True)  # Flags blocking the event
-    requirements = models.JSONField(default=dict, blank=True)  # Requirements to activate the event (level, items, skills)
+    required_flags = models.JSONField(default=list, blank=True)
+    blocking_flags = models.JSONField(default=list, blank=True)
+    requirements = models.JSONField(default=dict, blank=True)
 
-    # Event data and choices
-    event_data = models.JSONField(default=dict, blank=True)  # Specific data for the event type
-    choices = models.JSONField(default=list, blank=True)  # List of available choices
-    consequences = models.JSONField(default=dict, blank=True)  # Consequences of choices
+    event_data = models.JSONField(default=dict, blank=True)
+    choices = models.JSONField(default=list, blank=True)
+    consequences = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['adventure', 'timestamp']),
+            models.Index(fields=['player', 'timestamp']),
+        ]
+
+class Flag(models.Model):
+    adventure = models.ForeignKey('world.Adventure', on_delete=models.CASCADE)
+    player = models.ForeignKey('users.CustomUser', on_delete=models.CASCADE)
+
+    name = models.CharField(max_length=100)
+    value = models.JSONField(default=dict)
+
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('adventure', 'player', 'name')
 
     def __str__(self):
-        """Returns a string representation of the game event."""
-        return f"{self.player.name} - {self.description} ({self.timestamp})"
-
-    def is_available(self, player):
-        """
-        Checks if the event is available for the player.
-        """
-        # Check required flags
-        for flag in self.required_flags:
-            if flag not in player.flags:
-                return False
-
-        # Check blocking flags
-        for flag in self.blocking_flags:
-            if flag in player.flags:
-                return False
-
-        # Check requirements
-        if self.requirements:
-            if player.level < self.requirements.get('min_level', 0):
-                return False
-            
-            for item in self.requirements.get('required_items', []):
-                if item not in player.inventory:
-                    return False
-            
-            for skill in self.requirements.get('required_skills', []):
-                if skill not in player.skills:
-                    return False
-
-        return True
-
-    def get_available_choices(self, player):
-        """
-        Returns a list of available choices for the player.
-        """
-        available_choices = []
-        for choice in self.choices:
-            if self._is_choice_available(choice, player):
-                available_choices.append(choice)
-        return available_choices
-
-    def _is_choice_available(self, choice, player):
-        """
-        Checks if a choice is available for the player.
-        """
-        requirements = choice.get('requirements', {})
-        
-        # Check level
-        if player.level < requirements.get('min_level', 0):
-            return False
-        
-        # Check items
-        for item in requirements.get('required_items', []):
-            if item not in player.inventory:
-                return False
-        
-        # Check skills
-        for skill in requirements.get('required_skills', []):
-            if skill not in player.skills:
-                return False
-        
-        # Check flags
-        for flag in requirements.get('required_flags', []):
-            if flag not in player.flags:
-                return False
-        
-        return True
+        return f"{self.name} ({self.player_id})"

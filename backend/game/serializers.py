@@ -20,11 +20,4 @@ class GameEventSerializer(serializers.ModelSerializer):
             validated_data['choices'] = []
         return super().create(validated_data)
 
-    def add_choice(self, choice_data):
-        if not isinstance(choice_data, dict):
-            raise serializers.ValidationError("Choice data must be a dictionary")
-        choices = self.instance.choices
-        choices.append(choice_data)
-        self.instance.choices = choices
-        self.instance.save()
-
+    
