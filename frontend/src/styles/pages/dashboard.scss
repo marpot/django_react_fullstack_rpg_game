@@ -1,20 +1,20 @@
 .dashboard-page {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: #0f0f14;
   color: #fff;
   padding: 24px;
-  overflow-x: hidden;
 }
 
 /* WRAPPER */
 .dashboard-container {
-  max-width: 1200px;
-  margin: 0 auto;
-
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
+
+
 
 /* TITLE */
 .dashboard-title {
@@ -27,13 +27,12 @@
 
 /* GRID 2 MAIN SECTIONS */
 .dashboard-grid {
+  flex: 1;
+  min-height: 0;   /* ❗ KLUCZ */
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-
-  align-items: start;
 }
-
 /* CARD */
 .dashboard-card {
   background: rgba(255, 255, 255, 0.05);
@@ -45,9 +44,10 @@
 
   display: flex;
   flex-direction: column;
-  min-height: 400px;
+  min-height: 0;
+  flex: 1;
 
-  overflow: visible;
+  overflow: hidden;
   position: relative;
 }
 
@@ -112,6 +112,13 @@
   transform: translateY(-3px);
   border-color: rgba(201, 162, 74, 0.6);
   box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+}
+
+.room-list-wrapper {
+  flex: 1;
+  min-height: 0;      /* 🔴 KLUCZ (flex bug fix) */
+  overflow-y: auto;   /* 🔴 lokalny scroll */
+  padding-right: 6px; /* opcjonalnie, żeby scroll nie „kleił się” */
 }
 
 .room-title {

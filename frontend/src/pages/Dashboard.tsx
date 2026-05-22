@@ -79,7 +79,9 @@ const Dashboard = () => {
             {!loading && rooms.length === 0 ? (
               <p>Brak dostępnych pokoi</p>
             ) : (
-              <RoomList rooms={rooms} onRoomClick={navigateToRoom} />
+              <div className="room-list-wrapper">
+                <RoomList rooms={rooms} onRoomClick={navigateToRoom} />
+              </div>
             )}
           </div>
 
