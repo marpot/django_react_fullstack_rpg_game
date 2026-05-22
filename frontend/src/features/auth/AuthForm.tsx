@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import TextInput from '../../components/ui/TextInput';
 import { api } from '../../api/client';
+import Button from 'src/components/ui/Button/Button';
 
 export type AuthMode = 'login' | 'register';
 
@@ -102,13 +103,13 @@ const AuthForm: React.FC<Props> = ({ mode, loading = false, onSuccess }) => {
         onChange={(e) => setPassword(e.target.value)}
       />
 
-      <button type="submit" className="btn-primary" disabled={loading}>
+      <Button type="submit" variant="primary" disabled={loading}>
         {loading
           ? 'Ładowanie...'
           : isLogin
             ? 'Zaloguj się'
             : 'Zarejestruj się'}
-      </button>
+      </Button>
     </form>
   );
 };

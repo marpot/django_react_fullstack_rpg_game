@@ -16,7 +16,12 @@ const Button: React.FC<ButtonProps> = ({
 }) => {
   return (
     <button
-      className={`btn btn-${variant} ${fullWidth ? "btn-full" : ""} ${className}`}
+      className={[
+        "ui-button",
+        `ui-button--${variant}`,
+        fullWidth ? "ui-button--full" : "",
+        className
+      ].filter(Boolean).join(" ")}
       {...props}
     />
   );

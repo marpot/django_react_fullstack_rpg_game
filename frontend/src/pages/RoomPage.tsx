@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Chat from "../features/chat/Chat";
 import EventHistoryContainer from "../components/Room/EventHistory/EventHistoryContainer";
 import "../styles/pages/room-page.scss";
+import Button from "src/components/ui/Button/Button";
 
 const RoomPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -22,12 +23,12 @@ const RoomPage: React.FC = () => {
           <li>Grom - HP: 18/25</li>
         </ul>
 
-        <button
-          className="btn-danger"
+        <Button
+          variant="danger"
           onClick={() => navigate("/dashboard")}
         >
           Powrót
-        </button>
+        </Button>
       </aside>
 
       {/* CENTER PANEL */}
@@ -38,9 +39,9 @@ const RoomPage: React.FC = () => {
           <EventHistoryContainer roomId={roomId} />
         </div>
 
-        <button className="btn-primary">
+        <Button variant="primary">
           🎲 Rzuć kością
-        </button>
+        </Button>
       </main>
 
       {/* RIGHT PANEL */}

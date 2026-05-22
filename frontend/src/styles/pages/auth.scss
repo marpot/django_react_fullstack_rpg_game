@@ -111,36 +111,6 @@ form {
   box-shadow: 0 0 0 2px rgba(201, 162, 74, 0.2);
 }
 
-/* BUTTON */
-.btn-primary {
-  width: 100%;
-  padding: 12px;
-
-  border-radius: 8px;
-  border: none;
-
-  background: linear-gradient(
-    180deg,
-    tokens.$color-primary,
-    color.adjust(tokens.$color-primary, $lightness: -10%)
-  );
-
-  color: tokens.$color-bg;
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-}
-
-.btn-primary:active {
-  transform: translateY(1px);
-}
 
 /* TYPO */
 .login-title {

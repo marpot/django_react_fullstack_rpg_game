@@ -1,4 +1,4 @@
-.btn {
+.ui-button {
   padding: 10px 14px;
   border-radius: 8px;
   border: none;
@@ -13,32 +13,32 @@
 }
 
 /* PRIMARY */
-.btn-primary {
+.ui-button--primary {
   background: #c9a24a;
   color: #0f0f14;
 }
 
-.btn-primary:hover {
+.ui-button--primary:hover {
   filter: brightness(1.1);
 }
 
 /* DANGER */
-.btn-danger {
+.ui-button--danger {
   background: #d64545;
   color: white;
 }
 
-.btn-danger:hover {
+.ui-button--danger:hover {
   filter: brightness(1.1);
 }
 
 /* SECONDARY */
-.btn-secondary {
+.ui-button--secondary {
   background: rgba(255, 255, 255, 0.08);
   color: white;
 }
 
 /* FULL WIDTH */
-.btn-full {
+.ui-button--full {
   width: 100%;
 }
