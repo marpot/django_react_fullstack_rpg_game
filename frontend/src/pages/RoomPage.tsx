@@ -39,7 +39,7 @@ const RoomPage: React.FC = () => {
           <EventHistoryContainer roomId={roomId} />
         </div>
 
-        <Button variant="primary">
+        <Button variant="primary" onClick={() => console.log("Rzucasz kością...")}>
           🎲 Rzuć kością
         </Button>
       </main>
