@@ -1,11 +1,12 @@
 import React from 'react';
+import Button from '../ui/Button';
 
 const SubmitButton: React.FC<{ loading: boolean; }> = ({ loading }) => (
   <div className="field">
     <div className="control">
-      <button type="submit" className={`button is-primary ${loading ? 'is-loading' : ''}`} disabled={loading}>
+      <Button type="submit" variant="primary" fullWidth disabled={loading}>
         Utwórz pokój
-      </button>
+      </Button>
     </div>
   </div>
 );

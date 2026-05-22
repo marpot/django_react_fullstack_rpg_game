@@ -1,7 +1,18 @@
-import React from 'react';
+import React from "react";
+import "../ui/notifications.scss";
 
-const ErrorNotification: React.FC<{ error: string | null; }> = ({ error }) => (
-  error ? <div className="notification is-danger">{error}</div> : null
-);
+interface ErrorNotificationProps {
+  error: string | null;
+}
 
-export default ErrorNotification; 
+const ErrorNotification: React.FC<ErrorNotificationProps> = ({ error }) => {
+  if (!error) return null;
+
+  return (
+    <div className="error-notification">
+      {error}
+    </div>
+  );
+};
+
+export default ErrorNotification;
