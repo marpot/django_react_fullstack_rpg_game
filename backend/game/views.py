@@ -2,6 +2,8 @@ from rest_framework import viewsets, filters, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+import traceback
+
 from .models import GameSession, GameEvent
 from .serializers import GameSessionSerializer, GameEventSerializer
 
@@ -10,109 +12,89 @@ from game.services.dice_service import DiceService
 
 
 class GameSessionViewSet(viewsets.ModelViewSet):
-    """
-    GameSession API ViewSet.
-
-    Handles lifecycle of game sessions and triggers gameplay actions.
-
-    Responsibilities:
-        - CRUD for GameSession
-        - Trigger combat via /fight/ endpoint
-
-    Endpoints:
-        GET    /api/sessions/          - list sessions
-        POST   /api/sessions/          - create session
-        GET    /api/sessions/{id}/     - retrieve session
-        PUT    /api/sessions/{id}/     - update session
-        DELETE /api/sessions/{id}/     - delete session
-
-    Custom actions:
-        POST /api/sessions/{id}/fight/ - simulate combat encounter
-
-    Notes:
-        Business logic is delegated to service layer (CombatService).
-        ViewSet only orchestrates request/response flow.
-    """
 
     queryset = GameSession.objects.all()
     serializer_class = GameSessionSerializer
 
     def _resolve_fight(self, attacker, defender):
-        """
-        Resolves combat using service layer.
-
-        Flow:
-            - Initializes DiceService (Random Number Generator)
-            - Passes dependencies to CombatService
-            - Executes combat rules
-
-        Returns:
-            CombatResult: result of fight simulation
-        """
         dice = DiceService(seed=1)
         combat = CombatService(dice)
         return combat.resolve(attacker, defender)
 
     @action(detail=True, methods=['post'])
     def fight(self, request, pk=None):
-        """
-        Triggers combat encounter for current session.
+        try:
+            session = self.get_object()
 
-        Request:
-            enemy - target entity (temporary placeholder)
+            attacker = session.player
+            defender_name = request.data.get("enemy")
 
-        Process:
-            1. Get session player
-            2. Resolve combat via service layer
-            3. Save result as GameEvent
-            4. Return combat outcome
+            if not attacker:
+                return Response({"error": "Missing attacker"}, status=400)
 
-        Returns:
-            JSON with CombatResult data
-        """
-        session = self.get_object()
+            if not defender_name:
+                return Response({"error": "Missing enemy"}, status=400)
 
-        attacker = session.player
-        defender = request.data.get("enemy")
+            # =========================
+            # ADVENTURE SOURCE OF TRUTH
+            # =========================
+            adventure_id = getattr(session, "adventure_id", None)
 
-        result = self._resolve_fight(attacker, defender)
+            if not adventure_id:
+                return Response(
+                    {"error": "GameSession missing adventure_id"},
+                    status=400
+                )
 
-        GameEvent.objects.create(
-            player=session.player,
-            description=f"Fight result: {result.winner}",
-            event_type="combat",
-            event_data={
-                "attacker_damage": result.attacker_damage,
-                "defender_damage": result.defender_damage,
-            }
-        )
+            # =========================
+            # ADAPTER ORM -> COMBAT RUNTIME
+            # =========================
+            attacker_runtime = type("AttackerRuntime", (), {})()
+            attacker_runtime.id = attacker.id
+            attacker_runtime.name = getattr(attacker, "name", "hero")
 
-        return Response({
-            "result": result.__dict__,
-        })
+            attacker_runtime.attack_bonus = getattr(attacker, "strength", 0) // 2
+            attacker_runtime.defense = getattr(attacker, "dexterity", 0) // 2
+            attacker_runtime.damage_die = 6
+            attacker_runtime.damage_bonus = getattr(attacker, "strength", 0) // 3
+            attacker_runtime.hp = getattr(attacker, "health", 100)
+
+            defender_runtime = type("EnemyRuntime", (), {})()
+            defender_runtime.name = defender_name
+            defender_runtime.attack_bonus = 2
+            defender_runtime.defense = 10
+            defender_runtime.damage_die = 6
+            defender_runtime.damage_bonus = 1
+            defender_runtime.hp = 30
+
+            result = self._resolve_fight(attacker_runtime, defender_runtime)
+
+            GameEvent.objects.create(
+                player=session.player,
+                adventure_id=adventure_id,
+                description=f"Fight result: {result.winner}",
+                event_type="combat",
+                event_data={
+                    "attacker_damage": result.attacker_damage,
+                    "defender_damage": result.defender_damage,
+                    "winner": result.winner,
+                }
+            )
+
+            return Response({
+                "result": result.__dict__,
+            })
+
+        except Exception as e:
+            print("FIGHT VIEW ERROR:", repr(e))
+            traceback.print_exc()
+            return Response(
+                {"error": str(e)},
+                status=500
+            )
 
 
 class GameEventViewSet(viewsets.ModelViewSet):
-    """
-    GameEvent API ViewSet.
-
-    Provides access to game world events and supports:
-        - filtering
-        - searching
-        - ordering
-        - history retrieval
-
-    Endpoints:
-        GET    /api/events/
-        GET    /api/events/{id}/
-        POST   /api/events/
-        PUT    /api/events/{id}/
-        DELETE /api/events/{id}/
-
-    Custom actions:
-        GET  /api/events/history/
-        POST /api/events/{id}/add_choice/
-    """
 
     queryset = GameEvent.objects.all()
     serializer_class = GameEventSerializer
@@ -123,27 +105,11 @@ class GameEventViewSet(viewsets.ModelViewSet):
     ordering = ['-timestamp']
 
     def get_queryset(self):
-        """
-        Filters events based on query parameters.
-
-        Supported filters:
-            - player (int)
-            - adventure (int)
-            - event_type (str)
-
-        Returns:
-            QuerySet[GameEvent]
-        """
         queryset = GameEvent.objects.all()
 
         player_id = self.request.query_params.get('player')
         adventure_id = self.request.query_params.get('adventure')
         event_type = self.request.query_params.get('event_type')
-
-        if player_id and not player_id.isdigit():
-            raise serializers.ValidationError('Player ID must be integer')
-        if adventure_id and not adventure_id.isdigit():
-            raise serializers.ValidationError('Adventure ID must be integer')
 
         if player_id:
             queryset = queryset.filter(player_id=player_id)
@@ -156,15 +122,6 @@ class GameEventViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def history(self, request):
-        """
-        Returns event history for specific location.
-
-        Query params:
-            location_id (int)
-
-        Returns:
-            List[GameEvent]
-        """
         location_id = request.query_params.get('location_id')
 
         if location_id:
@@ -177,19 +134,6 @@ class GameEventViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def add_choice(self, request, pk=None):
-        """
-        Adds a choice to a game event.
-
-        Request body:
-            text (str)
-            next_location (int)
-            consequences (dict)
-
-        Endpoint:
-            POST /api/events/{id}/add_choice/
-
-        Delegates logic to serializer.
-        """
         event = self.get_object()
         serializer = self.get_serializer(event)
 

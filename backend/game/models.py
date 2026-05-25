@@ -3,13 +3,14 @@ from accounts.models import PlayerCharacter
 
 class GameSession(models.Model):
     player = models.ForeignKey(PlayerCharacter, on_delete=models.CASCADE, related_name="sessions")
+    adventure = models.ForeignKey('world.Adventure', on_delete=models.CASCADE, related_name="sessions")
     progress = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         """Returns a string representation of the game session."""
-        return f"{self.player.name} - {self.player.adventure.title} (Session)"
+        return f"{self.player.name} - {self.adventure.title} (Session)"
 
 class GameEvent(models.Model):
     EVENT_TYPES = [

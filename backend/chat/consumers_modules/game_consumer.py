@@ -1,4 +1,8 @@
 import json
+import traceback
+
+from asgiref.sync import sync_to_async
+
 from .base import BaseConsumer
 from game_instances.services.llm.llm_service import LLMService
 from game.state.game_state_manager import GameStateManager
@@ -10,7 +14,7 @@ class GameConsumer(BaseConsumer):
     async def on_connect(self):
         self.state_manager = GameStateManager()
         self.processor = ActionProcessor(self.state_manager)
-    
+
     async def receive(self, text_data):
         print("=== GAME RECEIVE START ===")
         print("RAW:", text_data)
@@ -32,7 +36,8 @@ class GameConsumer(BaseConsumer):
             parsed["room"] = self.room_name
             parsed["user_id"] = self.scope["user"].id
 
-            result = self.processor.process(parsed)
+            # 🔥 FIX: sync → async safe execution
+            result = await sync_to_async(self.processor.process)(parsed)
 
             await self.send_message(
                 str(result),
@@ -40,5 +45,7 @@ class GameConsumer(BaseConsumer):
             )
 
         except Exception as e:
-            print("GAME ERROR:", e)
+            print("GAME ERROR:", repr(e))
+            traceback.print_exc()
+
             await self.send_error_message(str(e))

@@ -15,22 +15,18 @@ up-full:
 down:
 	$(COMPOSE) down
 
-# Restart (lekki)
+# Restart (lekki - FAST)
 restart:
-	$(COMPOSE) down
-	COMPOSE_BAKE=true $(COMPOSE) build
-	$(COMPOSE) up -d backend db redis
+	$(COMPOSE) up -d --build backend db redis
 
 # Restart full stack
 restart-full:
-	$(COMPOSE) down
-	COMPOSE_BAKE=true $(COMPOSE) build
-	$(COMPOSE) --profile full up -d
+	$(COMPOSE) --profile full up -d --build
 
 # ========== BUILD ==========
 
 build:
-	COMPOSE_BAKE=true $(COMPOSE) build
+	$(COMPOSE) build
 
 # ========== LOGS ==========
 
