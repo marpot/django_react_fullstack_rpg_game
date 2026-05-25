@@ -6,10 +6,10 @@ import { GameEventType } from '../../../../types/types';
 import { api } from '../../../api/client'
 
 interface EventHistoryContainerProps {
-  roomId: string;
+  adventureId: number;
 }
 
-const EventHistoryContainer: React.FC<EventHistoryContainerProps> = ({ roomId }) => {
+const EventHistoryContainer: React.FC<EventHistoryContainerProps> = ({ adventureId }) => {
   const [events, setEvents] = useState<GameEventType[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +19,7 @@ const EventHistoryContainer: React.FC<EventHistoryContainerProps> = ({ roomId })
 
     const fetchEvents = async () => {
       try {
-        const response = await api.get(`/game/events/history/${roomId}`);
+        const response = await api.get(`/game/events/history/?adventure_id=${adventureId}`);
 
         if (!isMounted) return;
 
@@ -38,7 +38,7 @@ const EventHistoryContainer: React.FC<EventHistoryContainerProps> = ({ roomId })
     return () => {
       isMounted = false;
     };
-  }, [roomId]);
+  }, [adventureId]);
 
   if (loading) return <EventHistoryLoader />;
   if (error) return <EventHistoryError message={error} />;
