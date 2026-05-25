@@ -48,3 +48,24 @@ class Choice(models.Model):
 
     class Meta:
         verbose_name_plural = "choices"
+
+class Enemy(models.Model):
+    name = models.CharField(max_length=100)
+
+    hp = models.IntegerField(default=30)
+    defense = models.IntegerField(default=10)
+
+    attack_bonus = models.IntegerField(default=2)
+    damage_die = models.IntegerField(default=6)
+    damage_bonus = models.IntegerField(default=1)
+
+    adventure = models.ForeignKey(
+        "world.Adventure",
+        on_delete=models.CASCADE,
+        related_name="enemies"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name

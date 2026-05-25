@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from game.services.dice_service import DiceService
 
 
-@dataclass(frozen=True)  #frozen=True = obiekt jest niemutowalny - wynik walki w tym przypadku
+@dataclass(frozen=True)
 class CombatResult:
     attacker_hit: bool
     defender_hit: bool
@@ -17,22 +17,14 @@ class CombatService:
 
     def resolve(self, attacker, defender) -> CombatResult:
         attacker_hit, attacker_damage = self._attack(attacker, defender)
-        defender_hit, defender_damage = False, 0
+
+        defender_hit, defender_damage = self._attack(defender, attacker)
+
         winner = None
 
-        if attacker.hp <= 0:
-            return CombatResult(
-                attacker_hit=attacker_hit,
-                defender_hit=False,
-                attacker_damage=attacker_damage,
-                defender_damage=0,
-                winner="defender"
-            )
-
-        if defender.hp > 0:
-            defender_hit, defender_damage = self._attack(defender, attacker)
-
-        if defender.hp <= 0 and attacker.hp > 0:
+        if attacker.hp <= 0 and defender.hp <= 0:
+            winner = "draw"
+        elif defender.hp <= 0:
             winner = "attacker"
         elif attacker.hp <= 0:
             winner = "defender"
@@ -52,6 +44,10 @@ class CombatService:
         if total_attack >= defender.defense:
             damage = self.dice.roll(attacker.damage_die) + attacker.damage_bonus
             defender.hp -= damage
+
+            if defender.hp < 0:
+                defender.hp = 0
+
             return True, damage
 
         return False, 0

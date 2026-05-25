@@ -14,8 +14,28 @@ class EntityResolver:
 
     def resolve_enemy(self, room_name: str, enemy_name: str):
         room = self.state_manager.get_room(room_name)
-        if not room:
+
+        # 1. runtime cache
+        if room and enemy_name in room.enemies:
+            return room.enemies[enemy_name]
+
+        # 2. ORM fallback
+        from world.models import Enemy
+
+        enemy = Enemy.objects.filter(name=enemy_name).first()
+        if not enemy:
             return None
+
+        # runtime object (prosty mapping)
+        return type("EnemyRuntime", (), {
+            "id": enemy.id,
+            "name": enemy.name,
+            "hp": enemy.hp,
+            "defense": enemy.defense,
+            "attack_bonus": enemy.attack_bonus,
+            "damage_die": enemy.damage_die,
+            "damage_bonus": enemy.damage_bonus,
+        })()
 
         return room.enemies.get(enemy_name)
 
