@@ -20,6 +20,16 @@ def test_combat_resolve():
 
     result = combat.resolve(attacker, defender)
 
-    assert result.attacker_hit is not None
+    assert isinstance(result.attacker_hit, bool)
+    assert isinstance(result.defender_hit, bool)
+
     assert isinstance(result.attacker_damage, int)
+    assert isinstance(result.defender_damage, int)
+
     assert defender.hp <= 100
+    assert defender.hp >= 0
+
+    if result.attacker_hit:
+        assert result.attacker_damage > 0
+    else:
+        assert result.attacker_damage == 0

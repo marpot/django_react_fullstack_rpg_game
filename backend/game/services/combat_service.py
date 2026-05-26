@@ -3,7 +3,7 @@ from game.services.dice_service import DiceService
 
 
 @dataclass(frozen=True)  #frozen=True = obiekt jest niemutowalny - wynik walki w tym przypadku
-class CombatResult:
+class RoundResult:
     attacker_hit: bool
     defender_hit: bool
     attacker_damage: int
@@ -15,13 +15,13 @@ class CombatService:
     def __init__(self, dice_service):
         self.dice = dice_service
 
-    def resolve(self, attacker, defender) -> CombatResult:
+    def resolve(self, attacker, defender) -> RoundResult:
         attacker_hit, attacker_damage = self._attack(attacker, defender)
         defender_hit, defender_damage = False, 0
         winner = None
 
         if attacker.hp <= 0:
-            return CombatResult(
+            return RoundResult(
                 attacker_hit=attacker_hit,
                 defender_hit=False,
                 attacker_damage=attacker_damage,
@@ -37,7 +37,7 @@ class CombatService:
         elif attacker.hp <= 0:
             winner = "defender"
 
-        return CombatResult(
+        return RoundResult(
             attacker_hit=attacker_hit,
             defender_hit=defender_hit,
             attacker_damage=attacker_damage,
