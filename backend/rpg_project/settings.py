@@ -16,7 +16,7 @@ SECRET_KEY = os.getenv(
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ['*']
-
+TEST_RUNNER = "django.test.runner.DiscoverRunner"
 # =========================
 # APPLICATIONS
 # =========================

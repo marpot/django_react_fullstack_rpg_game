@@ -7,6 +7,8 @@ from game.state.runtime.models import Player, Enemy
 # FAKE STATE (bez Django)
 # -------------------------
 
+pytestmark = pytest.mark.django_db
+
 class FakeRoom:
     def __init__(self):
         self.players = {}

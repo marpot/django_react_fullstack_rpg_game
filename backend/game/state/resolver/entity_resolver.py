@@ -5,7 +5,7 @@ class EntityResolver:
         self.state_manager = state_manager
 
     def resolve_player(self, room_name: str, user_id: int):
-        room = self.state_manager.get_room(room_name)
+        room = self.state_manager.get_or_create_room(room_name)
         if not room:
             return None
 

@@ -1,6 +1,9 @@
 from game.state.game_state_manager import GameStateManager
 from game.core.action_processor import ActionProcessor
 from game.state.runtime.models import Player, Enemy
+import pytest
+
+pytestmark = pytest.mark.django_db
 
 def test_full_combat_flow():
     state = GameStateManager()
