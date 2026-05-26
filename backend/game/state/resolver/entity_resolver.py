@@ -1,4 +1,5 @@
-from game.state.runtime.models import Player, Enemy
+from game.state.runtime.models import Player, Enemy as RuntimeEnemy
+
 
 class EntityResolver:
     def __init__(self, state_manager):
@@ -6,38 +7,26 @@ class EntityResolver:
 
     def resolve_player(self, room_name: str, user_id: int):
         room = self.state_manager.get_or_create_room(room_name)
-        if not room:
-            return None
 
         player = room.players.get(user_id)
         return self._normalize_player(player)
 
     def resolve_enemy(self, room_name: str, enemy_name: str):
-        room = self.state_manager.get_room(room_name)
+        room = self.state_manager.get_or_create_room(room_name)
+        enemy = room.enemies.get(enemy_name)
 
-        # 1. runtime cache
-        if room and enemy_name in room.enemies:
-            return room.enemies[enemy_name]
-
-        # 2. ORM fallback
-        from world.models import Enemy
-
-        enemy = Enemy.objects.filter(name=enemy_name).first()
-        if not enemy:
+        if enemy is None:
             return None
 
-        # runtime object (prosty mapping)
-        return type("EnemyRuntime", (), {
-            "id": enemy.id,
-            "name": enemy.name,
-            "hp": enemy.hp,
-            "defense": enemy.defense,
-            "attack_bonus": enemy.attack_bonus,
-            "damage_die": enemy.damage_die,
-            "damage_bonus": enemy.damage_bonus,
-        })()
-
-        return room.enemies.get(enemy_name)
+        return RuntimeEnemy(
+            id=getattr(enemy, "id", enemy.name),
+            name=enemy.name,
+            hp=enemy.hp,
+            defense=enemy.defense,
+            attack_bonus=enemy.attack_bonus,
+            damage_die=enemy.damage_die,
+            damage_bonus=enemy.damage_bonus,
+        )
 
     def _normalize_player(self, player):
         if player is None:

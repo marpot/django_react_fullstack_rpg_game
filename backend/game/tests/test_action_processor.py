@@ -22,14 +22,14 @@ def test_attack_action():
     state = GameStateManager()
     state.get_or_create_room("testroom")
 
-    # =========================
-    # runtime player
-    # =========================
+    User = get_user_model()
+    user = User.objects.create_user(username="hero", password="x")
+
     state.add_player(
         "testroom",
-        1,
+        user.id,
         Player(
-            id=1,
+            id=user.id,
             name="Hero",
             hp=100,
             max_hp=100,
@@ -40,9 +40,6 @@ def test_attack_action():
         )
     )
 
-    # =========================
-    # runtime enemy
-    # =========================
     state.add_enemy(
         "testroom",
         Enemy(
@@ -56,14 +53,7 @@ def test_attack_action():
         )
     )
 
-    # =========================
-    # ORM setup
-    # =========================
-    User = get_user_model()
-    user = User.objects.create_user(username="hero", password="x")
-
     PlayerCharacter.objects.create(
-        id=1,
         user=user,
         name="Hero",
         health=100,
@@ -72,41 +62,32 @@ def test_attack_action():
 
     adventure = Adventure.objects.create(
         title="test",
-        creator=user  # WAŻNE jeśli masz FK required
+        creator=user
     )
 
     EnemyORM.objects.create(
-        id=1,
         name="goblin",
         hp=10,
         defense=2,
         attack_bonus=1,
         damage_die=6,
         damage_bonus=1,
-        adventure=adventure,  # KLUCZOWE FIX
+        adventure=adventure,
     )
 
-    # =========================
-    # ACTION
-    # =========================
     dice = DiceService(seed=1)
     combat = CombatService(dice)
 
-
     processor = ActionProcessor(state_manager=state, combat_service=combat)
 
-    parsed = {
+    result = processor.process({
         "action": "attack",
         "target": "goblin",
         "room": "testroom",
-        "user_id": 1
-    }
+        "user_id": user.id,
+        'adventure': adventure.id
+    })
 
-    result = processor.process(parsed)
-
-    # =========================
-    # ASSERTS
-    # =========================
-    assert "action" in result
     assert result["action"] == "attack"
-    assert state.get_room("testroom").enemies["goblin"].hp <= 10
+    assert "error" not in result
+    assert state.get_room("testroom").enemies["goblin"].hp < 10

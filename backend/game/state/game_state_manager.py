@@ -67,4 +67,4 @@ class GameStateManager:
 
     def add_enemy(self, room_name: str, enemy):
         room = self.get_or_create_room(room_name)
-        room.enemies[enemy.id] = enemy
+        room.enemies[enemy.name] = enemy
