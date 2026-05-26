@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from game.services.dice_service import DiceService
 
-
 @dataclass(frozen=True)
 class CombatResult:
     attacker_hit: bool
@@ -17,17 +16,9 @@ class CombatService:
 
     def resolve(self, attacker, defender) -> CombatResult:
         attacker_hit, attacker_damage = self._attack(attacker, defender)
-
         defender_hit, defender_damage = self._attack(defender, attacker)
 
-        winner = None
-
-        if attacker.hp <= 0 and defender.hp <= 0:
-            winner = "draw"
-        elif defender.hp <= 0:
-            winner = "attacker"
-        elif attacker.hp <= 0:
-            winner = "defender"
+        winner = self._resolve_winner(attacker,defender)
 
         return CombatResult(
             attacker_hit=attacker_hit,
@@ -36,6 +27,16 @@ class CombatService:
             defender_damage=defender_damage,
             winner=winner
         )
+
+    def _resolve_winner(self, attacker, defender):
+        if attacker.hp <= 0 and defender.hp <= 0:
+            return "draw"
+        if defender.hp <= 0:
+            return "attacker"
+        if attacker.hp <= 0:
+            return "defender"
+        return None
+
 
     def _attack(self, attacker, defender):
         roll = self.dice.roll(20)

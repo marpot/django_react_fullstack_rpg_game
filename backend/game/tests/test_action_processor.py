@@ -2,9 +2,16 @@ import pytest
 from django.contrib.auth import get_user_model
 
 from game.core.action_processor import ActionProcessor
+
 from game.state.game_state_manager import GameStateManager
 from game.state.runtime.models import Player, Enemy
+
+from game.services.combat_service import CombatService
+from game.services.dice_service import DiceService
+
+
 from accounts.models import PlayerCharacter
+
 from world.models import Adventure, Enemy as EnemyORM
 
 
@@ -82,7 +89,11 @@ def test_attack_action():
     # =========================
     # ACTION
     # =========================
-    processor = ActionProcessor(state)
+    dice = DiceService(seed=1)
+    combat = CombatService(dice)
+
+
+    processor = ActionProcessor(state_manager=state, combat_service=combat)
 
     parsed = {
         "action": "attack",
