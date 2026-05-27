@@ -28,11 +28,13 @@ export const useProfile = () => {
 
         const data = await fetchMe();
 
+        console.log("ME RAW RESPONSE:", data);
+
         // MAPOWANIE backend → frontend
         const mapped: Profile = {
-          username: data.user.username,
-          level: data.character.level,
-          exp: data.character.experience,
+          username: data.user?.username ?? "unknown",
+          level: data.character?.level ?? 1,
+          exp: data.character?.experience ?? 0,
           expToNextLevel: 500, // na razie placeholder (możemy potem policzyć backendowo)
           stats: {
             gamesPlayed: 0,
