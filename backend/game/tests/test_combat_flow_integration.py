@@ -15,14 +15,21 @@ def test_full_combat_flow():
 
     room = state.get_or_create_room("testroom")
 
+     # =========================
+    # Django user
     # =========================
-    # runtime player (combat layer)
+    User = get_user_model()
+    user = User.objects.create_user(username="hero", password="x")
+
+
+    # =========================
+    # Runtime player (combat layer)
     # =========================
     state.add_player(
         "testroom",
-        1,
+        user.id,
         Player(
-            id=1,
+            id=user.id,
             name="Hero",
             hp=100,
             max_hp=100,
@@ -32,12 +39,8 @@ def test_full_combat_flow():
             defense=5
         )
     )
-
     # =========================
-    # Django user
-    # =========================
-    User = get_user_model()
-    user = User.objects.create_user(username="hero", password="x")
+    # ORM player (required by ActionProcessor)
 
     PlayerCharacter.objects.create(
         user=user,
@@ -68,7 +71,7 @@ def test_full_combat_flow():
     )
 
     # =========================
-    # runtime enemy (combat layer)
+    # Runtime enemy (combat layer)
     # =========================
     room.enemies["goblin"] = RuntimeEnemy(
         id="goblin",
