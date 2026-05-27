@@ -13,28 +13,8 @@ def test_full_combat_flow():
     state = GameStateManager()
     processor = ActionProcessor(state)
 
-    room = state.get_or_create_room("testroom")
-
     # =========================
-    # runtime player (combat layer)
-    # =========================
-    state.add_player(
-        "testroom",
-        1,
-        Player(
-            id=1,
-            name="Hero",
-            hp=100,
-            max_hp=100,
-            attack_bonus=10,
-            damage_die=8,
-            damage_bonus=2,
-            defense=5
-        )
-    )
-
-    # =========================
-    # Django user
+    # Django user (MUSI BYĆ PIERWSZY)
     # =========================
     User = get_user_model()
     user = User.objects.create_user(username="hero", password="x")
@@ -52,6 +32,26 @@ def test_full_combat_flow():
     adventure = Adventure.objects.create(
         title="test",
         creator=user
+    )
+
+    # =========================
+    # runtime player (combat layer)
+    # =========================
+    room = state.get_or_create_room("testroom")
+
+    state.add_player(
+        "testroom",
+        user.id,
+        Player(
+            id=user.id,
+            name="Hero",
+            hp=100,
+            max_hp=100,
+            attack_bonus=10,
+            damage_die=8,
+            damage_bonus=2,
+            defense=5
+        )
     )
 
     # =========================
@@ -90,6 +90,7 @@ def test_full_combat_flow():
         "user_id": user.id,
         "adventure": adventure.id
     })
+
     # =========================
     # ASSERT
     # =========================

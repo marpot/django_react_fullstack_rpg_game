@@ -25,7 +25,11 @@ class FakeStateManager:
     def get_room(self, name):
         return self.rooms.get(name)
 
-
+    # 🔥 FIX: kompatybilność z production API
+    def get_or_create_room(self, name):
+        if name not in self.rooms:
+            self.create_room(name)
+        return self.rooms[name]
 # -------------------------
 # TESTS
 # -------------------------
