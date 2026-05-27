@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from game.services.dice_service import DiceService
 
-
-@dataclass(frozen=True)  #frozen=True = obiekt jest niemutowalny - wynik walki w tym przypadku
-class RoundResult:
+@dataclass(frozen=True)
+class CombatResult:
     attacker_hit: bool
     defender_hit: bool
     attacker_damage: int
@@ -15,35 +14,29 @@ class CombatService:
     def __init__(self, dice_service):
         self.dice = dice_service
 
-    def resolve(self, attacker, defender) -> RoundResult:
+    def resolve(self, attacker, defender) -> CombatResult:
         attacker_hit, attacker_damage = self._attack(attacker, defender)
-        defender_hit, defender_damage = False, 0
-        winner = None
+        defender_hit, defender_damage = self._attack(defender, attacker)
 
-        if attacker.hp <= 0:
-            return RoundResult(
-                attacker_hit=attacker_hit,
-                defender_hit=False,
-                attacker_damage=attacker_damage,
-                defender_damage=0,
-                winner="defender"
-            )
+        winner = self._resolve_winner(attacker,defender)
 
-        if defender.hp > 0:
-            defender_hit, defender_damage = self._attack(defender, attacker)
-
-        if defender.hp <= 0 and attacker.hp > 0:
-            winner = "attacker"
-        elif attacker.hp <= 0:
-            winner = "defender"
-
-        return RoundResult(
+        return CombatResult(
             attacker_hit=attacker_hit,
             defender_hit=defender_hit,
             attacker_damage=attacker_damage,
             defender_damage=defender_damage,
             winner=winner
         )
+
+    def _resolve_winner(self, attacker, defender):
+        if attacker.hp <= 0 and defender.hp <= 0:
+            return "draw"
+        if defender.hp <= 0:
+            return "attacker"
+        if attacker.hp <= 0:
+            return "defender"
+        return None
+
 
     def _attack(self, attacker, defender):
         roll = self.dice.roll(20)
@@ -52,6 +45,10 @@ class CombatService:
         if total_attack >= defender.defense:
             damage = self.dice.roll(attacker.damage_die) + attacker.damage_bonus
             defender.hp -= damage
+
+            if defender.hp < 0:
+                defender.hp = 0
+
             return True, damage
 
         return False, 0

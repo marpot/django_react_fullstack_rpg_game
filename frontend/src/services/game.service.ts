@@ -1,5 +1,5 @@
 import { api } from "../api/client"
 
-export const getEventHistory = (roomId: string) => {
-  return api.get(`/game/events/history/${roomId}`);
+export const getEventHistory = (adventureId: number) => {
+  return api.get(`/game/events/history/?adventure_id=${adventureId}`);
 };

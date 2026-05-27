@@ -1,17 +1,35 @@
+import pytest
+from django.contrib.auth import get_user_model
+
 from game.core.action_processor import ActionProcessor
+
 from game.state.game_state_manager import GameStateManager
 from game.state.runtime.models import Player, Enemy
+
+from game.services.combat_service import CombatService
+from game.services.dice_service import DiceService
+
+
+from accounts.models import PlayerCharacter
+
+from world.models import Adventure, Enemy as EnemyORM
+
+
+pytestmark = pytest.mark.django_db
 
 
 def test_attack_action():
     state = GameStateManager()
-    room = state.get_or_create_room("testroom")
+    state.get_or_create_room("testroom")
+
+    User = get_user_model()
+    user = User.objects.create_user(username="hero", password="x")
 
     state.add_player(
         "testroom",
-        1,
+        user.id,
         Player(
-            id=1,
+            id=user.id,
             name="Hero",
             hp=100,
             max_hp=100,
@@ -22,32 +40,54 @@ def test_attack_action():
         )
     )
 
-    
     state.add_enemy(
         "testroom",
         Enemy(
-              id="goblin", 
-              name="goblin", 
-              hp=10,
-              defense=2,
-              attack_bonus=1,
-              damage_die=6,
-              damage_bonus=1
-            )
+            id="goblin",
+            name="goblin",
+            hp=10,
+            defense=2,
+            attack_bonus=1,
+            damage_die=6,
+            damage_bonus=1,
+        )
     )
 
-    processor = ActionProcessor(state)
+    PlayerCharacter.objects.create(
+        user=user,
+        name="Hero",
+        health=100,
+        max_health=100,
+    )
 
-    parsed = {
+    adventure = Adventure.objects.create(
+        title="test",
+        creator=user
+    )
+
+    EnemyORM.objects.create(
+        name="goblin",
+        hp=10,
+        defense=2,
+        attack_bonus=1,
+        damage_die=6,
+        damage_bonus=1,
+        adventure=adventure,
+    )
+
+    dice = DiceService(seed=1)
+    combat = CombatService(dice)
+
+    processor = ActionProcessor(state_manager=state, combat_service=combat)
+
+    result = processor.process({
         "action": "attack",
         "target": "goblin",
         "room": "testroom",
-        "user_id": 1
-    }
+        "user_id": user.id,
+        'adventure': adventure.id
+    })
 
-    result = processor.process(parsed)
-
-    assert "action" in result
     assert result["action"] == "attack"
-
-    assert room.enemies["goblin"].hp < 10
+    assert "error" not in result
+    assert state.get_room("testroom").enemies["goblin"].hp < 10
