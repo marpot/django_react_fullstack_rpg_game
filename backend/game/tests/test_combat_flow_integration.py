@@ -15,12 +15,29 @@ def test_full_combat_flow():
 
     room = state.get_or_create_room("testroom")
 
-     # =========================
+    # =========================
     # Django user
     # =========================
     User = get_user_model()
     user = User.objects.create_user(username="hero", password="x")
 
+    # =========================
+    # ORM player (required by system)
+    # =========================
+    PlayerCharacter.objects.create(
+        user=user,
+        name="Hero",
+        health=100,
+        max_health=100
+    )
+
+    # =========================
+    # Adventure (REQUIRED by FK)
+    # =========================
+    adventure = Adventure.objects.create(
+        title="test",
+        creator=user
+    )
 
     # =========================
     # Runtime player (combat layer)
@@ -39,26 +56,9 @@ def test_full_combat_flow():
             defense=5
         )
     )
-    # =========================
-    # ORM player (required by ActionProcessor)
-
-    PlayerCharacter.objects.create(
-        user=user,
-        name="Hero",
-        health=100,
-        max_health=100
-    )
 
     # =========================
-    # Adventure (REQUIRED by FK)
-    # =========================
-    adventure = Adventure.objects.create(
-        title="test",
-        creator=user
-    )
-
-    # =========================
-    # ORM enemy (required by ActionProcessor)
+    # ORM enemy
     # =========================
     EnemyORM.objects.create(
         name="goblin",
@@ -71,7 +71,7 @@ def test_full_combat_flow():
     )
 
     # =========================
-    # Runtime enemy (combat layer)
+    # Runtime enemy
     # =========================
     room.enemies["goblin"] = RuntimeEnemy(
         id="goblin",
@@ -93,6 +93,7 @@ def test_full_combat_flow():
         "user_id": user.id,
         "adventure": adventure.id
     })
+
     # =========================
     # ASSERT
     # =========================
