@@ -1,4 +1,3 @@
-# rpg_project/middleware.py
 import traceback
 import logging
 
