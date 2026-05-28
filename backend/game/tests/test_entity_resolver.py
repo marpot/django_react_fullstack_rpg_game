@@ -25,10 +25,9 @@ class FakeStateManager:
     def get_room(self, name):
         return self.rooms.get(name)
 
-    # 🔥 FIX: kompatybilność z production API
     def get_or_create_room(self, name):
         if name not in self.rooms:
-            self.create_room(name)
+            self.rooms[name] = FakeRoom()
         return self.rooms[name]
 # -------------------------
 # TESTS
@@ -63,7 +62,7 @@ def test_resolve_player_missing_room():
 
     result = resolver.resolve_player("missing", 1)
 
-    assert result is None
+    assert result is None  
 
 
 def test_resolve_enemy_success():

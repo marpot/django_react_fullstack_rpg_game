@@ -5,6 +5,16 @@ class EntityResolver:
     def __init__(self, state_manager):
         self.state_manager = state_manager
 
+    def _get_room(self,room_name: str):
+        if hasattr(self.state_manager, "get_or_create_room"):
+            return self.state_manager.get_or_create_room(room_name)
+        
+        if hasattr(self.state_manager, "get_room"):
+            return self.state_manager.get_room(room_name)
+        
+        return None
+        
+
     def resolve_player(self, room_name: str, user_id: int):
         room = self.state_manager.get_or_create_room(room_name)
 
