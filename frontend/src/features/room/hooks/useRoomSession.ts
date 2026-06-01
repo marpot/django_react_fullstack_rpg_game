@@ -1,40 +1,71 @@
 import { useEffect, useState } from "react";
-import { getRoomCharacters } from "@/services/room.service";
+import { selectActiveCharacter } from "@/services/room.service";
+import { api } from "@/api/client";
 
 export type RoomState = "select-character" | "lobby" | "in-game";
+
+type Character = {
+  id: number;
+  name: string;
+  level: number;
+  hp: number;
+  is_active?: boolean;
+};
+
+type MeResponse = {
+  character: Character;
+  characters: Character[];
+}
 
 export const useRoomSession = (roomId: string) => {
   const [state, setState] = useState<RoomState>("select-character");
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
-  const [characters, setCharacters] = useState<any[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
 
   useEffect(() => {
     if (!roomId) return;
 
-    getRoomCharacters(roomId)
+    api.get<MeResponse>("/accounts/me/")
       .then((res) => {
-        setCharacters(res.data);
+        console.log("API RESPONSE:", res.data);
+
+        const chars = res.data.characters ?? [];
+
+        setCharacters(chars);
+
+        const active = chars.find((c) => c.is_active);
+
+        if (active) {
+          setSelectedCharacterId(active.id);
+          setState("lobby");
+        } else {
+          setState("select-character");
+        }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("Failed to load characters:", err);
         setCharacters([]);
+        setState("select-character");
       });
   }, [roomId]);
 
+  const selectCharacter = async (id: number) => {
+    await selectActiveCharacter(id);
 
-  const selectCharacter = (id: number) => {
     setSelectedCharacterId(id);
+
+    const res = await api.get<MeResponse>("/accounts/me/");
+    setCharacters(res.data.characters ?? []);
+
     setState("lobby");
   };
 
-  const startGame = () => {
-    setState("in-game");
-  };
+  const startGame = () => setState("in-game");
 
   const reset = () => {
-    setState("select-character");
     setSelectedCharacterId(null);
+    setState("select-character");
   };
-
 
   return {
     state,

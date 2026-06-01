@@ -32,3 +32,9 @@ export const getRoomCharacters = (roomId: string) => {
     `/chat/rooms/${roomId}/characters/`
   );
 };
+
+export const selectActiveCharacter = (characterId: number) => {
+  return api.post("/accounts/select-active-character/", {
+    character_id: characterId,
+  });
+};

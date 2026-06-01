@@ -20,21 +20,60 @@ class PlayerCharacterViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
+class SelectActiveCharacterView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        character_id = request.data.get("character_id")
+
+        try:
+            character = PlayerCharacter.objects.get(
+                id=character_id,
+                user=request.user
+            )
+            
+            # deactivate all
+            PlayerCharacter.objects.filter(
+                user=request.user
+            ).update(is_active=False)
+
+            # activate selected
+            character.is_active = True
+            character.save()
+
+            return Response({
+                "active_character_id": character.id,
+                "character_name": character.name
+            })
+
+        except PlayerCharacter.DoesNotExist:
+            return Response({
+                "error": "Nie znaleziono postaci"
+            }, status=404)
+
+
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
 
-        # 🔥 wybór istniejącej postaci (stabilny)
-        character = (
-            PlayerCharacter.objects
-            .filter(user=user)
-            .order_by("-updated_at", "-id")
-            .first()
-        )
+        # 1. active character
+        character = PlayerCharacter.objects.filter(
+            user=user,
+            is_active=True
+        ).first()
 
-        # 🔥 fallback jeśli user nie ma postaci
+        # 2. fallback to any character
+        if not character:
+            character = PlayerCharacter.objects.filter(user=user).first()
+
+            # 3. auto-fix: ensure at least one active
+            if character:
+                character.is_active = True
+                character.save()
+
+        # 4. create default if none exists
         if not character:
             character = PlayerCharacter.objects.create(
                 user=user,
@@ -56,5 +95,9 @@ class MeView(APIView):
                 "username": user.username,
                 "email": user.email,
             },
-            "character": PlayerCharacterSerializer(character).data
+            "character": PlayerCharacterSerializer(character).data,
+            "characters": PlayerCharacterSerializer(
+                PlayerCharacter.objects.filter(user=user),
+                many=True
+            ).data
         })
