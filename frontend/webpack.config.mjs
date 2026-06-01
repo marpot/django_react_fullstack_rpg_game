@@ -5,6 +5,7 @@ import { dirname } from 'path';
 import Dotenv from 'dotenv-webpack';
 import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
 import reactRefreshTypeScript from 'react-refresh-typescript';
+import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -15,6 +16,8 @@ const backendHost = isDocker ? 'backend' : 'localhost';
 
 export default {
   mode: isDev ? 'development' : 'production',
+
+  devtool: isDev ? "eval-source-map" : "source-map",
 
   entry: './src/index.tsx',
 
@@ -28,27 +31,22 @@ export default {
           options: {
             transpileOnly: true,
             getCustomTransformers: () => ({
-              before: isDev
-                ? [reactRefreshTypeScript()]
-                : [],
+              before: isDev ? [reactRefreshTypeScript()] : [],
             }),
           },
         },
       },
 
-      // CSS
       {
         test: /\.css$/,
         use: ['style-loader', 'css-loader'],
       },
 
-      // SCSS
       {
         test: /\.scss$/,
         use: ['style-loader', 'css-loader', 'sass-loader'],
       },
 
-      // assets
       {
         test: /\.(png|svg|jpg|gif)$/,
         type: 'asset/resource',
@@ -80,6 +78,9 @@ export default {
     }),
 
     isDev && new ReactRefreshWebpackPlugin(),
+
+    // 🔥 FIX STABILNOŚCI HMR
+    isDev && new ForkTsCheckerWebpackPlugin(),
   ].filter(Boolean),
 
   devServer: {
@@ -88,7 +89,10 @@ export default {
     },
 
     historyApiFallback: true,
+
     hot: true,
+    liveReload: false, // 🔥 ważne (React Refresh przejmuje HMR)
+
     port: 3000,
     open: true,
 
@@ -97,6 +101,7 @@ export default {
     client: {
       overlay: true,
       progress: true,
+      reconnect: true, // 🔥 FIX białych ekranów
     },
 
     proxy: [
