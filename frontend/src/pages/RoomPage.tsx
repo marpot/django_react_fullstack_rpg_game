@@ -12,21 +12,23 @@ import { useRoomSession } from "@/features/room/hooks/useRoomSession";
 
 const RoomPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
+  if (!roomId) return <div>Brak pokoju</div>;
+
   const navigate = useNavigate();
 
   const {
     state,
+    characters,
     selectCharacter,
     startGame,
     reset,
-  } = useRoomSession();
+  } = useRoomSession(roomId);
 
   const mockCharacters = [
     { id: 1, name: "Thalion", level: 5, hp: 20 },
     { id: 2, name: "Grom", level: 4, hp: 18 },
   ];
 
-  if (!roomId) return <div>Brak pokoju</div>;
 
   return (
     <div className="room-layout">
