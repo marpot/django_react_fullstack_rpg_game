@@ -16,7 +16,6 @@ const RoomPage: React.FC = () => {
 
   const {
     state,
-    selectedCharacterId,
     selectCharacter,
     startGame,
     reset,
@@ -41,7 +40,6 @@ const RoomPage: React.FC = () => {
           <CharacterSelectPanel
             characters={mockCharacters}
             onSelect={selectCharacter}
-            onCancel={reset}
           />
         </div>
 
