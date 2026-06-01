@@ -12,22 +12,17 @@ import { useRoomSession } from "@/features/room/hooks/useRoomSession";
 
 const RoomPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
+  if (!roomId) return <div>Brak pokoju</div>;
+
   const navigate = useNavigate();
 
   const {
     state,
-    selectedCharacterId,
+    characters,
     selectCharacter,
     startGame,
     reset,
-  } = useRoomSession();
-
-  const mockCharacters = [
-    { id: 1, name: "Thalion", level: 5, hp: 20 },
-    { id: 2, name: "Grom", level: 4, hp: 18 },
-  ];
-
-  if (!roomId) return <div>Brak pokoju</div>;
+  } = useRoomSession(roomId);
 
   return (
     <div className="room-layout">
@@ -36,28 +31,29 @@ const RoomPage: React.FC = () => {
       <aside className="room-sidebar">
         <h2 className="room-title">🧙 Postacie</h2>
 
-        {/* CHARACTER SELECT (STABLE MOUNT) */}
+        {/* CHARACTER SELECT */}
         <div style={{ display: state === "select-character" ? "block" : "none" }}>
           <CharacterSelectPanel
-            characters={mockCharacters}
+            characters={characters}
             onSelect={selectCharacter}
-            onCancel={reset}
           />
         </div>
 
-        {/* DEFAULT VIEW */}
-        {state !== "select-character" && (
-          <>
-            <ul className="player-list">
-              <li>Thalion - HP: 20/20</li>
-              <li>Grom - HP: 18/25</li>
-            </ul>
+        {/* PLAYER LIST */}
+        <ul className="player-list">
+          {(characters || [])
+            .filter(Boolean)
+            .map((c) => (
+              <li key={c.id}>
+                {c?.name ?? "unknown"} - HP: {c?.hp ?? 0}
+              </li>
+            ))}
+        </ul>
 
-            <Button variant="primary" onClick={reset}>
-              Zmień postać
-            </Button>
-          </>
-        )}
+        {/* ALWAYS VISIBLE ACTION */}
+        <Button variant="primary" onClick={reset}>
+          Zmień postać
+        </Button>
 
         <Button
           variant="danger"

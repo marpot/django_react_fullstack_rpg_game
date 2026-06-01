@@ -11,7 +11,7 @@ type Character = {
 type Props = {
   characters: Character[];
   onSelect: (id: number) => void;
-  onCancel: () => void;
+  onCancel?: () => void;
 };
 
 const CharacterSelectPanel: React.FC<Props> = ({
@@ -36,9 +36,6 @@ const CharacterSelectPanel: React.FC<Props> = ({
         ))}
       </div>
 
-      <Button variant="danger" onClick={onCancel}>
-        Anuluj
-      </Button>
     </div>
   );
 };
