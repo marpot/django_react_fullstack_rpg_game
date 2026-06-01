@@ -8,6 +8,14 @@ type Props = {
 const ProtectedRoute: React.FC<Props> = ({ children }) => {
   const token = localStorage.getItem('access_token');
 
+  const isDev = process.env.NODE_ENV === 'development';
+
+  console.log("NODE_ENV:", process.env.NODE_ENV);
+  
+  if (isDev){
+    return <>{children}</>;
+  }
+
   if (!token) {
     return <Navigate to="/" replace />;
   }

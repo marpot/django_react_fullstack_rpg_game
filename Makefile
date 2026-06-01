@@ -64,7 +64,10 @@ createsuperuser:
 # ========== TESTY ==========
 
 test-backend:
-	$(COMPOSE) exec backend python manage.py test
+	docker compose exec backend pytest -q
+
+test-backend-debug:
+	docker compose exec backend pytest -vv -s
 
 test-frontend:
 	$(COMPOSE) exec frontend npm test

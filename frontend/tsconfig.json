@@ -16,7 +16,8 @@
     "skipDefaultLibCheck": true,
     "baseUrl": "./",
     "paths": {
-      "@types/*": ["./types/*"],
+      "@/*": ["src/*"],
+      "@types/*": ["./types/*"]
     }
   }
 }
