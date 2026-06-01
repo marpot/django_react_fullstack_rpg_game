@@ -2,8 +2,10 @@ import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Chat from "../features/chat/Chat";
 import EventHistoryContainer from "../components/Room/EventHistory/EventHistoryContainer";
-import "../styles/pages/room-page.scss";
+import "@/styles/pages/room-page.scss";
 import Button from "../components/ui/Button/Button";
+
+import GameFlow from "../features/game/GameFlow";
 
 const RoomPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -13,7 +15,7 @@ const RoomPage: React.FC = () => {
 
   return (
     <div className="room-layout">
-      
+
       {/* LEFT PANEL */}
       <aside className="room-sidebar">
         <h2 className="room-title">🧙 Postacie</h2>
@@ -39,7 +41,10 @@ const RoomPage: React.FC = () => {
           <EventHistoryContainer roomId={roomId} />
         </div>
 
-        <Button variant="primary" onClick={() => console.log("Rzucasz kością...")}>
+        <Button
+          variant="primary"
+          onClick={() => console.log("Rzucasz kością...")}
+        >
           🎲 Rzuć kością
         </Button>
       </main>
@@ -47,6 +52,7 @@ const RoomPage: React.FC = () => {
       {/* RIGHT PANEL */}
       <aside className="room-chat">
         <h2 className="room-title">💬 Czat</h2>
+
         <div className="chat-wrapper">
           <Chat roomId={roomId} />
         </div>
@@ -55,5 +61,4 @@ const RoomPage: React.FC = () => {
     </div>
   );
 };
-
 export default RoomPage;
