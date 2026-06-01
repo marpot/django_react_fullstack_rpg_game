@@ -1,3 +1,4 @@
+import CharacterSelectOverlay from "@/components/Room/CharacterSelectOverlay";
 import { useState } from "react";
 
 type Step = "character-select" | "game";
@@ -6,21 +7,19 @@ export default function GameFlow({ roomId }: { roomId: string }) {
   const [step, setStep] = useState<Step>("character-select");
   const [characterId, setCharacterId] = useState<number | null>(null);
 
+  const mockCharacters = [
+    { id: 1, name: "Thalion", level: 5, hp: 20 },
+    { id: 2, name: "Grom", level: 4, hp: 18 },
+  ];
+
   if (step === "character-select") {
     return (
-      <div>
-        <h2>Wybór postaci (mock)</h2>
-
-        <button onClick={() => setCharacterId(1)}>Thalion</button>
-        <button onClick={() => setCharacterId(2)}>Grom</button>
-
-        <button
-          disabled={!characterId}
-          onClick={() => setStep("game")}
-        >
-          Start gry
-        </button>
-      </div>
+      <CharacterSelectOverlay
+        characters={mockCharacters}
+        selectedId={characterId}
+        onSelect={(id) => setCharacterId(id)}
+        onConfirm={() => setStep("game")}
+      />
     );
   }
 

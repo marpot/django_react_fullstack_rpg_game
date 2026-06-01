@@ -10,39 +10,38 @@ export type Character = {
 
 type Props = {
   characters: Character[];
+  selectedId: number | null;
   onSelect: (characterId: number) => void;
+  onConfirm: () => void;
 };
 
 export default function CharacterSelectOverlay({
   characters,
+  selectedId,
   onSelect,
+  onConfirm,
 }: Props) {
   return (
-    <div className="character-select">
-      <div className="character-select__panel">
-        <h2 className="character-select__title">
-          Wybierz postać
-        </h2>
+    <div className="character-select-overlay">
+      <h2>Wybierz postać</h2>
 
-        <div className="character-select__list">
-          {characters.map((c) => (
-            <button
-              key={c.id}
-              className="character-select__item"
-              onClick={() => onSelect(c.id)}
-            >
-              <div className="character-select__name">
-                {c.name}
-              </div>
-
-              <div className="character-select__meta">
-                Level {c.level}
-                {c.hp !== undefined && ` • HP ${c.hp}`}
-              </div>
-            </button>
-          ))}
-        </div>
+      <div className="character-grid">
+        {characters.map((c) => (
+          <div
+            key={c.id}
+            className={`character-card ${selectedId === c.id ? "active" : ""}`}
+            onClick={() => onSelect(c.id)}
+          >
+            <h3>{c.name}</h3>
+            <p>lvl {c.level}</p>
+            <p>HP {c.hp}</p>
+          </div>
+        ))}
       </div>
+
+      <button disabled={!selectedId} onClick={onConfirm}>
+        Start gry
+      </button>
     </div>
   );
 }
