@@ -9,11 +9,10 @@ import "@/styles/pages/room-page.scss";
 import Button from "@/components/ui/Button/Button";
 
 import { useRoomSession } from "@/features/room/hooks/useRoomSession";
+import GameCenter from "@/features/game/GameCenter/GameCenter";
 
 const RoomPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
-
-  console.log("ROOM RENDER:", roomId)
 
   if (!roomId) return <div>Brak pokoju</div>;
 
@@ -22,10 +21,15 @@ const RoomPage: React.FC = () => {
   const {
     state,
     characters,
+    selectedCharacterId,
     selectCharacter,
     startGame,
     reset,
   } = useRoomSession(roomId);
+
+  const selectedCharacter = characters.find(
+    (c) => c.id === selectedCharacterId
+  );
 
   return (
     <div className="room-layout">
@@ -34,34 +38,34 @@ const RoomPage: React.FC = () => {
       <aside className="room-sidebar">
         <h2 className="room-title">🧙 Postacie</h2>
 
-        {/* CHARACTER SELECT */}
-        <div style={{ display: state === "select-character" ? "block" : "none" }}>
+        {/* SELECT */}
+        {state === "select-character" && (
           <CharacterSelectPanel
             characters={characters}
             onSelect={selectCharacter}
           />
-        </div>
+        )}
 
-        {/* PLAYER LIST */}
-        <ul className="player-list">
-          {(characters || [])
-            .filter(Boolean)
-            .map((c) => (
-              <li key={c.id}>
-                {c?.name ?? "unknown"} - HP: {c?.hp ?? 0}
-              </li>
-            ))}
-        </ul>
+        {/* SELECTED CHARACTER PREVIEW */}
+        {selectedCharacter && state !== "select-character" && (
+          <div className="active-character">
+            <h3>🎮 Aktywna postać</h3>
 
-        {/* ALWAYS VISIBLE ACTION */}
+            <p><b>{selectedCharacter.name}</b></p>
+            <p>Level: {selectedCharacter.level}</p>
+            <p>HP: {selectedCharacter.health}/{selectedCharacter.max_health}</p>
+            <p>Mana: {selectedCharacter.mana}/{selectedCharacter.max_mana}</p>
+            <p>STR: {selectedCharacter.strength}</p>
+            <p>DEX: {selectedCharacter.dexterity}</p>
+            <p>INT: {selectedCharacter.intelligence}</p>
+          </div>
+        )}
+
         <Button variant="primary" onClick={reset}>
           Zmień postać
         </Button>
 
-        <Button
-          variant="danger"
-          onClick={() => navigate("/dashboard")}
-        >
+        <Button variant="danger" onClick={() => navigate("/dashboard")}>
           Powrót
         </Button>
       </aside>
@@ -81,7 +85,7 @@ const RoomPage: React.FC = () => {
         )}
 
         {state === "in-game" && (
-          <div>GAME SESSION ACTIVE</div>
+          <GameCenter roomId={roomId} />
         )}
       </main>
 

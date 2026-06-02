@@ -4,13 +4,7 @@ import { api } from "@/api/client";
 
 export type RoomState = "select-character" | "lobby" | "in-game";
 
-type Character = {
-  id: number;
-  name: string;
-  level: number;
-  hp: number;
-  is_active?: boolean;
-};
+import type { Character } from '@/features/room/room.types';
 
 type MeResponse = {
   character: Character;
@@ -22,6 +16,8 @@ export const useRoomSession = (roomId: string) => {
   const [state, setState] = useState<RoomState>("select-character");
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
   const [characters, setCharacters] = useState<Character[]>([]);
+
+  const selectedCharacter = characters.find((c) => c.id === selectedCharacterId) ?? null;
 
   useEffect(() => {
     console.log("FETCH /accounts/me/ for room:", roomId);
@@ -73,6 +69,7 @@ export const useRoomSession = (roomId: string) => {
     state,
     characters,
     selectedCharacterId,
+    selectedCharacter,
     selectCharacter,
     startGame,
     reset,

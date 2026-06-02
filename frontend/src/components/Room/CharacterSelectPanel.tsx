@@ -1,12 +1,7 @@
 import React from "react";
 import Button from "@/components/ui/Button/Button";
 
-type Character = {
-  id: number;
-  name: string;
-  level: number;
-  hp: number;
-};
+import type { Character } from '@/features/room/room.types';
 
 type Props = {
   characters: Character[];
@@ -31,7 +26,7 @@ const CharacterSelectPanel: React.FC<Props> = ({
             onClick={() => onSelect(c.id)}
           >
             <div>{c.name}</div>
-            <small>Lvl {c.level} | HP {c.hp}</small>
+            <small>Lvl {c.level} | HP {c.health}/{c.max_health}</small>
           </button>
         ))}
       </div>
