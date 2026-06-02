@@ -12,6 +12,9 @@ import { useRoomSession } from "@/features/room/hooks/useRoomSession";
 
 const RoomPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
+
+  console.log("ROOM RENDER:", roomId)
+
   if (!roomId) return <div>Brak pokoju</div>;
 
   const navigate = useNavigate();
