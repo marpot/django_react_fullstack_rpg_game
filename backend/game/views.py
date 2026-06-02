@@ -140,3 +140,15 @@ class GameEventViewSet(viewsets.ModelViewSet):
         serializer.add_choice(request.data)
 
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def current_session(self, request):
+        player = request.user.playercharacter
+
+        session = (GameSession.objects.filter(player=player).order_by('-created_at').first())
+
+        if not session:
+            return Response({"error": "No active session found"}, status=404)
+        
+        return Response(GameSessionSerializer(session).data)
+        
