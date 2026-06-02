@@ -1,6 +1,26 @@
 import { useEffect, useState } from "react";
 import { fetchMe } from "../api/profile.api";
 
+export interface Character {
+  id: number;
+  name: string;
+  level: number;
+
+  health: number;
+  max_health: number;
+
+  mana: number;
+  max_mana: number;
+
+  strength: number;
+  dexterity: number;
+  intelligence: number;
+
+  experience?: number;
+
+  is_active?: boolean;
+}
+
 export interface ProfileStats {
   gamesPlayed: number;
   gamesWon: number;
@@ -14,6 +34,9 @@ export interface Profile {
   exp: number;
   expToNextLevel: number;
   stats: ProfileStats;
+
+  characters: Character[];
+  activeCharacter: Character | null;
 }
 
 export const useProfile = () => {
@@ -30,18 +53,25 @@ export const useProfile = () => {
 
         console.log("ME RAW RESPONSE:", data);
 
-        // MAPOWANIE backend → frontend
+        const active: Character | null =
+          data.characters?.find((c: Character) => c.is_active) ?? null;
+
         const mapped: Profile = {
           username: data.user?.username ?? "unknown",
-          level: data.character?.level ?? 1,
-          exp: data.character?.experience ?? 0,
-          expToNextLevel: 500, // na razie placeholder (możemy potem policzyć backendowo)
+
+          level: active?.level ?? 1,
+          exp: active?.experience ?? 0,
+          expToNextLevel: 500,
+
           stats: {
             gamesPlayed: 0,
             gamesWon: 0,
             gamesLost: 0,
             winRate: 0,
           },
+
+          characters: data.characters ?? [],
+          activeCharacter: active,
         };
 
         setProfile(mapped);
