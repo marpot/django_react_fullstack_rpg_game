@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../features/profile/hooks/useProfile";
 import { api } from "@/api/client";
@@ -6,9 +6,7 @@ import "../styles/pages/profile.scss";
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const { profile, loading, error } = useProfile();
-
-  const [activeId, setActiveId] = useState<number | null>(null);
+  const { profile, loading, error, refetch } = useProfile();
 
   const selectCharacter = async (id: number) => {
     try {
@@ -16,7 +14,7 @@ const Profile: React.FC = () => {
         character_id: id,
       });
 
-      setActiveId(id);
+      await refetch();
     } catch (e) {
       console.error("Failed to switch character", e);
     }
@@ -28,6 +26,7 @@ const Profile: React.FC = () => {
 
   return (
     <div className="profile-page">
+
       <div className="profile-header">
         <h1>{profile.username}</h1>
         <button onClick={() => navigate("/dashboard")}>Back</button>
@@ -42,12 +41,10 @@ const Profile: React.FC = () => {
             <p><b>{profile.activeCharacter.name}</b></p>
             <p>Level: {profile.activeCharacter.level}</p>
             <p>
-              HP: {profile.activeCharacter.health}/
-              {profile.activeCharacter.max_health}
+              HP: {profile.activeCharacter.health}/{profile.activeCharacter.max_health}
             </p>
             <p>
-              Mana: {profile.activeCharacter.mana}/
-              {profile.activeCharacter.max_mana}
+              Mana: {profile.activeCharacter.mana}/{profile.activeCharacter.max_mana}
             </p>
           </>
         ) : (
@@ -55,34 +52,33 @@ const Profile: React.FC = () => {
         )}
       </div>
 
-      {/* CHARACTERS LIST */}
+      {/* CHARACTERS GRID */}
       <div className="profile-card">
         <h3>Characters</h3>
 
-        {profile.characters.map((c) => {
-          const isActive = activeId === c.id || c.is_active;
+        <div className="character-grid">
+          {profile.characters.map((c) => {
+            const isActive = profile.activeCharacter?.id === c.id;
 
-          return (
-            <div
-              key={c.id}
-              onClick={() => selectCharacter(c.id)}
-              style={{
-                padding: 10,
-                marginBottom: 8,
-                cursor: "pointer",
-                border: isActive
-                  ? "2px solid gold"
-                  : "1px solid #444",
-              }}
-            >
-              <p><b>{c.name}</b></p>
-              <p>Lvl: {c.level}</p>
-              <p>
-                HP: {c.health}/{c.max_health}
-              </p>
-            </div>
-          );
-        })}
+            return (
+              <div
+                key={c.id}
+                className={`character-card ${isActive ? "active" : ""}`}
+                onClick={() => selectCharacter(c.id)}
+              >
+                <div className="char-name">{c.name}</div>
+
+                <div className="char-meta">
+                  <span>Lvl {c.level}</span>
+                </div>
+
+                <div className="char-stats">
+                  HP {c.health}/{c.max_health}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* STATS */}
@@ -102,6 +98,7 @@ const Profile: React.FC = () => {
           <p>Status: Active</p>
         </div>
       </div>
+
     </div>
   );
 };
