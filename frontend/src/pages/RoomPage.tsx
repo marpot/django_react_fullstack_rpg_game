@@ -2,8 +2,8 @@ import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import Chat from "@/features/chat/Chat";
-import EventHistoryContainer from "@/components/Room/EventHistory/EventHistoryContainer";
 import CharacterSelectPanel from "@/components/Room/CharacterSelectPanel";
+import GameCenter from "@/features/game/GameCenter/GameCenter";
 
 import "@/styles/pages/room-page.scss";
 import Button from "@/components/ui/Button/Button";
@@ -12,19 +12,16 @@ import { useRoomSession } from "@/features/room/hooks/useRoomSession";
 
 const RoomPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
-
-  console.log("ROOM RENDER:", roomId)
+  const navigate = useNavigate();
 
   if (!roomId) return <div>Brak pokoju</div>;
 
-  const navigate = useNavigate();
-
   const {
     state,
-    characters,
+    activeCharacter,
+    loading,
     selectCharacter,
     startGame,
-    reset,
   } = useRoomSession(roomId);
 
   return (
@@ -34,34 +31,41 @@ const RoomPage: React.FC = () => {
       <aside className="room-sidebar">
         <h2 className="room-title">🧙 Postacie</h2>
 
-        {/* CHARACTER SELECT */}
-        <div style={{ display: state === "select-character" ? "block" : "none" }}>
-          <CharacterSelectPanel
-            characters={characters}
-            onSelect={selectCharacter}
-          />
-        </div>
+        {/* SELECT CHARACTER */}
+        {state === "select-character" && (
+          <CharacterSelectPanel onSelect={selectCharacter} />
+        )}
 
-        {/* PLAYER LIST */}
-        <ul className="player-list">
-          {(characters || [])
-            .filter(Boolean)
-            .map((c) => (
-              <li key={c.id}>
-                {c?.name ?? "unknown"} - HP: {c?.hp ?? 0}
-              </li>
-            ))}
-        </ul>
+        {/* ACTIVE CHARACTER PREVIEW */}
+        {state !== "select-character" && (
+          <div className="active-character">
+            <h3>🎮 Aktywna postać</h3>
 
-        {/* ALWAYS VISIBLE ACTION */}
-        <Button variant="primary" onClick={reset}>
-          Zmień postać
-        </Button>
+            {loading && <p>Ładowanie postaci...</p>}
 
-        <Button
-          variant="danger"
-          onClick={() => navigate("/dashboard")}
-        >
+            {!loading && activeCharacter && (
+              <>
+                <p><b>{activeCharacter.name}</b></p>
+                <p>Level: {activeCharacter.level}</p>
+                <p>
+                  HP: {activeCharacter.health}/{activeCharacter.max_health}
+                </p>
+                <p>
+                  Mana: {activeCharacter.mana}/{activeCharacter.max_mana}
+                </p>
+                <p>STR: {activeCharacter.strength}</p>
+                <p>DEX: {activeCharacter.dexterity}</p>
+                <p>INT: {activeCharacter.intelligence}</p>
+              </>
+            )}
+
+            {!loading && !activeCharacter && (
+              <p>Brak aktywnej postaci</p>
+            )}
+          </div>
+        )}
+
+        <Button variant="danger" onClick={() => navigate("/dashboard")}>
           Powrót
         </Button>
       </aside>
@@ -71,17 +75,13 @@ const RoomPage: React.FC = () => {
         <h1 className="room-header">🏰 Pokój: {roomId}</h1>
 
         {state === "lobby" && (
-          <>
-            <EventHistoryContainer adventureId={1} />
-
-            <Button variant="primary" onClick={startGame}>
-              🎲 Start gry
-            </Button>
-          </>
+          <Button variant="primary" onClick={startGame}>
+            🎲 Start gry
+          </Button>
         )}
 
         {state === "in-game" && (
-          <div>GAME SESSION ACTIVE</div>
+          <GameCenter roomId={roomId} />
         )}
       </main>
 
@@ -89,9 +89,7 @@ const RoomPage: React.FC = () => {
       <aside className="room-chat">
         <h2 className="room-title">💬 Czat</h2>
 
-        <div className="chat-wrapper">
-          <Chat roomId={roomId} />
-        </div>
+        <Chat roomId={roomId} />
       </aside>
 
     </div>

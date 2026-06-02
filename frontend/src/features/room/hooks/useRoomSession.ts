@@ -1,80 +1,82 @@
 import { useEffect, useState } from "react";
-import { selectActiveCharacter } from "@/services/room.service";
 import { api } from "@/api/client";
+import { selectActiveCharacter } from "@/services/room.service";
+import type { Character } from "@/features/room/room.types";
 
 export type RoomState = "select-character" | "lobby" | "in-game";
-
-type Character = {
-  id: number;
-  name: string;
-  level: number;
-  hp: number;
-  is_active?: boolean;
-};
 
 type MeResponse = {
   character: Character;
   characters: Character[];
-}
+};
 
 export const useRoomSession = (roomId: string) => {
-  console.log("ROOM SESSION INIT:", roomId);
   const [state, setState] = useState<RoomState>("select-character");
-  const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
-  const [characters, setCharacters] = useState<Character[]>([]);
+  const [activeCharacter, setActiveCharacter] =
+    useState<Character | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchMe = async () => {
+    const res = await api.get<MeResponse>("/accounts/me/");
+
+    const active = res.data.character ?? null;
+
+    setActiveCharacter(active);
+
+    if (active) {
+      setState("lobby");
+    } else {
+      setState("select-character");
+    }
+
+    return res.data;
+  };
 
   useEffect(() => {
-    console.log("FETCH /accounts/me/ for room:", roomId);
     if (!roomId) return;
 
-    api.get<MeResponse>("/accounts/me/")
-      .then((res) => {
-        console.log("ME RESPONSE:", res.data);
+    let mounted = true;
 
-        const chars = res.data.characters ?? [];
+    const run = async () => {
+      setLoading(true);
 
-        setCharacters(chars);
+      try {
+        if (!mounted) return;
+        await fetchMe();
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
 
-        const active = chars.find((c) => c.is_active);
+    run();
 
-        if (active) {
-          setSelectedCharacterId(active.id);
-          setState("lobby");
-        } else {
-          setState("select-character");
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to load characters:", err);
-        setCharacters([]);
-        setState("select-character");
-      });
+    return () => {
+      mounted = false;
+    };
   }, [roomId]);
 
   const selectCharacter = async (id: number) => {
     await selectActiveCharacter(id);
-
-    setSelectedCharacterId(id);
-
-    const res = await api.get<MeResponse>("/accounts/me/");
-    setCharacters(res.data.characters ?? []);
-
-    setState("lobby");
+    await fetchMe();
+    // state już ustawiany w fetchMe
   };
 
-  const startGame = () => setState("in-game");
+  const startGame = () => {
+    setState("in-game");
+  };
 
   const reset = () => {
-    setSelectedCharacterId(null);
     setState("select-character");
+    setActiveCharacter(null);
   };
 
   return {
     state,
-    characters,
-    selectedCharacterId,
+    activeCharacter,
+    loading,
     selectCharacter,
     startGame,
     reset,
+    refetch: fetchMe,
   };
 };

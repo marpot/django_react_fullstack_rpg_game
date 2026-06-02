@@ -1,55 +1,84 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../features/profile/hooks/useProfile";
+import { api } from "@/api/client";
 import "../styles/pages/profile.scss";
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const { profile, loading, error } = useProfile();
+  const { profile, loading, error, refetch } = useProfile();
 
-  if (loading) {
-    return <div className="profile-loading">Loading...</div>;
-  }
+  const selectCharacter = async (id: number) => {
+    try {
+      await api.post("/accounts/select-active-character/", {
+        character_id: id,
+      });
 
-  if (error) {
-    return <div className="profile-error">{error}</div>;
-  }
+      await refetch();
+    } catch (e) {
+      console.error("Failed to switch character", e);
+    }
+  };
 
-  if (!profile) {
-    return <div className="profile-error">No profile data</div>;
-  }
-
-  const expPercent = Math.min(
-    100,
-    Math.round((profile.exp / profile.expToNextLevel) * 100)
-  );
+  if (loading) return <div className="profile-loading">Loading...</div>;
+  if (error) return <div className="profile-error">{error}</div>;
+  if (!profile) return <div className="profile-error">No profile data</div>;
 
   return (
     <div className="profile-page">
+
       <div className="profile-header">
         <h1>{profile.username}</h1>
-
-        <button onClick={() => navigate("/dashboard")}>
-          Back
-        </button>
+        <button onClick={() => navigate("/dashboard")}>Back</button>
       </div>
 
-      {/* LEVEL CARD */}
+      {/* ACTIVE CHARACTER */}
       <div className="profile-card">
-        <h3>Character Progress</h3>
+        <h3>Active Character</h3>
 
-        <p>Level: {profile.level}</p>
+        {profile.activeCharacter ? (
+          <>
+            <p><b>{profile.activeCharacter.name}</b></p>
+            <p>Level: {profile.activeCharacter.level}</p>
+            <p>
+              HP: {profile.activeCharacter.health}/{profile.activeCharacter.max_health}
+            </p>
+            <p>
+              Mana: {profile.activeCharacter.mana}/{profile.activeCharacter.max_mana}
+            </p>
+          </>
+        ) : (
+          <p>No active character</p>
+        )}
+      </div>
 
-        <div className="xp-bar">
-          <div
-            className="xp-fill"
-            style={{ width: `${expPercent}%` }}
-          />
+      {/* CHARACTERS GRID */}
+      <div className="profile-card">
+        <h3>Characters</h3>
+
+        <div className="character-grid">
+          {profile.characters.map((c) => {
+            const isActive = profile.activeCharacter?.id === c.id;
+
+            return (
+              <div
+                key={c.id}
+                className={`character-card ${isActive ? "active" : ""}`}
+                onClick={() => selectCharacter(c.id)}
+              >
+                <div className="char-name">{c.name}</div>
+
+                <div className="char-meta">
+                  <span>Lvl {c.level}</span>
+                </div>
+
+                <div className="char-stats">
+                  HP {c.health}/{c.max_health}
+                </div>
+              </div>
+            );
+          })}
         </div>
-
-        <p className="xp-text">
-          {profile.exp} / {profile.expToNextLevel} XP
-        </p>
       </div>
 
       {/* STATS */}
@@ -69,6 +98,7 @@ const Profile: React.FC = () => {
           <p>Status: Active</p>
         </div>
       </div>
+
     </div>
   );
 };

@@ -46,6 +46,8 @@ class PlayerCharacterSerializer(serializers.ModelSerializer):
             "dexterity",
             "intelligence",
 
+            "is_active",
+
             "adventure",
             "current_location",
 
