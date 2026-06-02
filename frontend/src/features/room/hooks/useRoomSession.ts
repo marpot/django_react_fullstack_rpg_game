@@ -18,16 +18,18 @@ type MeResponse = {
 }
 
 export const useRoomSession = (roomId: string) => {
+  console.log("ROOM SESSION INIT:", roomId);
   const [state, setState] = useState<RoomState>("select-character");
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
   const [characters, setCharacters] = useState<Character[]>([]);
 
   useEffect(() => {
+    console.log("FETCH /accounts/me/ for room:", roomId);
     if (!roomId) return;
 
     api.get<MeResponse>("/accounts/me/")
       .then((res) => {
-        console.log("API RESPONSE:", res.data);
+        console.log("ME RESPONSE:", res.data);
 
         const chars = res.data.characters ?? [];
 
