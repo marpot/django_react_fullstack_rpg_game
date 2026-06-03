@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { selectActiveCharacter } from "@/services/room.service";
+import { getRoomById } from "@/services/room.service"
 import type { Character } from "@/features/room/room.types";
 
 export type RoomState = "select-character" | "lobby" | "in-game";
+
 
 type MeResponse = {
   character: Character;
@@ -14,6 +16,7 @@ export const useRoomSession = (roomId: string) => {
   const [state, setState] = useState<RoomState>("select-character");
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
   const [loading, setLoading] = useState(true);
+  const [room, setRoom] = useState<any>(null);
 
   const fetchMe = async () => {
     const res = await api.get<MeResponse>("/accounts/me/");
@@ -28,6 +31,11 @@ export const useRoomSession = (roomId: string) => {
     return res.data;
   };
 
+  const fetchRoom = async () => {
+    const res = await getRoomById(roomId);
+    setRoom(res.data);
+  };
+
   useEffect(() => {
     if (!roomId) return;
 
@@ -38,7 +46,8 @@ export const useRoomSession = (roomId: string) => {
 
       try {
         if (!mounted) return;
-        await fetchMe();
+
+        await Promise.all([fetchMe(), fetchRoom()]);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -57,6 +66,10 @@ export const useRoomSession = (roomId: string) => {
     setState("lobby");
   };
 
+  const startGame = () => {
+    setState("in-game");
+  };
+
   const reset = () => {
     setState("select-character");
     setActiveCharacter(null);
@@ -68,6 +81,8 @@ export const useRoomSession = (roomId: string) => {
     loading,
     selectCharacter,
     reset,
+    startGame,
     refetch: fetchMe,
+    room,
   };
 };

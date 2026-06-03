@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, data } from "react-router-dom";
 
 import Chat from "@/features/chat/Chat";
 import CharacterSelectPanel from "@/components/Room/CharacterSelectPanel";
@@ -10,11 +10,25 @@ import Button from "@/components/ui/Button/Button";
 
 import { useRoomSession } from "@/features/room/hooks/useRoomSession";
 
+import { selectActiveCharacter } from "@/services/room.service";
+import { getRoomById } from "@/services/room.service"
+import { useGameSocket } from "@/features/game/hooks/useGameSocket";
+
 const RoomPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
 
   if (!roomId) return <div>Brak pokoju</div>;
+
+  const { send } = useGameSocket(roomId, (data) => {
+    if (data.type === "game_started") {
+      console.log("GAME STARTED");
+    }
+
+    if (data.type === "error") {
+      console.error(data);
+    }
+  });
 
   const {
     state,
@@ -22,7 +36,10 @@ const RoomPage: React.FC = () => {
     loading,
     selectCharacter,
     reset,
+    room,
   } = useRoomSession(roomId);
+
+  const isOwner = room?.owner_id === activeCharacter?.id;
 
   return (
     <div className="room-layout">
@@ -95,7 +112,13 @@ const RoomPage: React.FC = () => {
         {state === "lobby" && (
           <div className="room-center-placeholder">
             <h2>⏳ Lobby</h2>
-            <p>Czekanie na rozpoczęcie gry...</p>
+            {isOwner && (
+              <Button variant="primary" onClick={() => send ({ type: "start_game" })}>
+                 🎮 Rozpocznij grę (host)
+              </Button>
+            )}
+
+            <p>Czekasz aż twórca pokoju rozpocznie grę...</p>
           </div>
         )}
 
