@@ -3,6 +3,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from rest_framework.decorators import action
 import logging
 
 from .models import Room
@@ -31,6 +32,17 @@ class RoomViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(f"Błąd podczas tworzenia pokoju: {str(e)}")
             raise
+        
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def start_game(self, request, pk=None):
+        room = self.get_object()
+
+        if room.owner != request.user:
+            raise PermissionDenied("Only the room owner can start the game.")
+        
+        room.state = "in_game"
+        room.save()
+        return Response(RoomSerializer(room).data)
 
 class RoomDetailView(APIView):
     permission_classes = [IsAuthenticated]
