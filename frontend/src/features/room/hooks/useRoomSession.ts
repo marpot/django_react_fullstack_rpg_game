@@ -12,20 +12,16 @@ type MeResponse = {
 
 export const useRoomSession = (roomId: string) => {
   const [state, setState] = useState<RoomState>("select-character");
-  const [activeCharacter, setActiveCharacter] =
-    useState<Character | null>(null);
+  const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchMe = async () => {
     const res = await api.get<MeResponse>("/accounts/me/");
-
     const active = res.data.character ?? null;
 
     setActiveCharacter(active);
 
-    if (active) {
-      setState("lobby");
-    } else {
+    if (!active) {
       setState("select-character");
     }
 
@@ -58,11 +54,7 @@ export const useRoomSession = (roomId: string) => {
   const selectCharacter = async (id: number) => {
     await selectActiveCharacter(id);
     await fetchMe();
-    // state już ustawiany w fetchMe
-  };
-
-  const startGame = () => {
-    setState("in-game");
+    setState("lobby");
   };
 
   const reset = () => {
@@ -75,7 +67,6 @@ export const useRoomSession = (roomId: string) => {
     activeCharacter,
     loading,
     selectCharacter,
-    startGame,
     reset,
     refetch: fetchMe,
   };

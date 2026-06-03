@@ -21,7 +21,7 @@ const RoomPage: React.FC = () => {
     activeCharacter,
     loading,
     selectCharacter,
-    startGame,
+    reset,
   } = useRoomSession(roomId);
 
   return (
@@ -65,8 +65,20 @@ const RoomPage: React.FC = () => {
           </div>
         )}
 
+        {state !== "select-character" && (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              // reset room state (wraca do wyboru postaci)
+              reset?.();
+            }}
+          >
+            🔄 Zmień postać
+          </Button>
+        )}
+
         <Button variant="danger" onClick={() => navigate("/dashboard")}>
-          Powrót
+            🚪 Opuść pokój
         </Button>
       </aside>
 
@@ -74,10 +86,17 @@ const RoomPage: React.FC = () => {
       <main className="room-main">
         <h1 className="room-header">🏰 Pokój: {roomId}</h1>
 
+        {state === "select-character" && (
+          <div className="room-center-placeholder">
+            <p>Wybierz postać po lewej stronie</p>
+          </div>
+        )}
+
         {state === "lobby" && (
-          <Button variant="primary" onClick={startGame}>
-            🎲 Start gry
-          </Button>
+          <div className="room-center-placeholder">
+            <h2>⏳ Lobby</h2>
+            <p>Czekanie na rozpoczęcie gry...</p>
+          </div>
         )}
 
         {state === "in-game" && (

@@ -1,6 +1,5 @@
 import React from "react";
 import { useGameSession } from "@/features/game/hooks/useGameSession";
-import { Character } from "@/features/room/room.types";
 
 type Props = {
   roomId: string;

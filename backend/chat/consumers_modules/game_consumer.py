@@ -36,12 +36,14 @@ class GameConsumer(BaseConsumer):
             parsed["room"] = self.room_name
             parsed["user_id"] = self.scope["user"].id
 
-            # 🔥 FIX: sync → async safe execution
             result = await sync_to_async(self.processor.process)(parsed)
 
             await self.send_message(
-                str(result),
-                self.scope["user"].username
+                json.dumps({
+                    "type": "action_result",
+                    "data": result,
+                    "user": self.scope["user"].username
+                })
             )
 
         except Exception as e:
