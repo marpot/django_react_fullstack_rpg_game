@@ -25,7 +25,7 @@ class RoomSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Room
-        fields = 'all'
+        fields = '__all__'
         read_only_fields = ('owner', 'created_at')
 
     def to_internal_value(self, data):
