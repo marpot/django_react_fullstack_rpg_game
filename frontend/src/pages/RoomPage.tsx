@@ -15,8 +15,11 @@ import { useGameSocket } from "@/features/game/hooks/useGameSocket";
 
 const RoomPage: React.FC = () => {
   const params = useParams<{ roomId: string }>();
-  const roomId = params.roomId;
-  const safeRoomId = roomId ?? "";
+  const roomId = React.useMemo(() => params.roomId, [params.roomId]) ;
+
+  const safeRoomId = React.useMemo(() => {
+    return roomId ? String(roomId) : "";
+  }, [roomId]);
 
   const navigate = useNavigate();
 
@@ -51,30 +54,17 @@ const RoomPage: React.FC = () => {
       console.log("🎮 GAME STARTED");
     }
 
+    api.get(`/chat/rooms/${safeRoomId}/`).then((res) =>{
+      console.log("[ROOM REFRESH]", res.data);
+
+      window.location.reload();
+    })
+
     if (data.type === "error") {
       console.error("[GameSocket ERROR]", data);
     }
   });
 
-  // =========================
-  // RAW WS DEBUG (OPTIONAL)
-  // =========================
-  React.useEffect(() => {
-    if (!roomId) return;
-
-    const token = localStorage.getItem("access_token");
-
-    const ws = new WebSocket(
-      `ws://localhost:8000/ws/game/${roomId}/?token=${token}`
-    );
-
-    ws.onopen = () => console.log("[RAW WS] OPENED");
-    ws.onmessage = (e) => console.log("[RAW WS] MESSAGE:", e.data);
-    ws.onerror = (e) => console.error("[RAW WS] ERROR:", e);
-    ws.onclose = (e) => console.log("[RAW WS] CLOSED:", e.code);
-
-    return () => ws.close();
-  }, [roomId]);
 
   const isOwner = room?.owner === me?.user?.id;
 
