@@ -1,79 +1,96 @@
-import { useEffect, useState } from "react";
-import GameCenter from "./GameCenter";
+import { useState } from "react";
 import { useGameSocket } from "../hooks/useGameSocket";
-import { useChatConnection } from "../../chat/hooks/useChatConnection";
 
 type Props = {
   roomId: string;
 };
 
 type GameEvent = any;
-type ChatMessage = any;
 
 export default function GameWindow({ roomId }: Props) {
   const [gameLog, setGameLog] = useState<GameEvent[]>([]);
-  const [chatLog, setChatLog] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
 
-  // =========================
-  // GAME SOCKET
-  // =========================
   const { send: sendGame } = useGameSocket(roomId, (msg) => {
     setGameLog((prev) => [...prev, msg]);
   });
 
-  // =========================
-  // CHAT SOCKET (STATEFUL HOOK)
-  // =========================
-  const {
-    messages: chatMessages,
-    sendMessage,
-  } = useChatConnection(roomId, "player");
+  const handleSend = () => {
+    if (!input.trim()) return;
 
-  // sync hook state -> local view state
-  useEffect(() => {
-    setChatLog(chatMessages);
-  }, [chatMessages]);
+    const action = {
+      type: "player_action",
+      message: input,
+    };
+
+    sendGame(action);
+
+    setGameLog((prev) => [...prev, action]);
+    setInput("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSend();
+    }
+  };
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      
-      {/* LEFT - GAME */}
-      <div style={{ flex: 3 }}>
-        <GameCenter roomId={roomId} />
-      </div>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
 
-      {/* RIGHT - FEED */}
-      <div style={{ flex: 1, borderLeft: "1px solid #333", padding: 12 }}>
-        
-        {/* GAME FEED */}
-        <h3>GAME FEED</h3>
-        <div style={{ height: "40vh", overflowY: "auto" }}>
-          {gameLog.map((e, i) => (
-            <div key={i}>{JSON.stringify(e)}</div>
-          ))}
+      {/* HEADER */}
+      <div
+        style={{
+          padding: "10px 12px",
+          borderBottom: "1px solid #333",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          background: "#111",
+        }}
+      >
+        <div style={{ fontWeight: 600, letterSpacing: "1px" }}>
+          🧙 ELDORIA — GAME WINDOW
         </div>
 
-        <button onClick={() => sendGame({ message: "look around" })}>
-          TEST GAME ACTION
-        </button>
-
-        <hr />
-
-        {/* CHAT */}
-        <h3>CHAT</h3>
-        <div style={{ height: "40vh", overflowY: "auto" }}>
-          {chatLog.map((m, i) => (
-            <div key={i}>
-              <b>{m.user}</b>: {m.text}
-            </div>
-          ))}
+        <div style={{ fontSize: 12, opacity: 0.6 }}>
+          real-time RPG engine
         </div>
-
-        <button onClick={() => sendMessage("hello")}>
-          TEST CHAT
-        </button>
-
       </div>
+
+      {/* WORLD FEED */}
+      <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
+        {gameLog.map((e, i) => (
+          <div key={i} style={{ marginBottom: 8 }}>
+            {typeof e === "string"
+              ? e
+              : e.message || JSON.stringify(e)}
+          </div>
+        ))}
+      </div>
+
+      {/* INPUT BAR */}
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          padding: 12,
+          borderTop: "1px solid #333",
+        }}
+      >
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Type action... (e.g. look around)"
+          style={{ flex: 1 }}
+        />
+
+        <button onClick={handleSend}>
+          Send
+        </button>
+      </div>
+
     </div>
   );
 }

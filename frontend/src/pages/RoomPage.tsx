@@ -32,7 +32,7 @@ const RoomPage: React.FC = () => {
   }, []);
 
   // =========================
-  // ROOM SESSION
+  // ROOM SESSION (SOURCE OF TRUTH)
   // =========================
   const {
     state,
@@ -43,8 +43,10 @@ const RoomPage: React.FC = () => {
     room,
   } = useRoomSession(safeRoomId);
 
+  console.log("ROOM STATE:", state);
+
   // =========================
-  // GAME SOCKET (ONLY LOGIC, NO SIDE EFFECTS)
+  // GAME SOCKET (ONLY EVENTS)
   // =========================
   useGameSocket(safeRoomId, (data) => {
     console.log("[GameSocket EVENT]", data);
@@ -53,9 +55,8 @@ const RoomPage: React.FC = () => {
       console.error("[GameSocket ERROR]", data);
     }
 
-    if (data.type === "game_started" && data.event === "game_started") {
-      console.log("🎮 GAME STARTED");
-    }
+    // ❗ tutaj NIE zmieniamy UI lokalnie
+    // state zmienia useRoomSession
   });
 
   const isOwner = room?.owner === me?.user?.id;
@@ -73,11 +74,6 @@ const RoomPage: React.FC = () => {
     if (!isOwner) return;
 
     await api.post(`/chat/rooms/${roomId}/start_game/`);
-
-    // ❌ NIE ROBIMY:
-    // - send game_started
-    // - reload
-    // backend + useRoomSession ogarnia state
   };
 
   return (
