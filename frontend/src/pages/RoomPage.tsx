@@ -14,33 +14,24 @@ import { useRoomSession } from "@/features/room/hooks/useRoomSession";
 import { useGameSocket } from "@/features/game/hooks/useGameSocket";
 
 const RoomPage: React.FC = () => {
-  const { roomId } = useParams<{ roomId: string }>();
+  const params = useParams<{ roomId: string }>();
+  const roomId = params.roomId;
+  const safeRoomId = roomId ?? "";
+
   const navigate = useNavigate();
 
   const [me, setMe] = React.useState<any>(null);
 
-  // 🔥 fetch current user
+  // =========================
+  // FETCH USER
+  // =========================
   React.useEffect(() => {
-    const load = async () => {
-      const res = await api.get("/accounts/me/");
-      setMe(res.data);
-    };
-
-    load();
+    api.get("/accounts/me/").then((res) => setMe(res.data));
   }, []);
 
-  if (!roomId) return <div>Brak pokoju</div>;
-
-  const { send } = useGameSocket(roomId, (data) => {
-    if (data.type === "game_started") {
-      console.log("🎮 GAME STARTED");
-    }
-
-    if (data.type === "error") {
-      console.error(data);
-    }
-  });
-
+  // =========================
+  // ROOM SESSION
+  // =========================
   const {
     state,
     activeCharacter,
@@ -48,18 +39,71 @@ const RoomPage: React.FC = () => {
     selectCharacter,
     reset,
     room,
-  } = useRoomSession(roomId);
+  } = useRoomSession(safeRoomId);
 
+  // =========================
+  // GAME SOCKET (SAFE)
+  // =========================
+  const { send } = useGameSocket(safeRoomId, (data) => {
+    console.log("[GameSocket EVENT]", data);
+
+    if (data.type === "game_started") {
+      console.log("🎮 GAME STARTED");
+    }
+
+    if (data.type === "error") {
+      console.error("[GameSocket ERROR]", data);
+    }
+  });
+
+  // =========================
+  // RAW WS DEBUG (OPTIONAL)
+  // =========================
+  React.useEffect(() => {
+    if (!roomId) return;
+
+    const token = localStorage.getItem("access_token");
+
+    const ws = new WebSocket(
+      `ws://localhost:8000/ws/game/${roomId}/?token=${token}`
+    );
+
+    ws.onopen = () => console.log("[RAW WS] OPENED");
+    ws.onmessage = (e) => console.log("[RAW WS] MESSAGE:", e.data);
+    ws.onerror = (e) => console.error("[RAW WS] ERROR:", e);
+    ws.onclose = (e) => console.log("[RAW WS] CLOSED:", e.code);
+
+    return () => ws.close();
+  }, [roomId]);
 
   const isOwner = room?.owner === me?.user?.id;
-  
 
-  // 🔍 DEBUG (tymczasowe)
+  // =========================
+  // GUARDS
+  // =========================
+  if (!roomId) return <div>Brak pokoju</div>;
+  if (!me) return <div>Ładowanie...</div>;
+
+  // =========================
+  // START GAME
+  // =========================
+  const handleStartGame = async () => {
+    if (!isOwner) return;
+
+    await api.post(`/chat/rooms/${roomId}/start_game/`);
+
+    send({ type: "game_started" });
+  };
+
+  // =========================
+  // DEBUG
+  // =========================
   console.log("COMPARE:", {
     roomOwner: room?.owner,
     meUserId: me?.user?.id,
-    result: room?.owner === me?.user?.id
+    result: room?.owner === me?.user?.id,
   });
+
   console.log("ROOM:", room);
   console.log("ME:", me);
   console.log("IS OWNER:", isOwner);
@@ -100,10 +144,7 @@ const RoomPage: React.FC = () => {
         )}
 
         {state !== "select-character" && (
-          <Button
-            variant="secondary"
-            onClick={reset}
-          >
+          <Button variant="secondary" onClick={reset}>
             🔄 Zmień postać
           </Button>
         )}
@@ -128,22 +169,7 @@ const RoomPage: React.FC = () => {
             <h2>⏳ Lobby</h2>
 
             {isOwner && (
-              <Button
-                variant="primary"
-                onClick={() => {
-                  console.log("🔥 START GAME CLICK");
-                  console.log("isOwner:", isOwner);
-                  console.log("room:", room);
-                  console.log("me:", me);
-
-                  if (!isOwner) {
-                    console.warn("❌ NOT OWNER");
-                    return;
-                  }
-
-                  send({ type: "start_game" });
-                }}
-              >
+              <Button variant="primary" onClick={handleStartGame}>
                 🎮 Rozpocznij grę (host)
               </Button>
             )}
@@ -155,14 +181,14 @@ const RoomPage: React.FC = () => {
         )}
 
         {state === "in-game" && (
-          <GameCenter roomId={roomId} />
+          <GameCenter roomId={safeRoomId} />
         )}
       </main>
 
       {/* RIGHT PANEL */}
       <aside className="room-chat">
         <h2 className="room-title">💬 Czat</h2>
-        <Chat roomId={roomId} />
+        <Chat roomId={safeRoomId} />
       </aside>
 
     </div>

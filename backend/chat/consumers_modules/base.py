@@ -14,6 +14,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
         user = self.scope.get("user")
 
         print("=== WS CONNECT ===")
+        print("PATH:", self.scope["path"]) 
         print("ROOM:", self.room_name)
         print("GROUP:", self.room_group_name)
         print("USER:", user)
@@ -26,12 +27,14 @@ class BaseConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
 
+        print("GROUP ADD:", self.room_group_name)
+
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
 
-        print("WS ACCEPTED + JOINED GROUP")
+        print("WS ACCEPTED + JOINED GROUP", self.room_group_name)
 
         await self.on_connect()
 

@@ -12,9 +12,16 @@ from game.core.action_processor import ActionProcessor
 class GameConsumer(BaseConsumer):
 
     async def on_connect(self):
+        print("=== GAME CONSUMER WS CONNECTED===")
+        print("ROOM NAME:", self.room_name)
+        print("GROUP:", self.room_group_name)
+
         self.state_manager = GameStateManager()
         self.processor = ActionProcessor(self.state_manager)
 
+    # =====================================================
+    # GAME INPUT FLOW (player actions)
+    # =====================================================
     async def receive(self, text_data):
         print("=== GAME RECEIVE START ===")
         print("RAW:", text_data)
@@ -27,7 +34,6 @@ class GameConsumer(BaseConsumer):
             if not user_input:
                 return
 
-            # 1. LLM - intent parsing
             llm = LLMService()
             parsed = llm.parse_player_input(user_input)
 
@@ -51,3 +57,15 @@ class GameConsumer(BaseConsumer):
             traceback.print_exc()
 
             await self.send_error_message(str(e))
+
+    # =====================================================
+    # GAME SYSTEM EVENT FLOW (start game broadcast)
+    # =====================================================
+    async def game_started(self, event):
+        print("=== GAME STARTED EVENT ===", event)
+
+        await self.send_message(json.dumps({
+            "type": "game_started",
+            "room_id": event.get("room_id"),
+            "message": event.get("message", "Game started")
+        }))

@@ -9,6 +9,9 @@ import logging
 from .models import Room
 from .serializers import RoomSerializer
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
 logger = logging.getLogger(__name__)
 
 class RoomViewSet(viewsets.ModelViewSet):
@@ -39,9 +42,21 @@ class RoomViewSet(viewsets.ModelViewSet):
 
         if room.owner != request.user:
             raise PermissionDenied("Only the room owner can start the game.")
-        
+
         room.state = "in_game"
         room.save()
+
+        channel_layer = get_channel_layer()
+
+        async_to_sync(channel_layer.group_send)(
+            f"gameconsumer_{room.id}",
+            {
+                "type": "game_started",
+                "room_id": room.id,
+                "message": "The game has started!"
+            }
+        )
+
         return Response(RoomSerializer(room).data)
 
 class RoomDetailView(APIView):
