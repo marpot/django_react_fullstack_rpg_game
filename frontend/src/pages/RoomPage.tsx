@@ -5,7 +5,7 @@ import { api } from "@/api/client";
 
 import Chat from "@/features/chat/Chat";
 import CharacterSelectPanel from "@/components/Room/CharacterSelectPanel";
-import GameCenter from "@/features/game/GameCenter/GameCenter";
+import GameWindow from "@/features/game/GameCenter/GameWindow";
 
 import "@/styles/pages/room-page.scss";
 import Button from "@/components/ui/Button/Button";
@@ -15,14 +15,13 @@ import { useGameSocket } from "@/features/game/hooks/useGameSocket";
 
 const RoomPage: React.FC = () => {
   const params = useParams<{ roomId: string }>();
-  const roomId = React.useMemo(() => params.roomId, [params.roomId]) ;
+  const roomId = React.useMemo(() => params.roomId, [params.roomId]);
 
   const safeRoomId = React.useMemo(() => {
     return roomId ? String(roomId) : "";
   }, [roomId]);
 
   const navigate = useNavigate();
-
   const [me, setMe] = React.useState<any>(null);
 
   // =========================
@@ -45,26 +44,19 @@ const RoomPage: React.FC = () => {
   } = useRoomSession(safeRoomId);
 
   // =========================
-  // GAME SOCKET (SAFE)
+  // GAME SOCKET (ONLY LOGIC, NO SIDE EFFECTS)
   // =========================
-  const { send } = useGameSocket(safeRoomId, (data) => {
+  useGameSocket(safeRoomId, (data) => {
     console.log("[GameSocket EVENT]", data);
-
-    if (data.type === "game_started") {
-      console.log("🎮 GAME STARTED");
-    }
-
-    api.get(`/chat/rooms/${safeRoomId}/`).then((res) =>{
-      console.log("[ROOM REFRESH]", res.data);
-
-      window.location.reload();
-    })
 
     if (data.type === "error") {
       console.error("[GameSocket ERROR]", data);
     }
-  });
 
+    if (data.type === "game_started" && data.event === "game_started") {
+      console.log("🎮 GAME STARTED");
+    }
+  });
 
   const isOwner = room?.owner === me?.user?.id;
 
@@ -82,21 +74,11 @@ const RoomPage: React.FC = () => {
 
     await api.post(`/chat/rooms/${roomId}/start_game/`);
 
-    send({ type: "game_started" });
+    // ❌ NIE ROBIMY:
+    // - send game_started
+    // - reload
+    // backend + useRoomSession ogarnia state
   };
-
-  // =========================
-  // DEBUG
-  // =========================
-  console.log("COMPARE:", {
-    roomOwner: room?.owner,
-    meUserId: me?.user?.id,
-    result: room?.owner === me?.user?.id,
-  });
-
-  console.log("ROOM:", room);
-  console.log("ME:", me);
-  console.log("IS OWNER:", isOwner);
 
   return (
     <div className="room-layout">
@@ -158,20 +140,18 @@ const RoomPage: React.FC = () => {
           <div className="room-center-placeholder">
             <h2>⏳ Lobby</h2>
 
-            {isOwner && (
+            {isOwner ? (
               <Button variant="primary" onClick={handleStartGame}>
                 🎮 Rozpocznij grę (host)
               </Button>
-            )}
-
-            {!isOwner && (
+            ) : (
               <p>Czekasz aż twórca pokoju rozpocznie grę...</p>
             )}
           </div>
         )}
 
         {state === "in-game" && (
-          <GameCenter roomId={safeRoomId} />
+          <GameWindow roomId={safeRoomId} />
         )}
       </main>
 
