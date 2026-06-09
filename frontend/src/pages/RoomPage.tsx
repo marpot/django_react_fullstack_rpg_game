@@ -24,6 +24,8 @@ const RoomPage: React.FC = () => {
   const navigate = useNavigate();
   const [me, setMe] = React.useState<any>(null);
 
+  const [error, setError] = React.useState<string | null>(null);
+
   // =========================
   // FETCH USER
   // =========================
@@ -32,7 +34,7 @@ const RoomPage: React.FC = () => {
   }, []);
 
   // =========================
-  // ROOM SESSION (SOURCE OF TRUTH)
+  // ROOM SESSION
   // =========================
   const {
     state,
@@ -43,23 +45,15 @@ const RoomPage: React.FC = () => {
     room,
   } = useRoomSession(safeRoomId);
 
-  console.log("ROOM STATE:", state);
+  const isOwner = room?.owner === me?.user?.id;
 
   // =========================
-  // GAME SOCKET (ONLY EVENTS)
+  // GAME SOCKET (READ ONLY)
   // =========================
   useGameSocket(safeRoomId, (data) => {
     console.log("[GameSocket EVENT]", data);
-
-    if (data.type === "error") {
-      console.error("[GameSocket ERROR]", data);
-    }
-
-    // ❗ tutaj NIE zmieniamy UI lokalnie
-    // state zmienia useRoomSession
+    // WS handled inside GameWindow
   });
-
-  const isOwner = room?.owner === me?.user?.id;
 
   // =========================
   // GUARDS
@@ -73,7 +67,26 @@ const RoomPage: React.FC = () => {
   const handleStartGame = async () => {
     if (!isOwner) return;
 
-    await api.post(`/chat/rooms/${roomId}/start_game/`);
+    try {
+      await api.post(`/chat/rooms/${roomId}/start_game/`);
+      setError(null);
+    } catch (err: any) {
+      const data = err.response?.data;
+
+      console.log("[START GAME ERROR]", data);
+
+      const message =
+        data?.message ||
+        data?.error ||
+        data?.detail;
+
+      if (data?.code === "NO_ADVENTURE") {
+        setError(data.message);
+        return;
+      }
+
+      setError(message || "Unexpected error");
+    }
   };
 
   return (
@@ -125,6 +138,12 @@ const RoomPage: React.FC = () => {
       {/* CENTER PANEL */}
       <main className="room-main">
         <h1 className="room-header">🏰 Pokój: {roomId}</h1>
+
+        {error && (
+          <div style={{ color: "red", marginBottom: 10 }}>
+            {error}
+          </div>
+        )}
 
         {state === "select-character" && (
           <div className="room-center-placeholder">

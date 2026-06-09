@@ -10,8 +10,25 @@ type GameEvent = any;
 export default function GameWindow({ roomId }: Props) {
   const [gameLog, setGameLog] = useState<GameEvent[]>([]);
   const [input, setInput] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const { send: sendGame } = useGameSocket(roomId, (msg) => {
+    console.log("[GAME WS]", msg);
+
+    if (msg.type === "game_event") {
+      if (msg.subtype === "error") {
+        setError(msg.text);
+        return;
+      }
+
+      if (msg.event === "game_started") {
+        setError(null);
+      }
+
+      setGameLog((prev) => [...prev, msg]);
+      return;
+    }
+
     setGameLog((prev) => [...prev, msg]);
   });
 
@@ -37,7 +54,6 @@ export default function GameWindow({ roomId }: Props) {
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-
       {/* HEADER */}
       <div
         style={{
@@ -57,6 +73,19 @@ export default function GameWindow({ roomId }: Props) {
           real-time RPG engine
         </div>
       </div>
+
+      {error && (
+        <div
+          style={{
+            padding: "8px 12px",
+            background: "#7f1d1d",
+            color: "white",
+            fontSize: 13,
+          }}
+        >
+          {error}
+        </div>
+      )}
 
       {/* WORLD FEED */}
       <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
@@ -90,7 +119,6 @@ export default function GameWindow({ roomId }: Props) {
           Send
         </button>
       </div>
-
     </div>
   );
 }
