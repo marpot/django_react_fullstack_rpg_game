@@ -64,9 +64,13 @@ class RoomViewSet(viewsets.ModelViewSet):
         adventure = Adventure.objects.filter(id=adventure_id).first()
 
         if not adventure:
+            logger.info(f"[START GAME] No adventure set for room {room.id} - blocking game start")
             return Response(
-                {"error": "Adventure not found"},
-                status=404
+                {
+                    "code": "NO_ADVENTURE",
+                    "message": "Select adventure before starting game"
+                },
+                status=400
             )
         
         room.adventure = adventure

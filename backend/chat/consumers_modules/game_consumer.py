@@ -66,10 +66,23 @@ class GameConsumer(BaseConsumer):
         }))
 
     async def game_started(self, event):
+        adventure_id = event.get("adventure_id")
+
+        if not adventure_id:
+            await self.send_event(
+                "game_event",
+                {
+                    "subtype": "error",
+                    "text": "Cannot start game without adventure selected",
+                    "event": "game_started_failed"
+                }
+            )
+            return
+
         seeder = WorldSeeder(self.state_manager)
 
         await sync_to_async(seeder.seed_from_adventure)(
-            event.get("adventure_id"),
+            adventure_id,
             self.room_name
         )
 
@@ -79,6 +92,7 @@ class GameConsumer(BaseConsumer):
                 "subtype": "system",
                 "text": event.get("message", "Game started"),
                 "room_id": self.room_name,
-                "event": "game_started"
+                "event": "game_started",
+                "mode": "adventure"
             }
         )
