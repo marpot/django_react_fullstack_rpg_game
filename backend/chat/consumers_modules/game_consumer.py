@@ -1,5 +1,7 @@
 import json
 import traceback
+
+from world.seeders.world_seeder import WorldSeeder
 from asgiref.sync import sync_to_async
 
 from .base import BaseConsumer
@@ -12,6 +14,8 @@ class GameConsumer(BaseConsumer):
 
     async def on_connect(self):
         print("=== GAME CONSUMER WS CONNECTED===")
+        print("ROOM DEBUG:", self.room_name)
+
         self.state_manager = GameStateManager()
         self.processor = ActionProcessor(self.state_manager)
 
@@ -62,12 +66,19 @@ class GameConsumer(BaseConsumer):
         }))
 
     async def game_started(self, event):
+        seeder = WorldSeeder(self.state_manager)
+
+        await sync_to_async(seeder.seed_from_adventure)(
+            event.get("adventure_id"),
+            self.room_name
+        )
+
         await self.send_event(
             "game_event",
             {
                 "subtype": "system",
                 "text": event.get("message", "Game started"),
-                "room_id": event.get("room_id"),
+                "room_id": self.room_name,
                 "event": "game_started"
             }
         )

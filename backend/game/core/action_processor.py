@@ -18,15 +18,35 @@ class ActionProcessor:
         self.resolver = resolver or EntityResolver(state_manager)
         self.event_service = GameEventService()
 
+    # =========================
+    # ENTRY POINT
+    # =========================
     def process(self, parsed_input):
+        print("PROCESS INPUT:", parsed_input)
+        
         action = parsed_input.get("action")
 
-        if action != "attack":
-            return {
-                "action": action,
-                "result": "Unhandled action",
-            }
+        if action == "attack":
+            return self._handle_attack(parsed_input)
 
+        if action == "inspect":
+            return self._handle_inspect(parsed_input)
+
+        if action == "move":
+            return self._handle_move(parsed_input)
+
+        if action == "look":
+            return self._handle_inspect(parsed_input)
+
+        return {
+            "action": action,
+            "result": "Unhandled action",
+        }
+
+    # =========================
+    # ATTACK 
+    # =========================
+    def _handle_attack(self, parsed_input):
         room = parsed_input.get("room")
         user_id = parsed_input.get("user_id")
         enemy_name = parsed_input.get("target")
@@ -34,30 +54,24 @@ class ActionProcessor:
 
         logger.info(f"[COMBAT] START room={room} user_id={user_id} enemy={enemy_name}")
 
-        # 1. runtime (SOURCE OF TRUTH dla walki)
         attacker_runtime = self.resolver.resolve_player(room, user_id)
         defender_runtime = self.resolver.resolve_enemy(room, enemy_name)
 
         if not attacker_runtime or not defender_runtime:
             return {
-                "action": action,
+                "action": "attack",
                 "error": "Missing combat entities",
             }
 
-        # 2. combat resolution
         result = self.combat_service.resolve(attacker_runtime, defender_runtime)
 
-        # 🔥 FIX: sync runtime state back to GameStateManager (TEST DEPENDENT)
+        # sync runtime state
         room_obj = self.state_manager.get_room(room)
         if room_obj and enemy_name in room_obj.enemies:
             room_obj.enemies[enemy_name].hp = defender_runtime.hp
 
-        # 3. ORM lookup
         attacker_orm = PlayerCharacter.objects.filter(user_id=user_id).first()
-
-        adventure = None
-        if adventure_id:
-            adventure = Adventure.objects.filter(id=adventure_id).first()
+        adventure = Adventure.objects.filter(id=adventure_id).first() if adventure_id else None
 
         enemy_orm = None
         if adventure:
@@ -66,26 +80,15 @@ class ActionProcessor:
                 adventure=adventure
             ).first()
 
-        # 4. validations
         if not attacker_orm:
-            return {
-                "action": action,
-                "error": "Player not found",
-            }
+            return {"action": "attack", "error": "Player not found"}
 
         if not adventure:
-            return {
-                "action": action,
-                "error": "Adventure missing",
-            }
+            return {"action": "attack", "error": "Adventure missing"}
 
         if not enemy_orm:
-            return {
-                "action": action,
-                "error": "Enemy not found in DB",
-            }
+            return {"action": "attack", "error": "Enemy not found in DB"}
 
-        # 5. event log
         self.event_service.create_event(
             adventure=adventure,
             player=attacker_orm,
@@ -95,16 +98,14 @@ class ActionProcessor:
             choices=[],
         )
 
-        # 6. persist runtime -> ORM
         attacker_orm.health = attacker_runtime.hp
         attacker_orm.save(update_fields=["health"])
 
         enemy_orm.hp = defender_runtime.hp
         enemy_orm.save(update_fields=["hp"])
 
-        # 7. response contract
         return {
-            "action": action,
+            "action": "attack",
             "result": {
                 "attacker_hit": result.attacker_hit,
                 "defender_hit": result.defender_hit,
@@ -112,4 +113,22 @@ class ActionProcessor:
                 "defender_damage": result.defender_damage,
                 "winner": result.winner,
             },
+        }
+
+    # =========================
+    # INSPECT (STUB)
+    # =========================
+    def _handle_inspect(self, parsed_input):
+        return {
+            "action": "inspect",
+            "result": "Inspect not implemented yet"
+        }
+
+    # =========================
+    # MOVE (STUB)
+    # =========================
+    def _handle_move(self, parsed_input):
+        return {
+            "action": "move",
+            "result": "Move not implemented yet"
         }
