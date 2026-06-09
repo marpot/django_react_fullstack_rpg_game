@@ -15,12 +15,7 @@ class RoomSerializer(serializers.ModelSerializer):
         allow_null=True
     )
 
-    adventure_title = serializers.CharField(
-        source='adventure.title',
-        read_only=True,
-        allow_null=True
-    )
-
+    adventure_title = serializers.SerializerMethodField()
     owner_id = serializers.IntegerField(source='owner.id', read_only=True)
 
     class Meta:
@@ -28,18 +23,13 @@ class RoomSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ('owner', 'created_at')
 
-    def to_internal_value(self, data):
-        logger.info(f"to_internal_value - otrzymane dane: {data}")
-
-        if 'adventure' in data and data['adventure'] is None:
-            data.pop('adventure')
-
-        return super().to_internal_value(data)
+    def get_adventure_title(self, obj):
+        return obj.adventure.title if obj.adventure else None
 
     def validate(self, data):
+        request = self.context.get("request")
 
         if 'name' in data:
-
             qs = Room.objects.filter(name=data['name'])
 
             if self.instance:
@@ -51,3 +41,7 @@ class RoomSerializer(serializers.ModelSerializer):
                 })
 
         return data
+
+    def create(self, validated_data):
+        logger.info(f"[SERIALIZER CREATE] validated_data={validated_data}")
+        return super().create(validated_data)
