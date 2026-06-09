@@ -36,7 +36,8 @@ class GameConsumer(BaseConsumer):
             await self.send_event(
                 "game_event",
                 {
-                    "event": "action_result",
+                    "subtype": "action_result",
+                    "text": result.get("text", str(result)),
                     "data": result,
                     "user": self.scope["user"].username
                 }
@@ -46,25 +47,27 @@ class GameConsumer(BaseConsumer):
             print("GAME ERROR:", repr(e))
             traceback.print_exc()
 
-            await self.send(text_data=json.dumps({
-                "type": "error",
-                "message": str(e)
-            }))
+            await self.send_event(
+                "game_event",
+                {
+                    "subtype": "error",
+                    "text": str(e)
+                }
+            )
 
-    # 🔥 FIX: REQUIRED CHANNEL HANDLER
     async def game_event(self, event):
         await self.send(text_data=json.dumps({
             "type": "game_event",
             **event["payload"]
         }))
 
-    
     async def game_started(self, event):
         await self.send_event(
             "game_event",
             {
-                "event": "game_started",
+                "subtype": "system",
+                "text": event.get("message", "Game started"),
                 "room_id": event.get("room_id"),
-                "message": event.get("message", "Game started")
+                "event": "game_started"
             }
         )
