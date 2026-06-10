@@ -42,3 +42,9 @@ export const selectActiveCharacter = (characterId: number) => {
 export const startGame = (roomId: string) => {
   return api.post(`/chat/rooms/${roomId}/start-game/`);
 };
+
+export const setRoomAdventure = async (roomId: string, adventureId: number) => {
+  return api.post(`/chat/rooms/${roomId}/set_adventure`, {
+    adventure_id: adventureId,
+  });
+}
