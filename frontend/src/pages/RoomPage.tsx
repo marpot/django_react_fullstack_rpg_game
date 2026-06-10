@@ -71,7 +71,7 @@ const RoomPage: React.FC = () => {
       const message = data?.message || data?.error || data?.detail;
 
       if (data?.code === "NO_ADVENTURE") {
-        setError(data.message);
+        setError("Wybierz przygodę przed rozpoczęciem gry");
         return;
       }
 

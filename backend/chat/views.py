@@ -79,16 +79,18 @@ class RoomViewSet(viewsets.ModelViewSet):
         if room.owner != request.user:
             raise PermissionDenied("Only the room owner can start the game.")
 
-        # source of truth
-        adventure = room.adventure
+        
 
-        if not adventure:
+        if not room.adventure_id:
             logger.info(f"[START GAME] No adventure set for room {room.id}")
             return Response(
-                {"error": "Adventure must be selected before starting the game"},
+                {   "code": "NO_ADVENTURE",
+                    "error": "Adventure must be selected before starting the game"
+                },
                 status=400
             )
-
+        
+        adventure = room.adventure
         room.state = "in_game"
         room.save(update_fields=["state"])
 
