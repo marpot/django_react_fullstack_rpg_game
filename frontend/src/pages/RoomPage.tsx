@@ -12,6 +12,7 @@ import Button from "@/components/ui/Button/Button";
 
 import { useRoomSession } from "@/features/room/hooks/useRoomSession";
 import { useGameSocket } from "@/features/game/hooks/useGameSocket";
+import { useRoomAdventure } from "@/features/room/hooks/useRoomAdventure";
 
 const RoomPage: React.FC = () => {
   const params = useParams<{ roomId: string }>();
@@ -23,19 +24,20 @@ const RoomPage: React.FC = () => {
 
   const navigate = useNavigate();
   const [me, setMe] = React.useState<any>(null);
-
   const [error, setError] = React.useState<string | null>(null);
 
-  // =========================
-  // FETCH USER
-  // =========================
+  const [adventures, setAdventures] = React.useState<any[]>([]);
+
   React.useEffect(() => {
     api.get("/accounts/me/").then((res) => setMe(res.data));
   }, []);
 
-  // =========================
-  // ROOM SESSION
-  // =========================
+  React.useEffect(() => {
+    api.get("/world/adventures/")
+      .then((res) => setAdventures(res.data))
+      .catch((err) => console.error("[ADVENTURES ERROR]", err));
+  }, []);
+
   const {
     state,
     activeCharacter,
@@ -45,25 +47,18 @@ const RoomPage: React.FC = () => {
     room,
   } = useRoomSession(safeRoomId);
 
+  const { selectAdventure, loading: adventureLoading } =
+    useRoomAdventure(safeRoomId);
+
   const isOwner = room?.owner === me?.user?.id;
 
-  // =========================
-  // GAME SOCKET (READ ONLY)
-  // =========================
   useGameSocket(safeRoomId, (data) => {
     console.log("[GameSocket EVENT]", data);
-    // WS handled inside GameWindow
   });
 
-  // =========================
-  // GUARDS
-  // =========================
   if (!roomId) return <div>Brak pokoju</div>;
   if (!me) return <div>Ładowanie...</div>;
 
-  // =========================
-  // START GAME
-  // =========================
   const handleStartGame = async () => {
     if (!isOwner) return;
 
@@ -73,15 +68,10 @@ const RoomPage: React.FC = () => {
     } catch (err: any) {
       const data = err.response?.data;
 
-      console.log("[START GAME ERROR]", data);
-
-      const message =
-        data?.message ||
-        data?.error ||
-        data?.detail;
+      const message = data?.message || data?.error || data?.detail;
 
       if (data?.code === "NO_ADVENTURE") {
-        setError(data.message);
+        setError("Wybierz przygodę przed rozpoczęciem gry");
         return;
       }
 
@@ -92,7 +82,6 @@ const RoomPage: React.FC = () => {
   return (
     <div className="room-layout">
 
-      {/* LEFT PANEL */}
       <aside className="room-sidebar">
         <h2 className="room-title">🧙 Postacie</h2>
 
@@ -135,7 +124,6 @@ const RoomPage: React.FC = () => {
         </Button>
       </aside>
 
-      {/* CENTER PANEL */}
       <main className="room-main">
         <h1 className="room-header">🏰 Pokój: {roomId}</h1>
 
@@ -155,6 +143,41 @@ const RoomPage: React.FC = () => {
           <div className="room-center-placeholder">
             <h2>⏳ Lobby</h2>
 
+            {isOwner && (
+              <div style={{ marginBottom: 20 }}>
+                <h3>📜 Wybierz przygodę</h3>
+
+                <select
+                  disabled={adventureLoading}
+                  onChange={(e) => selectAdventure(Number(e.target.value))}
+                  defaultValue=""
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #444",
+                    background: "#1e1e1e",
+                    color: "white",
+                    cursor: "pointer",
+                  }}
+                >
+                  <option value="" disabled>
+                    -- wybierz przygodę --
+                  </option>
+
+                  {adventures.map((adventure) => (
+                    <option key={adventure.id} value={adventure.id}>
+                      {adventure.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {adventureLoading && (
+              <p style={{ color: "gray" }}>Ustawianie przygody...</p>
+            )}
+
             {isOwner ? (
               <Button variant="primary" onClick={handleStartGame}>
                 🎮 Rozpocznij grę (host)
@@ -170,7 +193,6 @@ const RoomPage: React.FC = () => {
         )}
       </main>
 
-      {/* RIGHT PANEL */}
       <aside className="room-chat">
         <h2 className="room-title">💬 Czat</h2>
         <Chat roomId={safeRoomId} />
