@@ -1,28 +1,93 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
+import { api } from "@/api/client";
+
 import Chat from "@/features/chat/Chat";
 import CharacterSelectPanel from "@/components/Room/CharacterSelectPanel";
-import GameCenter from "@/features/game/GameCenter/GameCenter";
+import GameWindow from "@/features/game/GameCenter/GameWindow";
 
 import "@/styles/pages/room-page.scss";
 import Button from "@/components/ui/Button/Button";
 
 import { useRoomSession } from "@/features/room/hooks/useRoomSession";
+import { useGameSocket } from "@/features/game/hooks/useGameSocket";
 
 const RoomPage: React.FC = () => {
-  const { roomId } = useParams<{ roomId: string }>();
+  const params = useParams<{ roomId: string }>();
+  const roomId = React.useMemo(() => params.roomId, [params.roomId]);
+
+  const safeRoomId = React.useMemo(() => {
+    return roomId ? String(roomId) : "";
+  }, [roomId]);
+
   const navigate = useNavigate();
+  const [me, setMe] = React.useState<any>(null);
 
-  if (!roomId) return <div>Brak pokoju</div>;
+  const [error, setError] = React.useState<string | null>(null);
 
+  // =========================
+  // FETCH USER
+  // =========================
+  React.useEffect(() => {
+    api.get("/accounts/me/").then((res) => setMe(res.data));
+  }, []);
+
+  // =========================
+  // ROOM SESSION
+  // =========================
   const {
     state,
     activeCharacter,
     loading,
     selectCharacter,
-    startGame,
-  } = useRoomSession(roomId);
+    reset,
+    room,
+  } = useRoomSession(safeRoomId);
+
+  const isOwner = room?.owner === me?.user?.id;
+
+  // =========================
+  // GAME SOCKET (READ ONLY)
+  // =========================
+  useGameSocket(safeRoomId, (data) => {
+    console.log("[GameSocket EVENT]", data);
+    // WS handled inside GameWindow
+  });
+
+  // =========================
+  // GUARDS
+  // =========================
+  if (!roomId) return <div>Brak pokoju</div>;
+  if (!me) return <div>Ładowanie...</div>;
+
+  // =========================
+  // START GAME
+  // =========================
+  const handleStartGame = async () => {
+    if (!isOwner) return;
+
+    try {
+      await api.post(`/chat/rooms/${roomId}/start_game/`);
+      setError(null);
+    } catch (err: any) {
+      const data = err.response?.data;
+
+      console.log("[START GAME ERROR]", data);
+
+      const message =
+        data?.message ||
+        data?.error ||
+        data?.detail;
+
+      if (data?.code === "NO_ADVENTURE") {
+        setError(data.message);
+        return;
+      }
+
+      setError(message || "Unexpected error");
+    }
+  };
 
   return (
     <div className="room-layout">
@@ -31,12 +96,10 @@ const RoomPage: React.FC = () => {
       <aside className="room-sidebar">
         <h2 className="room-title">🧙 Postacie</h2>
 
-        {/* SELECT CHARACTER */}
         {state === "select-character" && (
           <CharacterSelectPanel onSelect={selectCharacter} />
         )}
 
-        {/* ACTIVE CHARACTER PREVIEW */}
         {state !== "select-character" && (
           <div className="active-character">
             <h3>🎮 Aktywna postać</h3>
@@ -47,12 +110,8 @@ const RoomPage: React.FC = () => {
               <>
                 <p><b>{activeCharacter.name}</b></p>
                 <p>Level: {activeCharacter.level}</p>
-                <p>
-                  HP: {activeCharacter.health}/{activeCharacter.max_health}
-                </p>
-                <p>
-                  Mana: {activeCharacter.mana}/{activeCharacter.max_mana}
-                </p>
+                <p>HP: {activeCharacter.health}/{activeCharacter.max_health}</p>
+                <p>Mana: {activeCharacter.mana}/{activeCharacter.max_mana}</p>
                 <p>STR: {activeCharacter.strength}</p>
                 <p>DEX: {activeCharacter.dexterity}</p>
                 <p>INT: {activeCharacter.intelligence}</p>
@@ -65,8 +124,14 @@ const RoomPage: React.FC = () => {
           </div>
         )}
 
+        {state !== "select-character" && (
+          <Button variant="secondary" onClick={reset}>
+            🔄 Zmień postać
+          </Button>
+        )}
+
         <Button variant="danger" onClick={() => navigate("/dashboard")}>
-          Powrót
+          🚪 Opuść pokój
         </Button>
       </aside>
 
@@ -74,22 +139,41 @@ const RoomPage: React.FC = () => {
       <main className="room-main">
         <h1 className="room-header">🏰 Pokój: {roomId}</h1>
 
+        {error && (
+          <div style={{ color: "red", marginBottom: 10 }}>
+            {error}
+          </div>
+        )}
+
+        {state === "select-character" && (
+          <div className="room-center-placeholder">
+            <p>Wybierz postać po lewej stronie</p>
+          </div>
+        )}
+
         {state === "lobby" && (
-          <Button variant="primary" onClick={startGame}>
-            🎲 Start gry
-          </Button>
+          <div className="room-center-placeholder">
+            <h2>⏳ Lobby</h2>
+
+            {isOwner ? (
+              <Button variant="primary" onClick={handleStartGame}>
+                🎮 Rozpocznij grę (host)
+              </Button>
+            ) : (
+              <p>Czekasz aż twórca pokoju rozpocznie grę...</p>
+            )}
+          </div>
         )}
 
         {state === "in-game" && (
-          <GameCenter roomId={roomId} />
+          <GameWindow roomId={safeRoomId} />
         )}
       </main>
 
       {/* RIGHT PANEL */}
       <aside className="room-chat">
         <h2 className="room-title">💬 Czat</h2>
-
-        <Chat roomId={roomId} />
+        <Chat roomId={safeRoomId} />
       </aside>
 
     </div>

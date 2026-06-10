@@ -15,19 +15,38 @@ class IntentParser:
     def parse(self, player_input: str) -> dict:
         text = player_input.lower()
 
-        if "attack" in text:
+        # --------------------------
+        # ATTACK
+        # --------------------------
+        if any(word in text for word in ["attack", "atak", "atakuj", "zaatakuj", "hit", "fight"]):
             return {"action": "attack", "target": self._target(text)}
-
-        if "talk" in text:
+        
+        # -------------------------
+        # TALK
+        # -------------------------
+        if "talk" in text or "porozmawiaj" in text:
             return {"action": "talk", "target": self._target(text)}
+        
 
-        if "move" in text or "go" in text:
+         # -------------------------
+        # MOVE
+        # -------------------------
+        if any(word in text for word in ["move", "go", "idź", "idz", "przejdź"]):
             return {"action": "move", "target": self._target(text)}
 
-        if "inspect" in text or "look" in text:
+        # -------------------------
+        # INSPECT
+        # -------------------------
+        if any(word in text for word in ["inspect", "look", "sprawdź", "zbadaj", "rozejrzyj"]):
             return {"action": "inspect", "target": "environment"}
 
-        return {"action": "inspect", "target": None}
+        # -------------------------
+        # FALLBACK
+        # -------------------------
+        return {"action": "inspect", 
+                "target": "environment",
+                "error": "Unkown intent - fallback inspect"
+            }
 
     def _target(self, text: str):
         words = text.split()

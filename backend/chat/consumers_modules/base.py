@@ -2,7 +2,7 @@ import json
 import logging
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-logger = logging.getLogger("chat")
+logger = logging.getLogger("ws")
 
 
 class BaseConsumer(AsyncWebsocketConsumer):
@@ -14,10 +14,10 @@ class BaseConsumer(AsyncWebsocketConsumer):
         user = self.scope.get("user")
 
         print("=== WS CONNECT ===")
+        print("PATH:", self.scope["path"])
         print("ROOM:", self.room_name)
         print("GROUP:", self.room_group_name)
         print("USER:", user)
-        print("CHANNEL:", self.channel_name)
 
         if not user or not user.is_authenticated:
             print("WS REJECTED: unauthenticated")
@@ -31,8 +31,6 @@ class BaseConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
-        print("WS ACCEPTED + JOINED GROUP")
-
         await self.on_connect()
 
     def get_room_group_name(self):
@@ -42,37 +40,23 @@ class BaseConsumer(AsyncWebsocketConsumer):
         pass
 
     async def disconnect(self, close_code):
-        print("WS DISCONNECT:", self.room_group_name)
-
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
         )
 
-    async def receive(self, text_data):
-        print("=== WS RECEIVE ===")
-        print("RAW:", text_data)
-        raise NotImplementedError
+   
+    async def send_event(self, event_type: str, payload: dict):
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": event_type,
+                "payload": payload
+            }
+        )
 
     async def chat_message(self, event):
-        print("=== CHAT MESSAGE EVENT RECEIVED ===")
-        print("EVENT:", event)
-
         await self.send(text_data=json.dumps({
             "message": event.get("message"),
             "username": event.get("username"),
         }))
-
-    async def send_message(self, message, username):
-        print("=== GROUP SEND ===")
-        print("GROUP:", self.room_group_name)
-        print("MSG:", message)
-
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                "type": "chat_message",
-                "message": message,
-                "username": username,
-            }
-        )

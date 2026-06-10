@@ -4,7 +4,6 @@ import jwt
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
 from django.conf import settings
-from asgiref.sync import sync_to_async
 
 from rpg_project.asgi import application
 

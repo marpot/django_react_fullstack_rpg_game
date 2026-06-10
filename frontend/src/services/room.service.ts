@@ -38,3 +38,7 @@ export const selectActiveCharacter = (characterId: number) => {
     character_id: characterId,
   });
 };
+
+export const startGame = (roomId: string) => {
+  return api.post(`/chat/rooms/${roomId}/start-game/`);
+};
