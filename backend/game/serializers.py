@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models import GameSession, GameEvent
-from accounts.models import PlayerCharacter
 
 class GameSessionSerializer(serializers.ModelSerializer):
     player_id = serializers.IntegerField(source='player.id', read_only=True)

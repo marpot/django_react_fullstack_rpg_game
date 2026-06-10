@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from game.services.dice_service import DiceService
 
 @dataclass(frozen=True)
 class CombatResult:
