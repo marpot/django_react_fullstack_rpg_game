@@ -4,6 +4,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.decorators import action
+
+from chat.services.room_service import RoomService
+
 import logging
 
 from .models import Room
@@ -11,8 +14,6 @@ from .serializers import RoomSerializer
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-
-from world.models import Adventure
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +38,7 @@ class RoomViewSet(viewsets.ModelViewSet):
         logger.info(f"USER: {self.request.user}")
         logger.info(f"REQUEST DATA: {self.request.data}")
 
-        room = serializer.save(
-            owner=self.request.user
-        )
+        room = serializer.save(owner=self.request.user)
 
         logger.info("========== ROOM SAVED ==========")
         logger.info(f"ROOM ID: {room.id}")
@@ -49,37 +48,21 @@ class RoomViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def set_adventure(self, request, pk=None):
         room = self.get_object()
-
-        if room.owner != request.user:
-            raise PermissionDenied("Only room owner can set adventure.")
-        
         adventure_id = request.data.get("adventure_id")
 
-        if not adventure_id:
-            return Response(
-                {"error": "adventure_id required"},
-                status=400
-            )
-        
-        adventure = Adventure.objects.filter(id=adventure_id).first()
+        result = RoomService.set_adventure(room, request.user, adventure_id)
 
-        if not adventure:
-            logger.info(f"[START GAME] No adventure set for room {room.id} - blocking game start")
+        if not result["ok"]:
             return Response(
-                {
-                    "code": "NO_ADVENTURE",
-                    "message": "Select adventure before starting game"
-                },
+                {"error": result["error"]},
                 status=400
             )
-        
-        room.adventure = adventure
-        room.state = "lobby"
-        room.save(update_fields=["adventure", "state"])
+
+        adventure = result["adventure"]
 
         return Response({
             "room_id": room.id,
-            "adventure_id": adventure_id,
+            "adventure_id": adventure.id,
             "adventure_title": adventure.title
         })
 
@@ -96,16 +79,16 @@ class RoomViewSet(viewsets.ModelViewSet):
         if room.owner != request.user:
             raise PermissionDenied("Only the room owner can start the game.")
 
-        # ✅ JEDYNE ŹRÓDŁO PRAWDY
+        # source of truth
         adventure = room.adventure
 
         if not adventure:
-            logger.info(f"[START GAME] No adventure set for room {room.id} - blocking game start")
+            logger.info(f"[START GAME] No adventure set for room {room.id}")
             return Response(
                 {"error": "Adventure must be selected before starting the game"},
                 status=400
             )
-        
+
         room.state = "in_game"
         room.save(update_fields=["state"])
 
