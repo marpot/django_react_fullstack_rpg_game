@@ -1,9 +1,3 @@
-## KONKRET
-
-Zaktualizowany README z poprawionym onboardingiem (`bootstrap + up + dev flow`) + bez Makefile noise + rekruter-friendly setup.
-
----
-
 ```md id="readme1"
 # RPG Game Platform
 
