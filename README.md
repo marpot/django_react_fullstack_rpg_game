@@ -1,4 +1,3 @@
-```md id="readme1"
 # RPG Game Platform
 
 ## 🚀 Project Overview
@@ -6,11 +5,12 @@
 This is a full-stack **real-time RPG game platform** built with Django and React.
 
 Players can:
-- register and authenticate via JWT
-- create and join game rooms
-- interact with dynamic story events
-- engage in turn-based combat with runtime state
-- communicate in real-time via WebSocket chat
+
+* register and authenticate via JWT
+* create and join game rooms
+* interact with dynamic story events
+* engage in turn-based combat with runtime state
+* communicate in real-time via WebSocket chat
 
 The system is designed as a **modular, event-driven backend architecture** similar to a lightweight multiplayer game server.
 
@@ -19,25 +19,35 @@ The system is designed as a **modular, event-driven backend architecture** simil
 ## 🧠 Key Features
 
 ### Backend
-- JWT authentication (SimpleJWT)
-- REST API (Django REST Framework)
-- Real-time communication (Django Channels + WebSockets)
-- Core gameplay loop MVP:
-  - combat system (attack resolution, damage, winner logic)
-  - runtime entity system (Player / Enemy state in memory)
-  - auto-seeding enemies per adventure
-  - ORM + runtime synchronization
-- Modular architecture:
-  - `users` → authentication & profiles
-  - `world` → game world content & enemy seeding
-  - `game` → core gameplay logic (combat, state, events)
-  - `chat` → real-time communication layer
+
+* JWT authentication (SimpleJWT)
+
+* REST API (Django REST Framework)
+
+* Real-time communication (Django Channels + WebSockets)
+
+* Core gameplay loop MVP:
+
+  * combat system (attack resolution, damage, winner logic)
+  * runtime entity system (Player / Enemy state in memory)
+  * auto-seeding enemies per adventure
+  * ORM + runtime synchronization
+
+* Modular architecture:
+
+  * `users` → authentication & profiles
+  * `world` → game world content & enemy seeding
+  * `game` → core gameplay logic (combat, state, events)
+  * `chat` → real-time communication layer
+
+---
 
 ### Frontend
-- React (Webpack dev server)
-- Feature-based architecture (`features/chat`)
-- WebSocket integration with reconnection logic
-- Centralized API client (Axios)
+
+* React (Webpack dev server)
+* Feature-based architecture (`features/chat`)
+* WebSocket integration with reconnection logic
+* Centralized API client (Axios)
 
 ---
 
@@ -46,27 +56,25 @@ The system is designed as a **modular, event-driven backend architecture** simil
 ### System Design
 
 ```
-
 Frontend (React)
-|
-| REST API + WebSocket (JWT)
-v
+        |
+        | REST API + WebSocket (JWT)
+        v
 Backend (Django + DRF + Channels)
-|
-+----------------------+
-|                      |
-v                      v
-PostgreSQL                Redis
-
-````
+        |
+        +----------------------+
+        |                      |
+        v                      v
+ PostgreSQL                Redis
+```
 
 ---
 
 ### Communication Layers
 
-- REST API → business logic (game, users, world)
-- WebSocket → real-time chat & gameplay events
-- JWT → authentication for HTTP + WebSocket
+* REST API → business logic (game, users, world)
+* WebSocket → real-time chat & gameplay events
+* JWT → authentication for HTTP + WebSocket
 
 ---
 
@@ -74,11 +82,9 @@ PostgreSQL                Redis
 
 ### 1. First run (IMPORTANT)
 
-After cloning repository:
-
 ```bash
 make bootstrap
-````
+```
 
 This will:
 
@@ -142,7 +148,7 @@ http://localhost:3000
 
 ## 📡 WebSocket
 
-```text
+```
 ws://localhost:8001/ws/chat/<room_id>/?token=<JWT>
 ws://localhost:8001/ws/game/<room_id>/?token=<JWT>
 ```
@@ -151,7 +157,7 @@ ws://localhost:8001/ws/game/<room_id>/?token=<JWT>
 
 ## 🔧 Tech Stack
 
-Backend:
+### Backend
 
 * Django
 * Django REST Framework
@@ -159,13 +165,13 @@ Backend:
 * PostgreSQL
 * Redis
 
-Frontend:
+### Frontend
 
 * React
 * Webpack
 * Axios
 
-DevOps:
+### DevOps
 
 * Docker
 * Docker Compose
@@ -199,7 +205,3 @@ Marcin Potoczny
 * combat system
 * auto-seeding
 * ORM sync
-
-````
-
----
