@@ -1,4 +1,10 @@
-```md
+## KONKRET
+
+Poniżej masz **zaktualizowany README z poprawionym setupem (cross-platform + Docker build fix + Windows-safe)**. Reszta zostaje bez zmian, poprawiam tylko sekcję development setup + porządkuję Docker usage.
+
+---
+
+```md id="r1a9x1"
 # RPG Game Platform
 
 ## 🚀 Project Overview
@@ -9,6 +15,7 @@ Players can:
 - register and authenticate via JWT
 - create and join game rooms
 - interact with dynamic story events
+- engage in turn-based combat with runtime state
 - communicate in real-time via WebSocket chat
 
 The system is designed as a **modular, event-driven backend architecture** similar to a lightweight multiplayer game server.
@@ -21,10 +28,15 @@ The system is designed as a **modular, event-driven backend architecture** simil
 - JWT authentication (SimpleJWT)
 - REST API (Django REST Framework)
 - Real-time communication (Django Channels + WebSockets)
-- Modular domain-driven architecture:
+- Core gameplay loop MVP:
+  - combat system (attack resolution, damage, winner logic)
+  - runtime entity system (Player / Enemy state in memory)
+  - auto-seeding enemies per adventure
+  - ORM + runtime synchronization
+- Modular architecture:
   - `users` → authentication & profiles
-  - `world` → game world content
-  - `game` → core gameplay logic (events, decisions)
+  - `world` → game world content & enemy seeding
+  - `game` → core gameplay logic (combat, state, events)
   - `chat` → real-time communication layer
 
 ### Frontend
@@ -50,15 +62,17 @@ Backend (Django + DRF + Channels)
 +----------------------+
 |                      |
 v                      v
-PostgreSQL            Redis
+PostgreSQL                Redis
 
 ````
+
+---
 
 ### Communication Layers
 
 - REST API → business logic (game, users, world)
-- WebSocket → real-time chat & events
-- JWT → authentication for both HTTP & WS
+- WebSocket → real-time chat & gameplay events
+- JWT → authentication for HTTP + WebSocket
 
 ---
 
@@ -66,8 +80,10 @@ PostgreSQL            Redis
 
 ### 1. Backend (Docker)
 
+#### Recommended (cross-platform)
+
 ```bash
-make up
+docker compose up --build
 ````
 
 Runs:
@@ -84,7 +100,29 @@ http://localhost:8001
 
 ---
 
-### 2. Frontend (Recommended: local dev)
+#### Stop services
+
+```bash
+docker compose down
+```
+
+---
+
+### 2. Optional: Makefile shortcut (Linux/macOS)
+
+```bash
+make up
+```
+
+Same as:
+
+```bash
+docker compose up --build
+```
+
+---
+
+### 3. Frontend (local dev)
 
 ```bash
 cd frontend
@@ -100,39 +138,35 @@ http://localhost:3000
 
 ---
 
-### 3. Full stack (optional)
+## 🎮 Gameplay Loop (MVP)
 
-```bash
-make up-full
-```
+1. Player joins room
+2. Action sent via WebSocket (`attack`, `inspect`)
+3. Backend resolves runtime entities
+4. Auto-seeding if room is empty
+5. Combat resolution:
 
-Includes:
-
-* backend
-* database
-* redis
-* celery workers
-* frontend (docker mode)
+   * hit/miss
+   * damage calculation
+   * HP updates
+   * winner detection
+6. Runtime state + ORM sync
+7. Event stored for history
 
 ---
 
-## 📡 WebSocket (Real-time Chat)
+## 📡 WebSocket
 
 ```text
 ws://localhost:8001/ws/chat/<room_id>/?token=<JWT>
+ws://localhost:8001/ws/game/<room_id>/?token=<JWT>
 ```
-
-Features:
-
-* JWT-authenticated WebSocket connection
-* automatic reconnect logic
-* real-time message broadcasting
 
 ---
 
 ## 🔧 Tech Stack
 
-**Backend:**
+Backend:
 
 * Django
 * Django REST Framework
@@ -140,48 +174,27 @@ Features:
 * PostgreSQL
 * Redis
 
-**Frontend:**
+Frontend:
 
 * React
 * Webpack
 * Axios
-* SCSS
 
-**DevOps:**
+DevOps:
 
 * Docker
 * Docker Compose
-* Makefile automation
-
----
-
-## 🧩 Design Decisions
-
-### Why Django Channels?
-
-Used to enable real-time WebSocket communication for chat and future game events.
-
-### Why feature-based frontend structure?
-
-To improve scalability and maintainability as the project grows.
-
-### Why Docker only for backend?
-
-Frontend runs locally for:
-
-* faster hot reload
-* lower resource usage
-* better DX during development
 
 ---
 
 ## 📈 Future Improvements
 
 * turn-based combat system
-* AI-generated story scenarios (LLM integration)
-* game state persistence per room
-* matchmaking system
-* observability (logging + metrics)
+* skill system
+* AI story generation (LLM)
+* persistent world simulation
+* matchmaking
+* observability layer
 
 ---
 
@@ -193,16 +206,16 @@ Marcin Potoczny
 
 ## 🧠 Project Status
 
-MVP stage:
+### MVP COMPLETE
 
-* authentication complete
-* real-time chat working
-* modular backend architecture implemented
-* frontend fully refactored
+* authentication
+* chat system
+* runtime game state
+* combat system
+* auto-seeding
+* ORM sync
 
-Next milestone:
-👉 game mechanics layer (events + combat system)
-
-```
+````
 
 ---
+
