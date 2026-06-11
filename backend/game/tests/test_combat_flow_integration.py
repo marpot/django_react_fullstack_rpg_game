@@ -101,3 +101,106 @@ def test_full_combat_flow():
     assert result["action"] == "attack"
     assert result["result"] is not None
     assert room.enemies["goblin"].hp < 30
+
+def test_attack_triggers_enemy_seed_when_room_is_empty():
+    state = GameStateManager()
+    processor = ActionProcessor(state)
+
+    room = state.get_or_create_room("testroom")
+    room.enemies = {}
+
+    User = get_user_model()
+    user = User.objects.create_user(
+        username="hero",
+        password="x"
+    )
+
+    PlayerCharacter.objects.create(
+        user=user,
+        name="Hero",
+        health=100,
+        max_health=100
+    )
+
+    adventure = Adventure.objects.create(
+        title="test",
+        creator=user
+    )
+
+    EnemyORM.objects.create(
+        name="goblin",
+        hp=30,
+        defense=2,
+        attack_bonus=1,
+        damage_die=6,
+        damage_bonus=1,
+        adventure=adventure
+    )
+
+    result = processor.process({
+        "action": "attack",
+        "target": "goblin",
+        "room": "testroom",
+        "user_id": user.id,
+        "adventure": adventure.id
+    })
+
+    assert "error" not in result
+    assert "goblin" in room.enemies
+    assert len(room.enemies) == 1
+    assert room.enemies["goblin"].hp <= 30
+
+def test_enemy_hp_never_goes_negative():
+    state = GameStateManager()
+    processor = ActionProcessor(state)
+
+    room = state.get_or_create_room("testroom")
+
+    User = get_user_model()
+    user = User.objects.create_user(username="hero", password="x")
+
+    PlayerCharacter.objects.create(
+        user=user,
+        name="Hero",
+        health=100,
+        max_health=100
+    )
+
+    adventure = Adventure.objects.create(
+        title="test",
+        creator=user
+    )
+    
+    EnemyORM.objects.create(
+        name="goblin",
+        hp=5,
+        defense=0,
+        attack_bonus=0,
+        damage_die=6,
+        damage_bonus=0,
+        adventure=adventure
+    )
+
+    # runtime enemy (bez seeda, kontrola testu)
+    room.enemies["goblin"] = RuntimeEnemy(
+        id="goblin",
+        name="goblin",
+        hp=5,
+        defense=0,
+        attack_bonus=0,
+        damage_die=6,
+        damage_bonus=0
+    )
+
+    
+
+    result = processor.process({
+        "action": "attack",
+        "target": "goblin",
+        "room": "testroom",
+        "user_id": user.id,
+        "adventure": adventure.id
+    })
+
+    assert "error" not in result
+    assert room.enemies["goblin"].hp >= 0

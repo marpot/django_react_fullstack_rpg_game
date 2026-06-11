@@ -47,4 +47,8 @@ Thumbs.db
 # =========================
 # CI / DOCS
 # =========================
+.github/workflows/repomix-output.xml
+.repomixignore
+planAdventureUi.prompt.md
+repomix-output.xml
 .github/workflows/

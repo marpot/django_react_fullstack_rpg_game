@@ -18,12 +18,22 @@ class EntityResolver:
     def resolve_player(self, room_name: str, user_id: int):
         room = self.state_manager.get_or_create_room(room_name)
 
-        player = room.players.get(user_id)
-        return self._normalize_player(player)
+        player = room.players.get(user_id) or room.players.get(str(user_id))
+
+        if player:
+            return self._normalize_player(player)
+
+        return None
 
     def resolve_enemy(self, room_name: str, enemy_name: str):
         room = self.state_manager.get_or_create_room(room_name)
         enemy = room.enemies.get(enemy_name)
+
+        if enemy is None:
+            for e in getattr(room, "enemies", {}.values):
+                if getattr(e, "name", None) == enemy_name:
+                    enemy = e
+                    break
 
         if enemy is None:
             return None

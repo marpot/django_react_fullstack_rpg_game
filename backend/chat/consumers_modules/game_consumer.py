@@ -1,26 +1,53 @@
 import json
 import traceback
+import logging
 
-from world.seeders.world_seeder import WorldSeeder
 from asgiref.sync import sync_to_async
 
 from .base import BaseConsumer
+from chat.models import Room
 from game_instances.services.llm.llm_service import LLMService
-from game.state.game_state_manager import GameStateManager
 from game.core.action_processor import ActionProcessor
+from world.seeders.world_seeder import WorldSeeder
+
+logger = logging.getLogger(__name__)
 
 
 class GameConsumer(BaseConsumer):
 
     async def on_connect(self):
-        print("=== GAME CONSUMER WS CONNECTED===")
-        print("ROOM DEBUG:", self.room_name)
+        logger.info("=== GAME CONSUMER WS CONNECTED===")
+        logger.info(f"ROOM DEBUG: {self.room_name}")
 
-        self.state_manager = GameStateManager()
+        self.state_manager = self.scope["state_manager"]
+
         self.processor = ActionProcessor(self.state_manager)
+        self.seeder = WorldSeeder(self.state_manager)
+
+        self.adventure_id = None
+
+        self.room_name = str(self.room_name)
+        self.group_name = f"gameconsumer_{self.room_name}"
+
+        logger.info(f"GROUP NAME: {self.group_name}")
+
+        try:
+            room = await sync_to_async(
+                lambda: Room.objects.select_related("adventure").get(id=self.room_name)
+            )()
+
+            self.adventure_id = getattr(room.adventure, "id", None)
+
+            logger.info(
+                f"[GAME CONSUMER] loaded adventure_id={self.adventure_id} "
+                f"for room={self.room_name}"
+            )
+
+        except Room.DoesNotExist:
+            logger.warning(f"[GAME CONSUMER] room not found in DB: {self.room_name}")
 
     async def receive(self, text_data):
-        print("=== GAME RECEIVE START ===")
+        logger.info("=== GAME RECEIVE START ===")
 
         try:
             data = json.loads(text_data)
@@ -34,6 +61,7 @@ class GameConsumer(BaseConsumer):
 
             parsed["room"] = self.room_name
             parsed["user_id"] = self.scope["user"].id
+            parsed["adventure"] = self.adventure_id
 
             result = await sync_to_async(self.processor.process)(parsed)
 
@@ -48,8 +76,7 @@ class GameConsumer(BaseConsumer):
             )
 
         except Exception as e:
-            print("GAME ERROR:", repr(e))
-            traceback.print_exc()
+            logger.error(f"GAME ERROR: {repr(e)}", exc_info=True)
 
             await self.send_event(
                 "game_event",
@@ -66,6 +93,9 @@ class GameConsumer(BaseConsumer):
         }))
 
     async def game_started(self, event):
+        logger.info("🔥 GAME_STARTED RECEIVED IN CONSUMER")
+        logger.info(f"EVENT: {event}")
+
         adventure_id = event.get("adventure_id")
 
         if not adventure_id:
@@ -73,18 +103,21 @@ class GameConsumer(BaseConsumer):
                 "game_event",
                 {
                     "subtype": "error",
-                    "text": "Cannot start game without adventure selected",
+                    "text": "Missing adventure_id",
                     "event": "game_started_failed"
                 }
             )
             return
 
-        seeder = WorldSeeder(self.state_manager)
+        self.adventure_id = adventure_id
 
-        await sync_to_async(seeder.seed_from_adventure)(
+        # ONLY SEED WORLD (NO DB LOGIC)
+        await sync_to_async(self.seeder.seed_from_adventure)(
             adventure_id,
             self.room_name
         )
+
+        logger.info(f"[GAME START] seed complete room={self.room_name}")
 
         await self.send_event(
             "game_event",

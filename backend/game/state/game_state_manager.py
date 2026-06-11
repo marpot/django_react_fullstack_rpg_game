@@ -22,20 +22,25 @@ class GameStateManager:
     Trzyma wszystkie roomy i i ch stan.
     """
 
+    def normalize_room_id(self, room_id: str | int) -> str:
+        return str(room_id)
+
     def __init__(self):
         self.rooms: dict[str, RoomState] = {}
 
     def get_room(self, room_name: str) -> RoomState | None:
-        return self.rooms.get(room_name)
+        return self.rooms.get(self.normalize_room_id(room_name))
 
     def get_or_create_room(self, room_name: str) -> RoomState:
-        if room_name not in self.rooms:
-            self.rooms[room_name] = self._create_default_room(room_name)
+        key = self.normalize_room_id(room_name)
 
-        return self.rooms[room_name]
+        if key not in self.rooms:
+            self.rooms[key] = self._create_default_room(key)
+
+        return self.rooms[key]
 
     def _create_default_room(self, room_name: str) -> RoomState:
-        room = RoomState(name=room_name)
+        room = RoomState(name=self.normalize_room_id(room_name))
 
         #TEMPLATE MOCK ENEMY (STARTER)
         room.enemies["goblin"] = Enemy(
@@ -50,11 +55,11 @@ class GameStateManager:
         return room
     
     def get_enemy(self, room_name: str, enemy_name: str):
-        room = self.get_or_create_room(room_name)
+        room = self.get_or_create_room(self.normalize_room_id(room_name))
         return room.enemies.get(enemy_name)
     
     def get_player(self, room_name: str, user_id: int):
-        room = self.get_or_create_room(room_name)
+        room = self.get_or_create_room(self.normalize_room_id(room_name))
         player = room.players.get(user_id)
         if player:
             return player
@@ -62,9 +67,9 @@ class GameStateManager:
         return None
     
     def add_player(self, room_name: str, user_id: int, player: Player):
-        room = self.get_or_create_room(room_name)
+        room = self.get_or_create_room(self.normalize_room_id(room_name))
         room.players[user_id] = player
 
     def add_enemy(self, room_name: str, enemy):
-        room = self.get_or_create_room(room_name)
+        room = self.get_or_create_room(self.normalize_room_id(room_name))
         room.enemies[enemy.name] = enemy

@@ -41,13 +41,15 @@ class CombatService:
         roll = self.dice.roll(20)
         total_attack = roll + attacker.attack_bonus
 
-        if total_attack >= defender.defense:
-            damage = self.dice.roll(attacker.damage_die) + attacker.damage_bonus
-            defender.hp -= damage
+        hit = total_attack >= defender.defense
 
-            if defender.hp < 0:
-                defender.hp = 0
+        if not hit:
+            return False, 0
+        
+        raw_damage = self.dice.roll(attacker.damage_die) + attacker.damage_bonus
 
-            return True, damage
+        mitigated = max(0, raw_damage - getattr(defender, "armor", 0))
 
-        return False, 0
+        defender.hp = max(0, defender.hp - mitigated)
+
+        return True, mitigated
