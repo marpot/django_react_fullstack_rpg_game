@@ -1,5 +1,8 @@
 from world.models import Enemy
 from game.state.runtime.models import Enemy as RuntimeEnemy
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class WorldSeeder:
@@ -7,35 +10,26 @@ class WorldSeeder:
         self.state = state_manager
 
     def seed_from_adventure(self, adventure_id, room_id):
-        print("\n================ WORLD SEED START ================")
-        print(f"[SEED] adventure_id={adventure_id} room_id={room_id}")
+        logger.info("================================")
+        logger.info("WORLD SEED START")
+        logger.info(f"adventure_id={adventure_id} room_id={room_id}")
 
-        # 🔥 DEBUG: podstawowy stan DB
-        total_enemies = Enemy.objects.count()
-        print(f"[SEED] total enemies in DB: {total_enemies}")
+        enemies = Enemy.objects.filter(adventure__id=adventure_id)
+        logger.info(f"[SEED] filtered enemies count: {enemies.count()}")
 
-        # 🔥 DEBUG: wszystko co istnieje w DB
-        all_enemies = list(Enemy.objects.all().values(
-            "id", "name", "hp", "adventure_id"
-        ))
-        print(f"[SEED] all enemies: {all_enemies}")
-
-        # 🔥 filtr dla konkretnej przygody
-        enemies = Enemy.objects.filter(adventure_id=adventure_id)
-        print(f"[SEED] filtered enemies count: {enemies.count()}")
-        print(f"[SEED] filtered enemies: {[e.name for e in enemies]}")
-
-        # 🔥 runtime room
         room = self.state.get_or_create_room(room_id)
 
-        # opcjonalnie reset (ważne przy re-seedach)
+        logger.info(f"[SEED] room ready: {room_id}")
+
+        # RESET STATE
         room.enemies = {}
+        logger.info("[SEED] room enemies reset")
 
-        # 🔥 seed runtime
+        # SEED ENEMIES
         for e in enemies:
-            print(f"[SEED] loading enemy: {e.name}")
+            logger.info(f"[SEED] loading enemy: {e.name}")
 
-            room.enemies[e.name] = RuntimeEnemy(
+            enemy_runtime = RuntimeEnemy(
                 id=e.name,
                 name=e.name,
                 hp=e.hp,
@@ -45,5 +39,12 @@ class WorldSeeder:
                 damage_bonus=getattr(e, "damage_bonus", 0),
             )
 
-        print(f"[SEED] FINAL ROOM ENEMIES: {list(room.enemies.keys())}")
-        print("================ WORLD SEED END ================\n")
+            enemy_key = e.name.lower().strip()
+            room.enemies[enemy_key] = enemy_runtime
+
+            if e.name != enemy_key:
+                room.enemies[e.name] = enemy_runtime
+
+        logger.info(f"[SEED] FINAL ENEMIES: {list(room.enemies.keys())}")
+        logger.info("WORLD SEED END")
+        logger.info("================================")
