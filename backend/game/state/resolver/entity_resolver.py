@@ -30,6 +30,12 @@ class EntityResolver:
         enemy = room.enemies.get(enemy_name)
 
         if enemy is None:
+            for e in getattr(room, "enemies", {}.values):
+                if getattr(e, "name", None) == enemy_name:
+                    enemy = e
+                    break
+
+        if enemy is None:
             return None
 
         return RuntimeEnemy(
