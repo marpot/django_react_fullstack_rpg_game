@@ -79,25 +79,22 @@ class RoomViewSet(viewsets.ModelViewSet):
         if room.owner != request.user:
             raise PermissionDenied("Only the room owner can start the game.")
 
-        
-
         if not room.adventure_id:
-            logger.info(f"[START GAME] No adventure set for room {room.id}")
             return Response(
-                {   "code": "NO_ADVENTURE",
+                {
+                    "code": "NO_ADVENTURE",
                     "error": "Adventure must be selected before starting the game"
                 },
                 status=400
             )
-        
+
         adventure = room.adventure
-        room.state = "in_game"
-        room.save(update_fields=["state"])
 
         logger.info(f"[START GAME] using adventure_id={adventure.id}")
 
         channel_layer = get_channel_layer()
 
+        # 🚀 trigger game start event (consumer handles seeding)
         async_to_sync(channel_layer.group_send)(
             f"gameconsumer_{room.id}",
             {
@@ -107,6 +104,9 @@ class RoomViewSet(viewsets.ModelViewSet):
                 "message": "The game has started!"
             }
         )
+
+        room.state = "in_game"
+        room.save(update_fields=["state"])
 
         logger.info("GAME START EVENT SENT")
         logger.info("================================")

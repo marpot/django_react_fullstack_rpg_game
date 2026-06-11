@@ -1,5 +1,6 @@
-from world.models import Adventure
+from world.models import Adventure, Enemy
 from chat.models import Room
+from world.factories.enemy_factory import EnemyFactory
 
 
 class RoomService:
@@ -25,6 +26,10 @@ class RoomService:
                 "ok": False,
                 "error": "ADVENTURE_NOT_FOUND"
             }
+
+        # 🔥 NEW: ensure enemies exist for this adventure
+        if not Enemy.objects.filter(adventure=adventure).exists():
+            EnemyFactory.generate_for_adventure(adventure, count=5)
 
         room.adventure = adventure
         room.state = "lobby"
