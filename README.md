@@ -1,6 +1,4 @@
----
 
-```md id="r1a9x1"
 # RPG Game Platform
 
 ## 🚀 Project Overview
