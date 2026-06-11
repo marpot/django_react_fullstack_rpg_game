@@ -1,7 +1,3 @@
-## KONKRET
-
-Poniżej masz **zaktualizowany README z poprawionym setupem (cross-platform + Docker build fix + Windows-safe)**. Reszta zostaje bez zmian, poprawiam tylko sekcję development setup + porządkuję Docker usage.
-
 ---
 
 ```md id="r1a9x1"
