@@ -1,4 +1,10 @@
+## KONKRET
 
+Zaktualizowany README z poprawionym onboardingiem (`bootstrap + up + dev flow`) + bez Makefile noise + rekruter-friendly setup.
+
+---
+
+```md id="readme1"
 # RPG Game Platform
 
 ## 🚀 Project Overview
@@ -72,29 +78,34 @@ PostgreSQL                Redis
 
 ## ⚙️ Development Setup
 
-### 1. Backend (Docker)
+### 1. First run (IMPORTANT)
 
-#### Recommended (cross-platform)
+After cloning repository:
 
 ```bash
-docker compose up --build
+make bootstrap
 ````
 
-Runs:
+This will:
 
-* Django backend
-* PostgreSQL
-* Redis
-
-Backend:
-
-```
-http://localhost:8001
-```
+* build Docker images
+* start backend
+* start database
+* start Redis
 
 ---
 
-#### Stop services
+### 2. Daily development
+
+```bash
+make up
+```
+
+Fast startup without rebuild.
+
+---
+
+### 3. Stop services
 
 ```bash
 docker compose down
@@ -102,21 +113,7 @@ docker compose down
 
 ---
 
-### 2. Optional: Makefile shortcut (Linux/macOS)
-
-```bash
-make up
-```
-
-Same as:
-
-```bash
-docker compose up --build
-```
-
----
-
-### 3. Frontend (local dev)
+### 4. Frontend (local dev)
 
 ```bash
 cd frontend
@@ -212,4 +209,3 @@ Marcin Potoczny
 ````
 
 ---
-

@@ -2,6 +2,9 @@
 COMPOSE=docker compose --env-file .env.docker -f docker-compose.yml
 
 # ========== START / STOP ==========
+#Pierwsze uruchomienie(rekruter-friendly)
+bootstrap:
+	$(COMPOSE) up -d --build backend db redis
 
 # Lekki tryb (codzienna praca)
 up:
