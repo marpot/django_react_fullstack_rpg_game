@@ -47,4 +47,5 @@ Thumbs.db
 # =========================
 # CI / DOCS
 # =========================
-.github/workflows/
+.github/workflows/repomix-output.xml
+.repomixignore
