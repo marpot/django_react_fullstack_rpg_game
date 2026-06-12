@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGameSocket } from "../hooks/useGameSocket";
+import "@/styles/features/game/GameWindow.scss";
 
 type Props = {
   roomId: string;
@@ -11,6 +12,11 @@ export default function GameWindow({ roomId }: Props) {
   const [gameLog, setGameLog] = useState<GameEvent[]>([]);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const logEndRef  = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [gameLog]);
 
   const { send: sendGame } = useGameSocket(roomId, (msg) => {
     console.log("[GAME WS]", msg);
@@ -53,18 +59,9 @@ export default function GameWindow({ roomId }: Props) {
   };
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <div className="gameWindow">
       {/* HEADER */}
-      <div
-        style={{
-          padding: "10px 12px",
-          borderBottom: "1px solid #333",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          background: "#111",
-        }}
-      >
+      <div className="header">
         <div style={{ fontWeight: 600, letterSpacing: "1px" }}>
           🧙 ELDORIA — GAME WINDOW
         </div>
@@ -74,21 +71,10 @@ export default function GameWindow({ roomId }: Props) {
         </div>
       </div>
 
-      {error && (
-        <div
-          style={{
-            padding: "8px 12px",
-            background: "#7f1d1d",
-            color: "white",
-            fontSize: 13,
-          }}
-        >
-          {error}
-        </div>
-      )}
+      {error && <div className="error">{error}</div>}
 
       {/* WORLD FEED */}
-      <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
+      <div className="log">
         {gameLog.map((e, i) => (
           <div key={i} style={{ marginBottom: 8 }}>
             {typeof e === "string"
@@ -96,23 +82,17 @@ export default function GameWindow({ roomId }: Props) {
               : e.message || JSON.stringify(e)}
           </div>
         ))}
+
+        <div ref={logEndRef} />
       </div>
 
       {/* INPUT BAR */}
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          padding: 12,
-          borderTop: "1px solid #333",
-        }}
-      >
+      <div className="inputBar">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type action... (e.g. look around)"
-          style={{ flex: 1 }}
         />
 
         <button onClick={handleSend}>
