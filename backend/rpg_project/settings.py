@@ -43,6 +43,9 @@ INSTALLED_APPS = [
     'game.apps.GameConfig',
     'world.apps.WorldConfig',
     'core.apps.CoreConfig',
+
+    #NEW CLEAN ARCHITECTURE LAYER
+    'simulation_engine.apps.SimulationEngineConfig',
 ]
 
 # =========================

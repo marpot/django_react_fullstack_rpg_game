@@ -6,7 +6,7 @@ from game.core.action_processor import ActionProcessor
 from game.state.game_state_manager import GameStateManager
 from game.state.runtime.models import Player, Enemy
 
-from game.services.combat_service import CombatService
+from simulation_engine.services.combat_service import CombatService
 from game.services.dice_service import DiceService
 
 

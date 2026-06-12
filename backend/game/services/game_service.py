@@ -1,4 +1,4 @@
-from game.services.combat_service import CombatService
+from simulation_engine.services.combat_service import CombatService
 from game.services.dice_service import DiceService
 
 class GameService:

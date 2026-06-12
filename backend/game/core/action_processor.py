@@ -1,6 +1,6 @@
 import logging
 
-from game.services.combat_service import CombatService
+from simulation_engine.services.combat_service import CombatService
 from game.services.dice_service import DiceService
 from game.state.resolver.entity_resolver import EntityResolver
 from game.services.event_service import GameEventService

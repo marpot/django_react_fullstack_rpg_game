@@ -7,9 +7,8 @@ import traceback
 from .models import GameSession, GameEvent
 from .serializers import GameSessionSerializer, GameEventSerializer
 
-from game.services.combat_service import CombatService
-from game.services.dice_service import DiceService
-
+from simulation_engine.services.combat_service import CombatService
+from simulation_engine.services.dice_service import DiceService
 
 class GameSessionViewSet(viewsets.ModelViewSet):
 
