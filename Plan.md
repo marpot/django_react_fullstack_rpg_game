@@ -1,387 +1,414 @@
-````md
-# 📘 Django RPG Game — Project Plan (MVP → Recruiter Ready)
+# 📊 Django RPG Game — Project Status
+
+Last update: June 2026
 
 ---
 
-# 🎯 1. Product Vision
+# 🎯 Overall Progress
 
-## Core idea
-
-Hybrid RPG platform:
-
-- **Django = deterministic game engine (source of truth)**
-- **AI = procedural content generator (non-authoritative layer)**
+| Area                     | Progress |
+| ------------------------ | -------- |
+| Backend Core             | 100%     |
+| Realtime (WebSocket)     | 100%     |
+| Combat Engine            | 100%     |
+| Runtime State Management | 100%     |
+| Testing                  | 80%      |
+| NPC System               | 0%       |
+| Quest System             | 0%       |
+| LLM Integration          | 0%       |
+| Gameplay UI              | 30%      |
+| Recruiter Demo           | 10%      |
 
 ---
 
-## ⚠️ Fundamental rule
+# 📈 Global Completion
+
+## Backend RPG Engine
 
 ```text
-AI generates content only
-Backend executes ALL game logic
-````
+█████████████████░░░ 85%
+```
 
-AI cannot modify:
+Status:
 
-* HP
-* XP
-* inventory
-* position
-* combat outcome
-* quest state
+* Production-ready MVP
+* Combat fully functional
+* Runtime state implemented
+* WebSocket gameplay operational
 
 ---
 
-# 🧱 2. Architecture
-
-## System flow
+## Fullstack RPG MVP
 
 ```text
-React Frontend
-      ↓
-REST API / WebSocket
-      ↓
-Django (DRF + Channels)
-      ↓
-Service Layer
-      ↓
-Domain Layer (runtime state + rules)
-      ↓
-PostgreSQL
-      ↓
-GameEvent history
+███████████████░░░░░ 75%
 ```
+
+Status:
+
+* Backend mostly complete
+* Frontend gameplay layer still missing
 
 ---
 
-## 🤖 AI integration pipeline
+## Recruiter Portfolio Version
 
 ```text
-GameState
-  → PromptContext Builder
-  → LLM Response (JSON)
-  → Validation Layer
-  → Adventure Initializer
-  → Runtime Injection
+████████████████░░░░ 80%
 ```
 
----
+Status:
 
-# 🧩 3. CURRENT STATUS
-
----
-
-## 🔧 BACKEND (DONE CORE)
-
-### Base system
-
-* ✔ Django initialized
-* ✔ DRF configured
-* ✔ PostgreSQL connected
-* ✔ Redis (Channels)
-* ✔ JWT auth
-* ✔ User system
+* Architecture visible
+* Missing gameplay presentation layer
 
 ---
 
-### Game domain
-
-* ✔ PlayerCharacter
-* ✔ GameSession
-* ✔ GameEvent
-* ✔ Adventure system
-* ✔ Enemy system
-* ✔ Runtime room state
-
----
-
-### Combat system
-
-* ✔ CombatService
-* ✔ DiceService
-* ✔ Runtime combat loop
-* ✔ HP sync (runtime + ORM)
-* ✔ Winner logic
-* ✔ Tests passing
-
----
-
-### Real-time system
-
-* ✔ Django Channels
-* ✔ WebSocket routing
-* ✔ Chat system
-* ✔ Token auth
-* ✔ Reconnect logic
-* ✔ Stable production-ready WS
-
----
-
-## 🟡 BACKEND GAPS (FINAL PHASE)
-
-* ⏳ NPC system (dialogue)
-* ⏳ Quest system (state machine)
-* ⏳ Interaction engine (combat + NPC + quest routing)
-* ⏳ LLM adventure generator (mock only)
-* ⏳ Strict AI JSON schema validation
-* ⏳ GameEvent standardization
-
----
-
-# 💻 FRONTEND
-
-## ✔ DONE
-
-* React setup
-* Auth (login/register)
-* Room system
-* Chat UI
-* WebSocket integration
-* API client layer
-
----
-
-## ⏳ MISSING
-
-* Combat UI
-* NPC dialogue UI
-* Quest UI
-* Adventure narration screen
-* Dice animation
-* Full gameplay loop screen
-
----
-
-# ⚡ 4. CORE MILESTONE (NEXT GOAL)
-
-## 🎯 FULL GAME LOOP
-
-```text
-1. Player enters room
-2. Room checks state
-3. If empty → adventure generated (LLM later)
-4. Runtime entities initialized
-5. Player action sent (WS/API)
-6. ActionProcessor routes:
-   - combat
-   - npc interaction
-   - quest logic
-7. State updated
-8. GameEvent emitted
-9. Frontend renders result
-```
-
----
-
-## 📦 RESPONSE CONTRACT (TARGET)
-
-```json
-{
-  "action": "attack",
-  "result": {
-    "damage": 12,
-    "enemy_hp": 18,
-    "winner": null
-  },
-  "events": [
-    {
-      "type": "combat",
-      "subtype": "hit",
-      "data": {}
-    }
-  ]
-}
-```
-
----
-
-# 🤖 5. AI SYSTEM
-
-## Allowed
-
-* narration
-* dialogue
-* quest text
-* scene descriptions
-
----
-
-## Forbidden
-
-* game logic
-* HP changes
-* XP changes
-* inventory updates
-* combat resolution
-
----
-
-## AI pipeline
-
-```text
-GameState → Prompt → LLM → Validation → Runtime Init
-```
-
----
-
-# 🧩 6. MODULE ROADMAP (FINAL ARCHITECTURE)
-
-## ✔ Existing core
-
-* CombatService
-* DiceService
-* EntityResolver
-* ActionProcessor
-
----
-
-## 🔥 NEW MODULES
-
-### 1. Adventure Generator (LLM layer)
-
-* creates full RPG world JSON
-* fallback mock generator
-
----
-
-### 2. Adventure Initializer
-
-* converts LLM → runtime state
-* spawns enemies / NPC / quests
-
----
-
-### 3. Interaction Layer
-
-Instead of new engine:
-
-* extend ActionProcessor routing
-* add services:
-
-  * NPCService
-  * QuestService
-
----
-
-### 4. GameEvent System
-
-* unify all outputs:
-
-  * combat_event
-  * npc_event
-  * quest_event
-
----
-
-# 🧪 7. TESTING STATUS
-
-## ✔ DONE
-
-* Combat tests
-* Entity resolver tests
-* Integration combat flow
-
----
-
-## ⏳ MISSING
-
-* NPC tests
-* Quest tests
-* LLM contract tests
-* Full gameplay loop test
-* WebSocket event tests
-
----
-
-# 🐳 8. DEVOPS
-
-## ✔ DONE
-
-* Docker backend
-* Redis + PostgreSQL
+# ✅ Completed
+
+## Infrastructure
+
+* Django
+* Django REST Framework
+* PostgreSQL
+* Redis
+* Docker
+* Docker Compose
 * Makefile
+* JWT Authentication
 
 ---
 
-## ⏳ MISSING
+## Realtime Layer
 
-* CI pipeline
-* linting
-* formatting rules
-* deployment guide
-
----
-
-# 🧠 9. ARCHITECTURE RULES
-
-## Django
-
-* source of truth
-* executes logic
-
-## Redis
-
-* WebSocket transport only
-
-## React
-
-* UI only
-
-## AI
-
-* content only (NEVER logic)
+* Django Channels
+* Chat WebSocket
+* Game WebSocket
+* JWT WebSocket authentication
+* Room system
+* Reconnect logic
+* Connection stabilization
 
 ---
 
-# 🧭 10. GIT STRATEGY
+## Gameplay Engine
 
-## Next branches
+### Combat
+
+* DiceService
+* CombatService
+* Winner resolution
+* Damage calculation
+* HP reduction
+* HP floor protection (cannot go below 0)
+
+### Runtime State
+
+* Runtime Player
+* Runtime Enemy
+* GameStateManager
+* EntityResolver
+
+### Synchronization
+
+* Runtime → ORM sync
+* ORM → Runtime loading
+* Auto player loading
+
+### World
+
+* EnemyFactory
+* WorldSeeder
+* Adventure-based enemy seeding
+
+### Events
+
+* GameEvent creation
+* Combat event logging
+
+---
+
+## Testing
+
+Passing tests:
+
+* ActionProcessor
+* CombatService
+* EntityResolver
+* Combat Flow Integration
+* Auto-Seeding Integration
+* Runtime/ORM Sync
+* Models
+
+Current status:
 
 ```text
-feature/interaction-engine
+11 passing tests
+0 failing tests
+```
+
+---
+
+# 🚧 Remaining Work
+
+## 1. NPC System
+
+Branch:
+
+```text
+feature/npc-system
+```
+
+Tasks:
+
+* Runtime NPC model
+* NPC resolver
+* Talk action
+* NPC dialogue events
+* NPC WebSocket responses
+
+Estimated effort:
+
+```text
+4-6h
+```
+
+---
+
+## 2. Quest System
+
+Branch:
+
+```text
+feature/quest-system
+```
+
+Tasks:
+
+* Quest model
+* Quest runtime state
+* Accept quest action
+* Complete quest action
+* Quest rewards
+* Quest event history
+
+Estimated effort:
+
+```text
+4-8h
+```
+
+---
+
+## 3. LLM Adventure Generator
+
+Branch:
+
+```text
 feature/llm-adventure-generator
-feature/game-event-system
-feature/frontend-combat-ui
-feature/llm-integration
+```
+
+Goal:
+
+Generate complete adventures using AI.
+
+Tasks:
+
+* OpenAI integration
+* Prompt builder
+* JSON schema validation
+* Adventure generator service
+* Runtime initialization
+* Enemy generation
+* NPC generation
+* Quest generation
+
+Architecture:
+
+```text
+Game State
+     ↓
+Prompt Builder
+     ↓
+LLM
+     ↓
+Validation
+     ↓
+Persistence
+```
+
+Estimated effort:
+
+```text
+6-12h
+```
+
+---
+
+## 4. Gameplay Frontend
+
+Branch:
+
+```text
+feature/frontend-gameplay
+```
+
+Tasks:
+
+### Combat Panel
+
+* HP display
+* Enemy display
+* Combat log
+* Attack button
+
+### Adventure Panel
+
+* Story narration
+* Quest information
+* NPC dialogue
+
+### Game State
+
+* Current room
+* Current enemies
+* Current player stats
+
+Estimated effort:
+
+```text
+6-10h
+```
+
+---
+
+## 5. Recruiter Demo
+
+Branch:
+
+```text
 feature/recruiter-demo
 ```
 
----
+Tasks:
 
-# 🚀 11. FINAL MVP DEFINITION
+* Demo adventure
+* Example NPC
+* Example quest
+* Screenshots
+* GIF/video showcase
+* README polish
 
-Project is DONE when:
+Estimated effort:
 
-* room auto-generates adventure
-* player can fight enemies
-* player can talk to NPC
-* player can complete quest
-* full event stream works
-* frontend shows full gameplay loop
-
----
-
-# 🧠 12. PRIORITY ROADMAP
-
-## PHASE 1 (NOW)
-
-* interaction engine (NPC + quest logic)
-
-## PHASE 2
-
-* LLM generator (mock → real)
-
-## PHASE 3
-
-* event system unification
-
-## PHASE 4
-
-* frontend gameplay UI
-
-## PHASE 5
-
-* recruiter polish + demo
-
+```text
+2-4h
 ```
+
+---
+
+# 🗺 Planned Roadmap
+
+## Phase 1 — NPCs
+
+```text
+feature/npc-system
+```
+
+Deliverables:
+
+* NPC interactions
+* Dialogue system
+
+---
+
+## Phase 2 — Quests
+
+```text
+feature/quest-system
+```
+
+Deliverables:
+
+* Quest acceptance
+* Quest completion
+* Rewards
+
+---
+
+## Phase 3 — AI Adventure Generation
+
+```text
+feature/llm-adventure-generator
+```
+
+Deliverables:
+
+* Adventure generation
+* NPC generation
+* Quest generation
+* Enemy generation
+
+---
+
+## Phase 4 — Gameplay UI
+
+```text
+feature/frontend-gameplay
+```
+
+Deliverables:
+
+* Combat screen
+* Story panel
+* Quest panel
+
+---
+
+## Phase 5 — Recruiter Demo
+
+```text
+feature/recruiter-demo
+```
+
+Deliverables:
+
+* End-to-end playable demo
+* Portfolio-ready presentation
+
+---
+
+# ⏱ Estimated Remaining Effort
+
+| Task          | Time  |
+| ------------- | ----- |
+| NPC System    | 4–6h  |
+| Quest System  | 4–8h  |
+| LLM Generator | 6–12h |
+| Gameplay UI   | 6–10h |
+| Demo & Polish | 2–4h  |
+
+Total:
+
+```text
+18–40h
+```
+
+depending on polish level.
+
+---
+
+# 🚀 Current Objective
+
+Next branch:
+
+```text
+feature/npc-system
+```
+
+Next milestone:
+
+```text
+Playable AI-driven RPG MVP
+with combat + quests + NPCs + adventure generation
 ```
