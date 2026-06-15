@@ -36,6 +36,15 @@ class ActionProcessor:
 
         if action == "look":
             return self._handle_inspect(parsed_input)
+        
+        if action == "talk":
+            from game.npc.npc_service import NPCService
+
+            service = NPCService(self.state_manager)
+            return service.talk(
+                parsed_input["room"],
+                parsed_input["target"]
+            )
 
         return {"action": action, "result": "Unhandled action"}
 

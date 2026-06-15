@@ -38,3 +38,4 @@ class RoomState:
     name: str
     players: dict[int, Player] = field(default_factory=dict)
     enemies: dict[str, Enemy] = field(default_factory=dict)
+    npcs: dict[str, "NPC"] = field(default_factory=dict)
