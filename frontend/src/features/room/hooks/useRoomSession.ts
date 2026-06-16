@@ -16,6 +16,7 @@ export const useRoomSession = (roomId: string) => {
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
   const [loading, setLoading] = useState(true);
   const [room, setRoom] = useState<any>(null);
+  const [characterId, setCharacterId] = useState<number | null>(null);
 
   // =========================
   // FETCH USER
@@ -26,13 +27,12 @@ export const useRoomSession = (roomId: string) => {
 
     setActiveCharacter(active);
 
-    if (!active) {
-      setState("select-character");
+    if (active) {
+      setCharacterId(active.id);
+      setState((prev) => (prev === "select-character" ? "lobby" : prev));
     } else {
-      // nie nadpisujemy agresywnie state przy reload
-      setState((prev) =>
-        prev === "select-character" ? "lobby" : prev
-      );
+      setCharacterId(null);
+      setState("select-character");
     }
 
     return res.data;
@@ -79,14 +79,12 @@ export const useRoomSession = (roomId: string) => {
 
     if (data.type !== "game_event") return;
 
-    switch (data.event) {
-      case "game_started":
-        setState("in-game");
-        break;
+    if (data.event === "game_started") {
+      setState("in-game");
+    }
 
-      case "world_start":
-        setState("in-game");
-        break;
+    if (data.event === "world_start") {
+      setState("in-game");
     }
   });
 
@@ -95,6 +93,9 @@ export const useRoomSession = (roomId: string) => {
   // =========================
   const selectCharacter = async (id: number) => {
     await selectActiveCharacter(id);
+
+    setCharacterId(id);
+
     await fetchMe();
     setState("lobby");
   };
@@ -102,6 +103,7 @@ export const useRoomSession = (roomId: string) => {
   const reset = () => {
     setState("select-character");
     setActiveCharacter(null);
+    setCharacterId(null);
   };
 
   return {
@@ -111,5 +113,6 @@ export const useRoomSession = (roomId: string) => {
     selectCharacter,
     reset,
     room,
+    characterId,
   };
 };

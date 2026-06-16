@@ -10,7 +10,6 @@ export const useGameSocket = (
 
   useEffect(() => {
     if (!roomId) return;
-
     if (initialized.current || connecting.current) return;
 
     connecting.current = true;
@@ -18,15 +17,22 @@ export const useGameSocket = (
     const token = localStorage.getItem("access_token");
     const url = `ws://localhost:8001/ws/game/${roomId}/?token=${token}`;
 
-    console.log("[useGameSocket] CONNECT:", url);
-
     const socket = new WebSocket(url);
     ws.current = socket;
 
     socket.onopen = () => {
-      console.log("[useGameSocket] OPEN");
       initialized.current = true;
       connecting.current = false;
+
+      const characterIdRaw = localStorage.getItem("character_id");
+      const characterId = characterIdRaw ? Number(characterIdRaw) : null;
+
+      socket.send(
+        JSON.stringify({
+          type: "init",
+          character_id: characterId,
+        })
+      );
     };
 
     socket.onmessage = (event) => {
@@ -37,38 +43,26 @@ export const useGameSocket = (
       }
     };
 
-    socket.onerror = (e) => {
-      console.error("[useGameSocket] WS ERROR", e);
+    socket.onerror = () => {
       connecting.current = false;
     };
 
-    socket.onclose = (e) => {
-      console.log("[useGameSocket] CLOSE", e.code);
+    socket.onclose = () => {
       ws.current = null;
       initialized.current = false;
       connecting.current = false;
     };
 
     return () => {
-      console.log("[useGameSocket] cleanup close");
-
-      if (ws.current) {
-        ws.current.onclose = null;
-        ws.current.close();
-        ws.current = null;
-      }
-
+      ws.current?.close();
+      ws.current = null;
       initialized.current = false;
       connecting.current = false;
     };
   }, [roomId]);
 
   const send = (message: any) => {
-    if (ws.current?.readyState !== WebSocket.OPEN) {
-      console.warn("[useGameSocket] not open", ws.current?.readyState);
-      return;
-    }
-
+    if (ws.current?.readyState !== WebSocket.OPEN) return;
     ws.current.send(JSON.stringify(message));
   };
 

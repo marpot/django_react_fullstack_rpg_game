@@ -7,4 +7,13 @@ export const roomContract = {
   startGame: () => ({
     type: "GAME_STARTED",
   }),
+
+  enterGame: (characterId: number) => {
+    localStorage.setItem("character_id", String(characterId));
+
+    return {
+      type: "ENTER_GAME",
+      payload: { characterId },
+    };
+  },
 };

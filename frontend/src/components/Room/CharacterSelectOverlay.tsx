@@ -21,6 +21,18 @@ export default function CharacterSelectOverlay({
   onSelect,
   onConfirm,
 }: Props) {
+  const handleSelect = (id: number) => {
+    localStorage.setItem("character_id", id.toString());
+    onSelect(id);
+  };
+
+  const handleConfirm = () => {
+    if (selectedId) {
+      localStorage.setItem("character_id", selectedId.toString());
+      onConfirm();
+    }
+  };
+
   return (
     <div className="character-select-overlay">
       <h2>Wybierz postać</h2>
@@ -30,16 +42,16 @@ export default function CharacterSelectOverlay({
           <div
             key={c.id}
             className={`character-card ${selectedId === c.id ? "active" : ""}`}
-            onClick={() => onSelect(c.id)}
+            onClick={() => handleSelect(c.id)}
           >
             <h3>{c.name}</h3>
             <p>lvl {c.level}</p>
-            <p>HP {c.hp}</p>
+            <p>HP {c.hp ?? 0}</p>
           </div>
         ))}
       </div>
 
-      <button disabled={!selectedId} onClick={onConfirm}>
+      <button disabled={!selectedId} onClick={handleConfirm}>
         Start gry
       </button>
     </div>

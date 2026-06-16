@@ -9,6 +9,8 @@ from game_instances.services.llm.llm_service import LLMService
 from game.core.action_processor import ActionProcessor
 from world.seeders.world_seeder import WorldSeeder
 
+from game.models import GameSession
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,6 +26,7 @@ class GameConsumer(BaseConsumer):
         self.seeder = WorldSeeder(self.state_manager)
 
         self.adventure_id = None
+        self.character_id = None
 
         self.room_name = str(self.room_name)
         self.group_name = f"gameconsumer_{self.room_name}"
@@ -37,10 +40,18 @@ class GameConsumer(BaseConsumer):
 
             self.adventure_id = getattr(room.adventure, "id", None)
 
+            logger.info(f"[DEBUG USER] {self.scope.get('user')}")
+            logger.info(f"[DEBUG USER TYPE] {type(self.scope.get('user'))}")
+
+            player = getattr(self.scope.get("user"), "playercharacter", None)
+            logger.info(f"[DEBUG PLAYER CHARACTER] {player}")
+
             logger.info(
                 f"[GAME CONSUMER] loaded adventure_id={self.adventure_id} "
                 f"for room={self.room_name}"
             )
+
+            await self._resolve_character()
 
         except Room.DoesNotExist:
             logger.warning(f"[GAME CONSUMER] room not found in DB: {self.room_name}")
@@ -55,6 +66,12 @@ class GameConsumer(BaseConsumer):
             data = json.loads(text_data)
 
             user_input = data.get("message", "")
+
+            if data.get("type") == "init":
+                self.character_id = data.get("character_id")
+                logger.info(f"[INIT] character_id={self.character_id}")
+                return
+
             if not isinstance(user_input, str):
                 logger.error(f"[INVALID INPUT TYPE] {user_input}")
                 return
@@ -67,9 +84,6 @@ class GameConsumer(BaseConsumer):
             llm = LLMService()
             parsed = llm.parse_player_input(user_input)
 
-            # -------------------------
-            # GUARDS (CRITICAL STABILITY)
-            # -------------------------
             if not isinstance(parsed, dict):
                 logger.error(f"[LLM PARSE NOT DICT] {parsed}")
                 return
@@ -81,7 +95,6 @@ class GameConsumer(BaseConsumer):
             parsed.setdefault("target", None)
             parsed.setdefault("method", None)
 
-            # inject runtime context
             parsed["room"] = self.room_name
             parsed["user_id"] = self.scope["user"].id
             parsed["adventure"] = self.adventure_id
@@ -140,9 +153,6 @@ class GameConsumer(BaseConsumer):
 
         self.adventure_id = adventure_id
 
-        # -------------------------
-        # SEED WORLD STATE
-        # -------------------------
         await sync_to_async(self.seeder.seed_from_adventure)(
             adventure_id,
             self.room_name
@@ -161,16 +171,12 @@ class GameConsumer(BaseConsumer):
             }
         )
 
-        # -------------------------
-        # WORLD GENERATION (LLM)
-        # -------------------------
         llm = LLMService()
 
         world = llm.generate_world({
             "adventure": {"id": adventure_id},
         })
 
-        # 🔥 WORLD GUARD
         if not isinstance(world, dict):
             logger.error(f"[WORLD GENERATION FAILED] {world}")
             world = {
@@ -180,6 +186,8 @@ class GameConsumer(BaseConsumer):
 
         room = self.state_manager.get_or_create_room(self.room_name)
         room.world = world
+
+        await self._save_world_state(world)   # <-- PERSISTENCJA
 
         await self.send_event(
             "game_event",
@@ -191,3 +199,48 @@ class GameConsumer(BaseConsumer):
                 "event": "world_start"
             }
         )
+    @sync_to_async
+    def _resolve_character(self):
+        from accounts.models import PlayerCharacter
+
+        user = self.scope.get("user")
+
+        player = PlayerCharacter.objects.filter(user=user).first()
+
+        if player:
+            self.character_id = player.id
+            logger.info(f"[CHARACTER RESOLVED] id={self.character_id}")
+        else:
+            logger.error("[CHARACTER RESOLVE FAILED]")
+    # =========================
+    # PERSISTENCE HELPER
+    # =========================
+    @sync_to_async
+    def _save_world_state(self, world_data: dict):
+        from accounts.models import PlayerCharacter
+
+        player = PlayerCharacter.objects.filter(
+            id=self.character_id
+        ).first()
+
+        if not player:
+            logger.error(f"[WORLD SAVE FAILED] No PlayerCharacter id={self.character_id}")
+            return
+
+        session, _ = GameSession.objects.get_or_create(
+            player=player,
+            defaults={"progress": {}}
+        )
+
+        progress = session.progress or {}
+
+        progress["world"] = {
+            "adventure_id": self.adventure_id,
+            "room_id": self.room_name,
+            "state": world_data,
+        }
+
+        session.progress = progress
+        session.save()
+
+        logger.info(f"[WORLD SAVED] session_id={session.id}")
