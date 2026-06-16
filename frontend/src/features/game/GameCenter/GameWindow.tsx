@@ -10,9 +10,11 @@ type GameEvent = any;
 
 export default function GameWindow({ roomId }: Props) {
   const [gameLog, setGameLog] = useState<GameEvent[]>([]);
+  const [world, setWorld] = useState<any | null>(null);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const logEndRef  = useRef<HTMLDivElement | null>(null);
+
+  const logEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -24,6 +26,13 @@ export default function GameWindow({ roomId }: Props) {
     if (msg.type === "game_event") {
       if (msg.subtype === "error") {
         setError(msg.text);
+        return;
+      }
+
+      // 🎯 WORLD START = RENDER WORLD
+      if (msg.event === "world_start") {
+        setWorld(msg.world);
+        setGameLog((prev) => [...prev, msg]);
         return;
       }
 
@@ -53,40 +62,52 @@ export default function GameWindow({ roomId }: Props) {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      handleSend();
-    }
+    if (e.key === "Enter") handleSend();
   };
 
   return (
     <div className="gameWindow">
+
       {/* HEADER */}
       <div className="header">
-        <div style={{ fontWeight: 600, letterSpacing: "1px" }}>
-          🧙 ELDORIA — GAME WINDOW
-        </div>
-
-        <div style={{ fontSize: 12, opacity: 0.6 }}>
-          real-time RPG engine
-        </div>
+        <div style={{ fontWeight: 600 }}>🧙 ELDORIA — GAME WINDOW</div>
+        <div style={{ fontSize: 12, opacity: 0.6 }}>real-time RPG engine</div>
       </div>
 
       {error && <div className="error">{error}</div>}
 
-      {/* WORLD FEED */}
+      {/* WORLD RENDER */}
+      {world && (
+        <div className="world">
+          <h2>🌍 {world.name}</h2>
+          <p>{world.description}</p>
+
+          {world.locations?.length > 0 && (
+            <div>
+              <h3>Locations</h3>
+              <ul>
+                {world.locations.map((loc: any, i: number) => (
+                  <li key={i}>{loc.name}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* LOG */}
       <div className="log">
         {gameLog.map((e, i) => (
           <div key={i} style={{ marginBottom: 8 }}>
             {typeof e === "string"
               ? e
-              : e.message || JSON.stringify(e)}
+              : e.text || e.message || JSON.stringify(e)}
           </div>
         ))}
-
         <div ref={logEndRef} />
       </div>
 
-      {/* INPUT BAR */}
+      {/* INPUT */}
       <div className="inputBar">
         <input
           value={input}
@@ -94,10 +115,7 @@ export default function GameWindow({ roomId }: Props) {
           onKeyDown={handleKeyDown}
           placeholder="Type action... (e.g. look around)"
         />
-
-        <button onClick={handleSend}>
-          Send
-        </button>
+        <button onClick={handleSend}>Send</button>
       </div>
     </div>
   );

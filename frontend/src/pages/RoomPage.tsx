@@ -11,7 +11,6 @@ import "@/styles/pages/room-page.scss";
 import Button from "@/components/ui/Button/Button";
 
 import { useRoomSession } from "@/features/room/hooks/useRoomSession";
-import { useGameSocket } from "@/features/game/hooks/useGameSocket";
 import { useRoomAdventure } from "@/features/room/hooks/useRoomAdventure";
 
 const RoomPage: React.FC = () => {
@@ -44,17 +43,12 @@ const RoomPage: React.FC = () => {
     selectCharacter,
     reset,
     room,
-
   } = useRoomSession(safeRoomId);
 
   const { selectAdventure, loading: adventureLoading } =
     useRoomAdventure(safeRoomId);
 
   const isOwner = room?.owner === me?.user?.id;
-
-  useGameSocket(safeRoomId, (data) => {
-    console.log("[GameSocket EVENT]", data);
-  });
 
   if (!roomId) return <div>Brak pokoju</div>;
   if (!me) return <div>Ładowanie...</div>;
