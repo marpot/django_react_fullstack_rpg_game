@@ -1,5 +1,4 @@
 import json
-import traceback
 import logging
 
 from asgiref.sync import sync_to_async
@@ -46,19 +45,43 @@ class GameConsumer(BaseConsumer):
         except Room.DoesNotExist:
             logger.warning(f"[GAME CONSUMER] room not found in DB: {self.room_name}")
 
+    # =========================
+    # RECEIVE (MAIN GAME LOOP)
+    # =========================
     async def receive(self, text_data):
         logger.info("=== GAME RECEIVE START ===")
 
         try:
             data = json.loads(text_data)
-            user_input = data.get("message", "").strip()
 
+            user_input = data.get("message", "")
+            if not isinstance(user_input, str):
+                logger.error(f"[INVALID INPUT TYPE] {user_input}")
+                return
+
+            user_input = user_input.strip()
             if not user_input:
+                logger.warning("[EMPTY INPUT]")
                 return
 
             llm = LLMService()
             parsed = llm.parse_player_input(user_input)
 
+            # -------------------------
+            # GUARDS (CRITICAL STABILITY)
+            # -------------------------
+            if not isinstance(parsed, dict):
+                logger.error(f"[LLM PARSE NOT DICT] {parsed}")
+                return
+
+            if "action" not in parsed:
+                logger.error(f"[LLM PARSE MISSING ACTION] {parsed}")
+                return
+
+            parsed.setdefault("target", None)
+            parsed.setdefault("method", None)
+
+            # inject runtime context
             parsed["room"] = self.room_name
             parsed["user_id"] = self.scope["user"].id
             parsed["adventure"] = self.adventure_id
@@ -86,12 +109,18 @@ class GameConsumer(BaseConsumer):
                 }
             )
 
+    # =========================
+    # GAME EVENTS
+    # =========================
     async def game_event(self, event):
         await self.send(text_data=json.dumps({
             "type": "game_event",
             **event["payload"]
         }))
 
+    # =========================
+    # GAME START FLOW
+    # =========================
     async def game_started(self, event):
         logger.info("🔥 GAME_STARTED RECEIVED IN CONSUMER")
         logger.info(f"EVENT: {event}")
@@ -111,7 +140,9 @@ class GameConsumer(BaseConsumer):
 
         self.adventure_id = adventure_id
 
-        # ONLY SEED WORLD (NO DB LOGIC)
+        # -------------------------
+        # SEED WORLD STATE
+        # -------------------------
         await sync_to_async(self.seeder.seed_from_adventure)(
             adventure_id,
             self.room_name
@@ -127,5 +158,36 @@ class GameConsumer(BaseConsumer):
                 "room_id": self.room_name,
                 "event": "game_started",
                 "mode": "adventure"
+            }
+        )
+
+        # -------------------------
+        # WORLD GENERATION (LLM)
+        # -------------------------
+        llm = LLMService()
+
+        world = llm.generate_world({
+            "adventure": {"id": adventure_id},
+        })
+
+        # 🔥 WORLD GUARD
+        if not isinstance(world, dict):
+            logger.error(f"[WORLD GENERATION FAILED] {world}")
+            world = {
+                "intro": "A strange world forms...",
+                "situation": "The world is unstable."
+            }
+
+        room = self.state_manager.get_or_create_room(self.room_name)
+        room.world = world
+
+        await self.send_event(
+            "game_event",
+            {
+                "subtype": "world_start",
+                "text": world.get("intro", "A new world begins..."),
+                "world": world,
+                "room_id": self.room_name,
+                "event": "world_start"
             }
         )
