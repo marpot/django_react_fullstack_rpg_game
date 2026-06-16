@@ -69,6 +69,10 @@ class GameConsumer(BaseConsumer):
 
             if data.get("type") == "init":
                 self.character_id = data.get("character_id")
+                if not self.character_id:
+                    logger.warning("[INIT] missing character_id")
+                    return
+
                 logger.info(f"[INIT] character_id={self.character_id}")
                 return
 

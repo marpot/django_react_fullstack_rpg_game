@@ -94,9 +94,12 @@ export const useRoomSession = (roomId: string) => {
   const selectCharacter = async (id: number) => {
     await selectActiveCharacter(id);
 
+    // 🔥 WS INIT SOURCE OF TRUTH
+    localStorage.setItem("character_id", String(id));
     setCharacterId(id);
 
     await fetchMe();
+
     setState("lobby");
   };
 
