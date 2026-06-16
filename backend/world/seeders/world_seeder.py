@@ -1,6 +1,8 @@
 from world.models import Enemy
 from game.state.runtime.models import Enemy as RuntimeEnemy
 import logging
+from game.state.seeders.npc_seeder import NPCSeeder
+
 
 logger = logging.getLogger(__name__)
 
@@ -48,3 +50,9 @@ class WorldSeeder:
         logger.info(f"[SEED] FINAL ENEMIES: {list(room.enemies.keys())}")
         logger.info("WORLD SEED END")
         logger.info("================================")
+        
+        logger.info("[SEED] NPC SEED START")
+        logger.info(f"[SEED] NPC SEED CALLED room_id={room_id}")
+        npc_seeder = NPCSeeder(self.state)
+        npc_seeder.seed(room_id, adventure_id)
+        logger.info("[SEED] NPC SEED END")

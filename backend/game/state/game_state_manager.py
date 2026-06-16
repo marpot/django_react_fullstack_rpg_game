@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import List, Optional
 from game.state.runtime.models import Player
 
 @dataclass
@@ -11,10 +12,20 @@ class Enemy:
     damage_bonus: int
 
 @dataclass
+class NPC:
+    id: str
+    name: str
+    dialog: List[str] = field(default_factory=list)
+    state: str = "idle"
+    quest_state: str | None = None
+
+@dataclass
 class RoomState:
     name: str
     players: dict[int, Player] = field(default_factory=dict)
     enemies: dict[str, Enemy] = field(default_factory=dict)
+    npcs: dict[str, NPC] = field(default_factory=dict)
+
 
 class GameStateManager:
     """
@@ -73,3 +84,7 @@ class GameStateManager:
     def add_enemy(self, room_name: str, enemy):
         room = self.get_or_create_room(self.normalize_room_id(room_name))
         room.enemies[enemy.name] = enemy
+
+    def add_npc(self, room_name: str, npc: NPC):
+        room = self.get_or_create_room(self.normalize_room_id(room_name))
+        room.npcs[npc.id] = npc

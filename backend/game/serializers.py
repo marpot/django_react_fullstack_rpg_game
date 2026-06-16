@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import GameSession, GameEvent
+from game.npc.npc_models import NPC
 
 class GameSessionSerializer(serializers.ModelSerializer):
     player_id = serializers.IntegerField(source='player.id', read_only=True)
@@ -42,3 +43,8 @@ class GameEventSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
     
+class NPCSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+    dialog = serializers.ListField(child=serializers.CharField(), required=False)
+    state = serializers.CharField(required=False)

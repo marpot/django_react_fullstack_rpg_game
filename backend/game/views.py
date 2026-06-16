@@ -10,6 +10,12 @@ from .serializers import GameSessionSerializer, GameEventSerializer
 from game.services.combat_service import CombatService
 from game.services.dice_service import DiceService
 
+from game.models import Flag
+
+from game.serializers import NPCSerializer
+from game.npc.npc_resolver import NPCResolver
+
+
 
 class GameSessionViewSet(viewsets.ModelViewSet):
 
@@ -92,6 +98,24 @@ class GameSessionViewSet(viewsets.ModelViewSet):
                 {"error": str(e)},
                 status=500
             )
+        
+    @action(detail=True, methods=['get'])
+    def npcs(self, request, pk=None):
+        session = self.get_object()
+        
+        flags = Flag.objects.filter(
+            adventure_id=session.progress.get("adventure_id"),
+            player=session.player.user
+        )
+
+        resolver = NPCResolver(session)
+        npcs = resolver.resolve()
+
+        serializer = NPCSerializer(npcs, many=True)
+        return Response(
+            {
+                "npcs": serializer.data
+            })
 
 
 class GameEventViewSet(viewsets.ModelViewSet):
@@ -151,4 +175,3 @@ class GameEventViewSet(viewsets.ModelViewSet):
             return Response({"error": "No active session found"}, status=404)
         
         return Response(GameSessionSerializer(session).data)
-        
