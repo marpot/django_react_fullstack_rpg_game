@@ -6,12 +6,14 @@ export const useGameSocket = (
 ) => {
   const ws = useRef<WebSocket | null>(null);
   const initialized = useRef(false);
+  const connecting = useRef(false);
 
   useEffect(() => {
     if (!roomId) return;
-    if (initialized.current) return;
 
-    initialized.current = true;
+    if (initialized.current || connecting.current) return;
+
+    connecting.current = true;
 
     const token = localStorage.getItem("access_token");
     const url = `ws://localhost:8001/ws/game/${roomId}/?token=${token}`;
@@ -23,6 +25,8 @@ export const useGameSocket = (
 
     socket.onopen = () => {
       console.log("[useGameSocket] OPEN");
+      initialized.current = true;
+      connecting.current = false;
     };
 
     socket.onmessage = (event) => {
@@ -35,12 +39,14 @@ export const useGameSocket = (
 
     socket.onerror = (e) => {
       console.error("[useGameSocket] WS ERROR", e);
+      connecting.current = false;
     };
 
     socket.onclose = (e) => {
       console.log("[useGameSocket] CLOSE", e.code);
       ws.current = null;
       initialized.current = false;
+      connecting.current = false;
     };
 
     return () => {
@@ -53,6 +59,7 @@ export const useGameSocket = (
       }
 
       initialized.current = false;
+      connecting.current = false;
     };
   }, [roomId]);
 

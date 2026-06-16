@@ -29,7 +29,10 @@ export const useRoomSession = (roomId: string) => {
     if (!active) {
       setState("select-character");
     } else {
-      setState("lobby");
+      // nie nadpisujemy agresywnie state przy reload
+      setState((prev) =>
+        prev === "select-character" ? "lobby" : prev
+      );
     }
 
     return res.data;
@@ -69,13 +72,21 @@ export const useRoomSession = (roomId: string) => {
   }, [roomId]);
 
   // =========================
-  // WEBSOCKET → SOURCE OF TRUTH FOR GAME STATE
+  // WEBSOCKET → GAME STATE FLOW
   // =========================
   useGameSocket(roomId, (data) => {
     console.log("[useRoomSession WS]", data);
 
-    if (data.type === "game_event" && data.event === "game_started") {
-      setState("in-game");
+    if (data.type !== "game_event") return;
+
+    switch (data.event) {
+      case "game_started":
+        setState("in-game");
+        break;
+
+      case "world_start":
+        setState("in-game");
+        break;
     }
   });
 

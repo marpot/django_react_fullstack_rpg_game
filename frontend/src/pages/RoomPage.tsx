@@ -25,7 +25,6 @@ const RoomPage: React.FC = () => {
   const navigate = useNavigate();
   const [me, setMe] = React.useState<any>(null);
   const [error, setError] = React.useState<string | null>(null);
-
   const [adventures, setAdventures] = React.useState<any[]>([]);
 
   React.useEffect(() => {
@@ -45,6 +44,7 @@ const RoomPage: React.FC = () => {
     selectCharacter,
     reset,
     room,
+
   } = useRoomSession(safeRoomId);
 
   const { selectAdventure, loading: adventureLoading } =
@@ -67,7 +67,6 @@ const RoomPage: React.FC = () => {
       setError(null);
     } catch (err: any) {
       const data = err.response?.data;
-
       const message = data?.message || data?.error || data?.detail;
 
       if (data?.code === "NO_ADVENTURE") {
@@ -142,41 +141,6 @@ const RoomPage: React.FC = () => {
         {state === "lobby" && (
           <div className="room-center-placeholder">
             <h2>⏳ Lobby</h2>
-
-            {isOwner && (
-              <div style={{ marginBottom: 20 }}>
-                <h3>📜 Wybierz przygodę</h3>
-
-                <select
-                  disabled={adventureLoading}
-                  onChange={(e) => selectAdventure(Number(e.target.value))}
-                  defaultValue=""
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #444",
-                    background: "#1e1e1e",
-                    color: "white",
-                    cursor: "pointer",
-                  }}
-                >
-                  <option value="" disabled>
-                    -- wybierz przygodę --
-                  </option>
-
-                  {adventures.map((adventure) => (
-                    <option key={adventure.id} value={adventure.id}>
-                      {adventure.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {adventureLoading && (
-              <p style={{ color: "gray" }}>Ustawianie przygody...</p>
-            )}
 
             {isOwner ? (
               <Button variant="primary" onClick={handleStartGame}>
