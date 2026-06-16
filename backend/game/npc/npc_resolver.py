@@ -14,6 +14,9 @@ class NPCResolver:
     def resolve(self) -> list[NPC]:
         adventure_id = self.session.progress.get("adventure_id")
 
+        if not adventure_id:
+            return []
+
         npcs = NPCRegistry.get_npcs_for_adventure(adventure_id)
 
         # -------------------------
