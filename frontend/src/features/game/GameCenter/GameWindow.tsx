@@ -16,6 +16,13 @@ export default function GameWindow({ roomId }: Props) {
 
   const logEndRef = useRef<HTMLDivElement | null>(null);
 
+  // 🔥 tylko lekki dedupe
+  const seenEventsRef = useRef<Set<string>>(new Set());
+
+  const getEventKey = (msg: any) => {
+    return `${msg.type ?? "no-type"}:${msg.event ?? msg.message ?? msg.text ?? ""}`;
+  };
+
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [gameLog]);
@@ -23,17 +30,20 @@ export default function GameWindow({ roomId }: Props) {
   const { send: sendGame } = useGameSocket(roomId, (msg) => {
     console.log("[GAME WS]", msg);
 
+    // 🔥 dedupe TYLKO dla eventów gry
     if (msg.type === "game_event") {
+      const key = `${msg.event ?? ""}:${msg.text ?? msg.world?.name ?? ""}`;
+
+      if (seenEventsRef.current.has(key)) return;
+      seenEventsRef.current.add(key);
+
       if (msg.subtype === "error") {
         setError(msg.text);
         return;
       }
 
-      // 🎯 WORLD START = RENDER WORLD
       if (msg.event === "world_start") {
         setWorld(msg.world);
-        setGameLog((prev) => [...prev, msg]);
-        return;
       }
 
       if (msg.event === "game_started") {
@@ -44,6 +54,7 @@ export default function GameWindow({ roomId }: Props) {
       return;
     }
 
+    // 🔥 reszta eventów bez dedupe
     setGameLog((prev) => [...prev, msg]);
   });
 
@@ -67,8 +78,6 @@ export default function GameWindow({ roomId }: Props) {
 
   return (
     <div className="gameWindow">
-
-      {/* HEADER */}
       <div className="header">
         <div style={{ fontWeight: 600 }}>🧙 ELDORIA — GAME WINDOW</div>
         <div style={{ fontSize: 12, opacity: 0.6 }}>real-time RPG engine</div>
@@ -76,7 +85,6 @@ export default function GameWindow({ roomId }: Props) {
 
       {error && <div className="error">{error}</div>}
 
-      {/* WORLD RENDER */}
       {world && (
         <div className="world">
           <h2>🌍 {world.name}</h2>
@@ -95,7 +103,6 @@ export default function GameWindow({ roomId }: Props) {
         </div>
       )}
 
-      {/* LOG */}
       <div className="log">
         {gameLog.map((e, i) => (
           <div key={i} style={{ marginBottom: 8 }}>
@@ -107,7 +114,6 @@ export default function GameWindow({ roomId }: Props) {
         <div ref={logEndRef} />
       </div>
 
-      {/* INPUT */}
       <div className="inputBar">
         <input
           value={input}

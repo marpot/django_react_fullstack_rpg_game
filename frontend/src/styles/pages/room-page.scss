@@ -8,20 +8,16 @@
 .room-layout > * {
   min-height: 0;
 }
+
 /* LEFT */
 .room-sidebar {
   padding: 16px;
   background: #1f1f1f;
   overflow-y: auto;
-  min-height: 0;
 
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.room-sidebar .button {
-  margin-top: 8px;
 }
 
 /* CENTER */
@@ -34,13 +30,6 @@
   gap: 12px;
 
   overflow: hidden;
-  min-height: 0;
-}
-
-.room-story {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
 }
 
 /* RIGHT */
@@ -50,43 +39,143 @@
 
   display: flex;
   flex-direction: column;
-
   overflow: hidden;
-  min-height: 0;
-}
-
-.chat-wrapper {
-  flex: 1;
-  min-height: 0;
-
-  display: flex;
-  flex-direction: column;
-}
-
-.chat-wrapper > * {
-  flex: 1;
-  min-height: 0;
-  display: flex;
 }
 
 /* TYPO */
 .room-title {
   font-size: 18px;
   margin-bottom: 12px;
+  color: #eaeaea;
 }
 
 .room-header {
   text-align: center;
   font-size: 25px;
+  color: #ffffff;
 }
 
-.player-list {
-  list-style: none;
-  padding: 0;
+/* LOBBY LAYOUT */
+.room-story {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
-/* CHARACTER SELECT (SIDEBAR STATE) */
+/* PANEL */
+.adventure-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
+.adventure-panel h3 {
+  font-size: 15px;
+  color: #d6d6d6;
+  margin-bottom: 4px;
+  letter-spacing: 0.2px;
+}
+
+/* GRID */
+.adventure-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* CARD BASE */
+.adventure-card {
+  position: relative;
+
+  padding: 16px;
+  border-radius: 12px;
+
+  cursor: pointer;
+  text-align: left;
+
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  background: linear-gradient(145deg, #232323, #1b1b1b);
+  border: 1px solid #2f2f2f;
+
+  transition: all 0.18s ease;
+  overflow: hidden;
+}
+
+/* LIGHT GLOW EFFECT */
+.adventure-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+
+  background: radial-gradient(
+    circle at top left,
+    rgba(79, 163, 255, 0.18),
+    transparent 60%
+  );
+
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.adventure-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(79, 163, 255, 0.35);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+}
+
+.adventure-card:hover::before {
+  opacity: 1;
+}
+
+.adventure-card:active {
+  transform: scale(0.98);
+}
+
+/* TITLE (IMPORTANT: WHITE) */
+.adventure-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.2px;
+}
+
+/* DESCRIPTION */
+.adventure-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.35;
+}
+
+/* SELECTED STATE */
+.adventure-card.selected {
+  border-color: #4fa3ff;
+  background: linear-gradient(145deg, #1e2a3a, #151f2c);
+
+  box-shadow:
+    0 0 0 1px rgba(79, 163, 255, 0.25),
+    0 12px 35px rgba(79, 163, 255, 0.15);
+}
+
+.adventure-card.selected .adventure-title {
+  color: #ffffff;
+}
+
+/* EMPTY / INFO TEXT */
+.adventure-panel p {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+}
+
+/* BUTTON SPACING FIX */
+.room-sidebar .button {
+  margin-top: 8px;
+}
+
+/* CHARACTER SELECT (KEEPED) */
 .character-select-panel {
   display: flex;
   flex-direction: column;
@@ -99,10 +188,9 @@
   color: #fff;
 }
 
-/* POSTACIE JAK KARTY */
 .character-select-panel button {
   width: 100%;
-  padding: 16px 14px; /* większy padding */
+  padding: 16px 14px;
   border-radius: 8px;
   border: 1px solid #333;
   background: #2a2a2a;
@@ -118,13 +206,13 @@
   user-select: none;
 }
 
-.character-select-panel button:active {
-  transform: scale(0.98);
-}
-
 .character-select-panel button:hover {
   background: #3a3a3a;
   border-color: #555;
+}
+
+.character-select-panel button:active {
+  transform: scale(0.98);
 }
 
 .character-select-panel button:disabled {
@@ -132,7 +220,6 @@
   cursor: not-allowed;
 }
 
-/* opcjonalny styling dla meta danych */
 .character-select-panel button small {
   opacity: 0.7;
   font-size: 12px;

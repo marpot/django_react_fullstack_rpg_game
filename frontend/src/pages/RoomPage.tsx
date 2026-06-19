@@ -17,14 +17,14 @@ const RoomPage: React.FC = () => {
   const params = useParams<{ roomId: string }>();
   const roomId = React.useMemo(() => params.roomId, [params.roomId]);
 
-  const safeRoomId = React.useMemo(() => {
-    return roomId ? String(roomId) : "";
-  }, [roomId]);
+  const safeRoomId = React.useMemo(() => String(roomId || ""), [roomId]);
 
   const navigate = useNavigate();
+
   const [me, setMe] = React.useState<any>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [adventures, setAdventures] = React.useState<any[]>([]);
+  const [selectedAdventureId, setSelectedAdventureId] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     api.get("/accounts/me/").then((res) => setMe(res.data));
@@ -45,13 +45,34 @@ const RoomPage: React.FC = () => {
     room,
   } = useRoomSession(safeRoomId);
 
-  const { selectAdventure, loading: adventureLoading } =
-    useRoomAdventure(safeRoomId);
+  const { selectAdventure } = useRoomAdventure(safeRoomId);
 
   const isOwner = room?.owner === me?.user?.id;
 
+  // ✅ DODANE: sync UI z backendem (ROOM SOURCE OF TRUTH)
+  React.useEffect(() => {
+    if (room?.adventure_id) {
+      setSelectedAdventureId(room.adventure_id);
+    } else {
+      setSelectedAdventureId(null);
+    }
+  }, [room?.adventure_id]);
+
   if (!roomId) return <div>Brak pokoju</div>;
   if (!me) return <div>Ładowanie...</div>;
+
+  const handleSelectAdventure = async (adventureId: number) => {
+    const next =
+      selectedAdventureId === adventureId ? null : adventureId;
+
+    setSelectedAdventureId(next);
+
+    if (next === null) {
+      return;
+    }
+
+    await selectAdventure(next);
+  };
 
   const handleStartGame = async () => {
     if (!isOwner) return;
@@ -61,14 +82,13 @@ const RoomPage: React.FC = () => {
       setError(null);
     } catch (err: any) {
       const data = err.response?.data;
-      const message = data?.message || data?.error || data?.detail;
 
       if (data?.code === "NO_ADVENTURE") {
         setError("Wybierz przygodę przed rozpoczęciem gry");
         return;
       }
 
-      setError(message || "Unexpected error");
+      setError(data?.message || "Błąd startu gry");
     }
   };
 
@@ -86,22 +106,15 @@ const RoomPage: React.FC = () => {
           <div className="active-character">
             <h3>🎮 Aktywna postać</h3>
 
-            {loading && <p>Ładowanie postaci...</p>}
+            {loading && <p>Ładowanie...</p>}
 
             {!loading && activeCharacter && (
               <>
                 <p><b>{activeCharacter.name}</b></p>
-                <p>Level: {activeCharacter.level}</p>
+                <p>Lvl: {activeCharacter.level}</p>
                 <p>HP: {activeCharacter.health}/{activeCharacter.max_health}</p>
                 <p>Mana: {activeCharacter.mana}/{activeCharacter.max_mana}</p>
-                <p>STR: {activeCharacter.strength}</p>
-                <p>DEX: {activeCharacter.dexterity}</p>
-                <p>INT: {activeCharacter.intelligence}</p>
               </>
-            )}
-
-            {!loading && !activeCharacter && (
-              <p>Brak aktywnej postaci</p>
             )}
           </div>
         )}
@@ -120,29 +133,66 @@ const RoomPage: React.FC = () => {
       <main className="room-main">
         <h1 className="room-header">🏰 Pokój: {roomId}</h1>
 
-        {error && (
-          <div style={{ color: "red", marginBottom: 10 }}>
-            {error}
-          </div>
-        )}
+        {error && <div style={{ color: "red" }}>{error}</div>}
 
         {state === "select-character" && (
           <div className="room-center-placeholder">
-            <p>Wybierz postać po lewej stronie</p>
+            <p>Wybierz postać</p>
           </div>
         )}
 
         {state === "lobby" && (
-          <div className="room-center-placeholder">
+          <div className="room-story">
+
             <h2>⏳ Lobby</h2>
 
-            {isOwner ? (
-              <Button variant="primary" onClick={handleStartGame}>
-                🎮 Rozpocznij grę (host)
-              </Button>
-            ) : (
-              <p>Czekasz aż twórca pokoju rozpocznie grę...</p>
+            {isOwner && (
+              <div className="adventure-panel">
+                <h3>📜 Wybór przygody</h3>
+
+                {adventures.length === 0 && (
+                  <p>Brak przygód</p>
+                )}
+
+                <div className="adventure-grid">
+                  {adventures.map((adv) => (
+                    <button
+                      key={adv.id}
+                      className={`adventure-card ${
+                        selectedAdventureId === adv.id ? "selected" : ""
+                      }`}
+                      onClick={() => handleSelectAdventure(adv.id)}
+                    >
+                      <span className="adventure-title">{adv.title}</span>
+
+                      {adv.description && (
+                        <span className="adventure-desc">
+                          {adv.description.slice(0, 80)}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {selectedAdventureId && (
+                  <p style={{ marginTop: 10, opacity: 0.7 }}>
+                    📌 Wybrana przygoda:{" "}
+                    {adventures.find(a => a.id === selectedAdventureId)?.title}
+                  </p>
+                )}
+              </div>
             )}
+
+            <div style={{ marginTop: 20 }}>
+              {isOwner ? (
+                <Button variant="primary" onClick={handleStartGame}>
+                  🎮 Start gry
+                </Button>
+              ) : (
+                <p>Czekasz na hosta...</p>
+              )}
+            </div>
+
           </div>
         )}
 
