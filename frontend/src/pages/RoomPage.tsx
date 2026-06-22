@@ -16,7 +16,6 @@ import { useRoomAdventure } from "@/features/room/hooks/useRoomAdventure";
 const RoomPage: React.FC = () => {
   const params = useParams<{ roomId: string }>();
   const roomId = React.useMemo(() => params.roomId, [params.roomId]);
-
   const safeRoomId = React.useMemo(() => String(roomId || ""), [roomId]);
 
   const navigate = useNavigate();
@@ -25,6 +24,11 @@ const RoomPage: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [adventures, setAdventures] = React.useState<any[]>([]);
   const [selectedAdventureId, setSelectedAdventureId] = React.useState<number | null>(null);
+
+  const session = useRoomSession(safeRoomId);
+  const { selectAdventure } = useRoomAdventure(safeRoomId);
+
+  const isOwner = session.room?.owner === me?.user?.id;
 
   React.useEffect(() => {
     api.get("/accounts/me/").then((res) => setMe(res.data));
@@ -36,33 +40,35 @@ const RoomPage: React.FC = () => {
       .catch((err) => console.error("[ADVENTURES ERROR]", err));
   }, []);
 
-  // ✅ SINGLE SOURCE OF TRUTH
-  const session = useRoomSession(safeRoomId);
-
-  const { selectAdventure } = useRoomAdventure(safeRoomId);
-
-  const isOwner = session.room?.owner === me?.user?.id;
-
   React.useEffect(() => {
     if (session.room?.adventure_id) {
       setSelectedAdventureId(session.room.adventure_id);
-    } else {
-      setSelectedAdventureId(null);
     }
   }, [session.room?.adventure_id]);
 
-  if (!roomId) return <div>Brak pokoju</div>;
-  if (!me) return <div>Ładowanie...</div>;
-
   const handleSelectAdventure = async (adventureId: number) => {
-    const next =
-      selectedAdventureId === adventureId ? null : adventureId;
+    const next = selectedAdventureId === adventureId ? null : adventureId;
 
     setSelectedAdventureId(next);
 
     if (next === null) return;
 
     await selectAdventure(next);
+  };
+
+  const handleGenerateAdventure = async () => {
+    try {
+      const res = await api.post("/world/adventures/generate/");
+      const adventure = res.data;
+
+      setSelectedAdventureId(adventure.id);
+      await selectAdventure(adventure.id);
+
+      setError(null);
+    } catch (err: any) {
+      console.error("[GENERATE ADVENTURE ERROR]", err);
+      setError("Nie udało się wygenerować przygody");
+    }
   };
 
   const handleStartGame = async () => {
@@ -83,6 +89,9 @@ const RoomPage: React.FC = () => {
     }
   };
 
+  if (!roomId) return <div>Brak pokoju</div>;
+  if (!me) return <div>Ładowanie...</div>;
+
   return (
     <div className="room-layout">
 
@@ -97,24 +106,19 @@ const RoomPage: React.FC = () => {
           <div className="active-character">
             <h3>🎮 Aktywna postać</h3>
 
-            {session.loading && <p>Ładowanie...</p>}
-
             {!session.loading && session.activeCharacter && (
               <>
                 <p><b>{session.activeCharacter.name}</b></p>
                 <p>Lvl: {session.activeCharacter.level}</p>
                 <p>HP: {session.activeCharacter.health}/{session.activeCharacter.max_health}</p>
-                <p>Mana: {session.activeCharacter.mana}/{session.activeCharacter.max_mana}</p>
               </>
             )}
           </div>
         )}
 
-        {session.state !== "select-character" && (
-          <Button variant="secondary" onClick={session.reset}>
-            🔄 Zmień postać
-          </Button>
-        )}
+        <Button variant="secondary" onClick={session.reset}>
+          🔄 Zmień postać
+        </Button>
 
         <Button variant="danger" onClick={() => navigate("/dashboard")}>
           🚪 Opuść pokój
@@ -126,12 +130,6 @@ const RoomPage: React.FC = () => {
 
         {error && <div style={{ color: "red" }}>{error}</div>}
 
-        {session.state === "select-character" && (
-          <div className="room-center-placeholder">
-            <p>Wybierz postać</p>
-          </div>
-        )}
-
         {session.state === "lobby" && (
           <div className="room-story">
 
@@ -139,9 +137,12 @@ const RoomPage: React.FC = () => {
 
             {isOwner && (
               <div className="adventure-panel">
-                <h3>📜 Wybór przygody</h3>
 
-                {adventures.length === 0 && <p>Brak przygód</p>}
+                <Button variant="secondary" onClick={handleGenerateAdventure}>
+                  🎲 Generuj przygodę
+                </Button>
+
+                <h3>📜 Wybór przygody</h3>
 
                 <div className="adventure-grid">
                   {adventures.map((adv) => (
@@ -152,10 +153,7 @@ const RoomPage: React.FC = () => {
                       }`}
                       onClick={() => handleSelectAdventure(adv.id)}
                     >
-                      <span className="adventure-title">{adv.title}</span>
-                      <span className="adventure-desc">
-                        {adv.description?.slice(0, 80)}
-                      </span>
+                      <span>{adv.title}</span>
                     </button>
                   ))}
                 </div>
@@ -164,7 +162,11 @@ const RoomPage: React.FC = () => {
 
             <div style={{ marginTop: 20 }}>
               {isOwner ? (
-                <Button variant="primary" onClick={handleStartGame}>
+                <Button
+                  variant="primary"
+                  onClick={handleStartGame}
+                  disabled={!selectedAdventureId}
+                >
                   🎮 Start gry
                 </Button>
               ) : (

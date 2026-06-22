@@ -21,6 +21,19 @@ export const useRoomSession = (roomId: string) => {
   const [world, setWorld] = useState<any | null>(null);
   const [gameEvents, setGameEvents] = useState<any[]>([]);
 
+  const normalizeEvent = (data: any) => {
+    const event = data?.event || data?.subtype || data?.type || "unknown";
+
+    const text =
+      typeof data?.text === "string"
+        ? data.text
+        : typeof data?.message === "string"
+        ? data.message
+        : "";
+
+    return { event, text, raw: data };
+  };
+
   // FETCH USER
   const fetchMe = async () => {
     const res = await api.get<MeResponse>("/accounts/me/");
@@ -68,36 +81,31 @@ export const useRoomSession = (roomId: string) => {
     };
   }, [roomId]);
 
-  // WS GAME PIPELINE (JEDNO MIEJSCE PRAWDY)
+  // WS GAME PIPELINE
   const { send } = useGameSocket(roomId, (data) => {
-    if (data.type !== "game_event") return;
+    if (data?.type !== "game_event") return;
 
-    console.log("[WS RAW]", data);
+    const { event, text, raw } = normalizeEvent(data);
 
-    const text =
-      typeof data.text === "string"
-        ? data.text
-        : typeof data.message === "string"
-        ? data.message
-        : "";
+    console.log("[WS GAME EVENT]", { event, raw });
 
-    // STATE UPDATES (bez przerywania pipeline)
-    if (data.event === "world_start") {
-      setWorld(data.world ?? null);
+    // WORLD START → natychmiast game mode
+    if (event === "world_start") {
+      setWorld(data.world ?? raw.world ?? null);
       setState("in-game");
     }
 
-    if (data.event === "game_started") {
+    // GAME START → fallback switch
+    if (event === "game_started") {
       setState("in-game");
     }
 
-    // SINGLE SOURCE OF EVENTS
     setGameEvents((prev) => [
       ...prev,
       {
-        type: data.event,
+        type: event,
         text,
-        raw: data,
+        raw,
       },
     ]);
   });

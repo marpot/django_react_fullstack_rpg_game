@@ -27,11 +27,21 @@ class EntityResolver:
 
     def resolve_enemy(self, room_name: str, enemy_name: str):
         room = self.state_manager.get_or_create_room(room_name)
+
+        # 🔥 NORMALIZACJA INPUTU (FIX BUGA)
+        if isinstance(enemy_name, dict):
+            enemy_name = enemy_name.get("name") or enemy_name.get("id")
+
+        if not isinstance(enemy_name, str):
+            return None
+
+        enemy_name = enemy_name.lower().strip()
+
         enemy = room.enemies.get(enemy_name)
 
         if enemy is None:
-            for e in getattr(room, "enemies", {}.values):
-                if getattr(e, "name", None) == enemy_name:
+            for e in getattr(room, "enemies", {}).values():
+                if getattr(e, "name", "").lower() == enemy_name:
                     enemy = e
                     break
 

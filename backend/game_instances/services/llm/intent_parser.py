@@ -3,51 +3,82 @@ class IntentParser:
     Zamienia input gracza na akcję gry.
     """
 
-    ALLOWED_ACTIONS = [
-        "move",
-        "inspect",
-        "talk",
-        "attack",
-        "defend",
-        "use_item",
-    ]
+    def parse(self, player_input) -> dict:
+        text = ""
 
-    def parse(self, player_input: str) -> dict:
-        text = player_input.lower()
+        # --------------------------
+        # NORMALIZACJA INPUTU
+        # --------------------------
+        if isinstance(player_input, dict):
+            text = (
+                player_input.get("message")
+                or player_input.get("text")
+                or player_input.get("action")
+                or player_input.get("input")
+                or ""
+            )
+        elif isinstance(player_input, str):
+            text = player_input
+        else:
+            text = str(player_input or "")
+
+        text = text.lower().strip()
+
+        def has(*keywords: str) -> bool:
+            return any(k in text for k in keywords)
 
         # --------------------------
         # ATTACK
         # --------------------------
-        if any(word in text for word in ["attack", "atak", "atakuj", "zaatakuj", "hit", "fight"]):
-            return {"action": "attack", "target": self._target(text)}
-        
-        # -------------------------
-        # TALK
-        # -------------------------
-        if "talk" in text or "porozmawiaj" in text:
-            return {"action": "talk", "target": self._target(text)}
-        
-
-         # -------------------------
-        # MOVE
-        # -------------------------
-        if any(word in text for word in ["move", "go", "idź", "idz", "przejdź"]):
-            return {"action": "move", "target": self._target(text)}
-
-        # -------------------------
-        # INSPECT
-        # -------------------------
-        if any(word in text for word in ["inspect", "look", "sprawdź", "zbadaj", "rozejrzyj"]):
-            return {"action": "inspect", "target": "environment"}
-
-        # -------------------------
-        # FALLBACK
-        # -------------------------
-        return {"action": "inspect", 
-                "target": "environment",
-                "error": "Unkown intent - fallback inspect"
+        if has("attack", "atak", "atakuj", "zaatakuj", "walcz", "fight", "hit"):
+            return {
+                "action": "attack",
+                "target": self._target(text),
             }
 
+        # --------------------------
+        # TALK
+        # --------------------------
+        if has("talk", "porozmawiaj", "rozmawiaj", "gadaj", "mów"):
+            return {
+                "action": "talk",
+                "target": self._target(text),
+            }
+
+        # --------------------------
+        # MOVE
+        # --------------------------
+        if has("move", "go", "idź", "idz", "chodź", "wejdź", "przejdź"):
+            return {
+                "action": "move",
+                "target": self._target(text),
+            }
+
+        # --------------------------
+        # INSPECT
+        # --------------------------
+        if has("inspect", "look", "sprawdź", "zbadaj", "rozejrzyj", "obejrzyj"):
+            return {
+                "action": "inspect",
+                "target": "environment",
+            }
+
+        # --------------------------
+        # FALLBACK (NIE UDAWAJ INSPECT)
+        # --------------------------
+        return {
+            "action": "unknown",
+            "target": None,
+            "error": "unknown_intent_fallback",
+        }
+
     def _target(self, text: str):
+        if not text:
+            return None
+
         words = text.split()
-        return words[-1] if len(words) > 1 else None
+
+        if len(words) < 2:
+            return None
+
+        return words[-1]

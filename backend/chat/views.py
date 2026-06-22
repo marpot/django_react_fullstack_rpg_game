@@ -94,14 +94,17 @@ class RoomViewSet(viewsets.ModelViewSet):
 
         channel_layer = get_channel_layer()
 
-        # 🚀 trigger game start event (consumer handles seeding)
+        # 🔥 FIX: Channels consumer expects payload wrapper
         async_to_sync(channel_layer.group_send)(
             f"gameconsumer_{room.id}",
             {
-                "type": "game_started",
-                "room_id": room.id,
-                "adventure_id": adventure.id,
-                "message": "The game has started!"
+                "type": "game_event",
+                "payload": {
+                    "event": "game_started",
+                    "room_id": room.id,
+                    "adventure_id": adventure.id,
+                    "text": "Game started"
+                }
             }
         )
 

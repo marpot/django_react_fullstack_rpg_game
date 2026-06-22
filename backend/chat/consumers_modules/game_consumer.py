@@ -58,14 +58,12 @@ class GameConsumer(BaseConsumer):
             if not isinstance(user_input, str) or not user_input.strip():
                 return
 
-            # 🔥 1. MEMORY FIRST (FIXED ORDER)
             memory = await sync_to_async(GameMemoryBuilder().build)(
                 self.adventure_id,
                 self.room_name,
                 20
             )
 
-            # 🔥 2. LLM WITH CONTEXT
             llm = LLMService()
 
             parsed = llm.parse_player_input({
@@ -121,17 +119,6 @@ class GameConsumer(BaseConsumer):
             self.room_name
         )
 
-        await self.send_event(
-            "game_event",
-            {
-                "subtype": "system",
-                "text": "Game started",
-                "room_id": self.room_name,
-                "event": "game_started",
-                "mode": "adventure"
-            }
-        )
-
         llm = LLMService()
         world = llm.generate_world({"adventure": {"id": adventure_id}})
 
@@ -160,9 +147,23 @@ class GameConsumer(BaseConsumer):
         )
 
     async def game_event(self, event):
+        """
+        FIX: unified event format (no payload wrapper)
+        """
+        payload = event.get("payload", None)
+
+        # BACKWARD COMPATIBILITY: accept both formats
+        if payload is not None:
+            data = payload
+        else:
+            data = {
+                k: v for k, v in event.items()
+                if k != "type"
+            }
+
         await self.send(text_data=json.dumps({
             "type": "game_event",
-            **event["payload"]
+            **data
         }))
 
     @sync_to_async
@@ -170,7 +171,6 @@ class GameConsumer(BaseConsumer):
         from accounts.models import PlayerCharacter
 
         user = self.scope.get("user")
-
         player = PlayerCharacter.objects.filter(user=user).first()
 
         if player:
@@ -183,7 +183,6 @@ class GameConsumer(BaseConsumer):
         from accounts.models import PlayerCharacter
 
         if not self.adventure_id:
-            logger.info("[SAVE WORLD STATE] no adventure id")
             return
 
         player = PlayerCharacter.objects.filter(id=self.character_id).first()
