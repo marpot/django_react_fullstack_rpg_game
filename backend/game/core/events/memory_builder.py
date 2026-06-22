@@ -20,4 +20,9 @@ class GameMemoryBuilder:
                 "choices": e.choices or []
             })
 
-        return history
+        return {
+            "events": history,
+            "count": len(history),
+            "adventure_id": adventure_id,
+            "room_id": room_id,
+        }
