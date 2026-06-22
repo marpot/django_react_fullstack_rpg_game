@@ -3,41 +3,159 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #0f0f0f;
-  color: white;
+  background: radial-gradient(circle at top, #151515, #0b0b0b 60%);
+  color: #e5e5e5;
+  font-family: ui-sans-serif, system-ui;
 }
 
+/* HEADER */
 .header {
-  padding: 10px 12px;
-  border-bottom: 1px solid #333;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
   display: flex;
   justify-content: space-between;
-  background: #111;
+  background: linear-gradient(90deg, #111, #0d0d0d);
+  letter-spacing: 1px;
 }
 
-.error {
-  padding: 8px 12px;
-  background: #7f1d1d;
-  color: white;
+/* WORLD PANEL */
+.world {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: linear-gradient(180deg, rgba(255, 215, 120, 0.06), transparent);
+}
+
+.world h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #f5d08a;
+}
+
+.world p {
+  margin: 4px 0 0;
   font-size: 13px;
+  opacity: 0.75;
 }
 
+/* LOG WINDOW */
 .log {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 16px;
   min-height: 0;
+
+  scrollbar-width: thin;
+  scrollbar-color: #333 transparent;
 }
 
+.log::-webkit-scrollbar {
+  width: 6px;
+}
+
+.log::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 10px;
+}
+
+/* LINE BASE */
+.log-line {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  line-height: 1.4;
+  animation: fadeIn 0.2s ease-in;
+  max-width: 900px;
+}
+
+/* SYSTEM (RPG UI - jak "SYSTEM MESSAGE") */
+.log-line.system {
+  color: #a3a3a3;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+
+  background: rgba(255,255,255,0.03);
+  border-left: 2px solid #666;
+  opacity: 0.8;
+}
+
+/* NARRATION (WORLD STORY) */
+.log-line.narration {
+  color: #f5d08a;
+  background: rgba(245, 208, 138, 0.06);
+  border-left: 2px solid #f5d08a;
+  box-shadow: 0 0 20px rgba(245, 208, 138, 0.05);
+}
+
+/* PLAYER ACTION / RESPONSE */
+.log-line.player {
+  color: #7dd3fc;
+  background: rgba(125, 211, 252, 0.05);
+  border-left: 2px solid #38bdf8;
+}
+
+/* ERROR */
+.log-line.error {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.06);
+  border-left: 2px solid #ef4444;
+}
+
+/* DEFAULT */
+.log-line.default {
+  color: #e5e5e5;
+  background: rgba(255,255,255,0.02);
+  border-left: 2px solid rgba(255,255,255,0.1);
+}
+
+/* INPUT BAR */
 .inputBar {
   display: flex;
-  gap: 8px;
-  padding: 12px;
-  border-top: 1px solid #333;
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid rgba(255,255,255,0.08);
   flex-shrink: 0;
-  background: #111;
+  background: linear-gradient(180deg, #0d0d0d, #0a0a0a);
 }
 
 .inputBar input {
   flex: 1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: #111;
+  color: white;
+  outline: none;
+}
+
+.inputBar input:focus {
+  border-color: #f5d08a;
+  box-shadow: 0 0 10px rgba(245, 208, 138, 0.2);
+}
+
+.inputBar button {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: #1a1a1a;
+  color: white;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.inputBar button:hover {
+  background: #222;
+  border-color: #f5d08a;
+}
+
+/* ANIMATION */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

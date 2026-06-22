@@ -7,6 +7,25 @@ type Props = {
   sendGame: (data: any) => void;
 };
 
+function getEventClass(e: any) {
+  const type = e?.type;
+
+  if (type === "game_started") return "system";
+  if (type === "world_start") return "narration";
+  if (type === "action_result") return "player";
+  if (type === "error") return "error";
+
+  return "default";
+}
+
+function getEventText(e: any) {
+  if (typeof e === "string") return e;
+
+  if (e.type === "narration") return e.text;
+
+  return e.text || e.message || e.raw?.text || JSON.stringify(e);
+}
+
 export default function GameWindow({
   world,
   gameEvents,
@@ -52,16 +71,11 @@ export default function GameWindow({
       )}
 
       <div className="log">
-        {gameEvents.map((e, i) => {
-          const text =
-            typeof e === "string"
-              ? e
-              : e.type === "narration"
-                ? e.text
-                : e.text || e.message || e.raw?.text || JSON.stringify(e);
-
-          return <div key={i}>{text}</div>;
-        })}
+        {gameEvents.map((e, i) => (
+          <div key={i} className={`log-line ${getEventClass(e)}`}>
+            {getEventText(e)}
+          </div>
+        ))}
 
         <div ref={logEndRef} />
       </div>

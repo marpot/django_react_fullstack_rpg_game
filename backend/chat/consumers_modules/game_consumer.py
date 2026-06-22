@@ -9,6 +9,7 @@ from game_instances.services.llm.llm_service import LLMService
 from game.core.action_processor import ActionProcessor
 from world.seeders.world_seeder import WorldSeeder
 from game.models import GameSession
+from game.core.events.memory_builder import GameMemoryBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,6 @@ class GameConsumer(BaseConsumer):
         self.adventure_id = None
         self.character_id = None
 
-        # ✅ KLUCZ: stabilizacja room_name + group_name
         self.room_name = str(self.room_name)
         self.room_group_name = self.get_room_group_name()
 
@@ -58,8 +58,21 @@ class GameConsumer(BaseConsumer):
             if not isinstance(user_input, str) or not user_input.strip():
                 return
 
+            # 🔥 1. MEMORY FIRST (FIXED ORDER)
+            memory = await sync_to_async(GameMemoryBuilder().build)(
+                self.adventure_id,
+                self.room_name,
+                20
+            )
+
+            # 🔥 2. LLM WITH CONTEXT
             llm = LLMService()
-            parsed = llm.parse_player_input(user_input)
+
+            parsed = llm.parse_player_input({
+                "input": user_input,
+                "memory": memory,
+                "world": None
+            })
 
             if not isinstance(parsed, dict) or "action" not in parsed:
                 return
