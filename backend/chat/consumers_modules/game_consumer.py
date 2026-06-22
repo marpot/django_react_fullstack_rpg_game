@@ -112,7 +112,7 @@ class GameConsumer(BaseConsumer):
             "game_event",
             {
                 "subtype": "system",
-                "text": event.get("message", "Game started"),
+                "text": "Game started",
                 "room_id": self.room_name,
                 "event": "game_started",
                 "mode": "adventure"

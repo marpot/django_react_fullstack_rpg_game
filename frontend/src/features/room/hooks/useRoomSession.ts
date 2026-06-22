@@ -18,9 +18,10 @@ export const useRoomSession = (roomId: string) => {
   const [room, setRoom] = useState<any>(null);
   const [characterId, setCharacterId] = useState<number | null>(null);
 
-  // =========================
+  const [world, setWorld] = useState<any | null>(null);
+  const [gameEvents, setGameEvents] = useState<any[]>([]);
+
   // FETCH USER
-  // =========================
   const fetchMe = async () => {
     const res = await api.get<MeResponse>("/accounts/me/");
     const active = res.data.character ?? null;
@@ -38,17 +39,13 @@ export const useRoomSession = (roomId: string) => {
     return res.data;
   };
 
-  // =========================
   // FETCH ROOM
-  // =========================
   const fetchRoom = async () => {
     const res = await getRoomById(roomId);
     setRoom(res.data);
   };
 
-  // =========================
   // INIT
-  // =========================
   useEffect(() => {
     if (!roomId) return;
 
@@ -71,30 +68,44 @@ export const useRoomSession = (roomId: string) => {
     };
   }, [roomId]);
 
-  // =========================
-  // WEBSOCKET → GAME STATE FLOW
-  // =========================
-  useGameSocket(roomId, (data) => {
-    console.log("[useRoomSession WS]", data);
-
+  // WS GAME PIPELINE (JEDNO MIEJSCE PRAWDY)
+  const { send } = useGameSocket(roomId, (data) => {
     if (data.type !== "game_event") return;
+
+    console.log("[WS RAW]", data);
+
+    const text =
+      typeof data.text === "string"
+        ? data.text
+        : typeof data.message === "string"
+        ? data.message
+        : "";
+
+    // STATE UPDATES (bez przerywania pipeline)
+    if (data.event === "world_start") {
+      setWorld(data.world ?? null);
+      setState("in-game");
+    }
 
     if (data.event === "game_started") {
       setState("in-game");
     }
 
-    if (data.event === "world_start") {
-      setState("in-game");
-    }
+    // SINGLE SOURCE OF EVENTS
+    setGameEvents((prev) => [
+      ...prev,
+      {
+        type: data.event,
+        text,
+        raw: data,
+      },
+    ]);
   });
 
-  // =========================
   // ACTIONS
-  // =========================
   const selectCharacter = async (id: number) => {
     await selectActiveCharacter(id);
 
-    // 🔥 WS INIT SOURCE OF TRUTH
     localStorage.setItem("character_id", String(id));
     setCharacterId(id);
 
@@ -107,6 +118,8 @@ export const useRoomSession = (roomId: string) => {
     setState("select-character");
     setActiveCharacter(null);
     setCharacterId(null);
+    setWorld(null);
+    setGameEvents([]);
   };
 
   return {
@@ -117,5 +130,10 @@ export const useRoomSession = (roomId: string) => {
     reset,
     room,
     characterId,
+
+    world,
+    gameEvents,
+
+    sendGame: send,
   };
 };

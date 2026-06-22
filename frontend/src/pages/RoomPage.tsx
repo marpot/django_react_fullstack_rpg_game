@@ -36,27 +36,20 @@ const RoomPage: React.FC = () => {
       .catch((err) => console.error("[ADVENTURES ERROR]", err));
   }, []);
 
-  const {
-    state,
-    activeCharacter,
-    loading,
-    selectCharacter,
-    reset,
-    room,
-  } = useRoomSession(safeRoomId);
+  // ✅ SINGLE SOURCE OF TRUTH
+  const session = useRoomSession(safeRoomId);
 
   const { selectAdventure } = useRoomAdventure(safeRoomId);
 
-  const isOwner = room?.owner === me?.user?.id;
+  const isOwner = session.room?.owner === me?.user?.id;
 
-  // ✅ DODANE: sync UI z backendem (ROOM SOURCE OF TRUTH)
   React.useEffect(() => {
-    if (room?.adventure_id) {
-      setSelectedAdventureId(room.adventure_id);
+    if (session.room?.adventure_id) {
+      setSelectedAdventureId(session.room.adventure_id);
     } else {
       setSelectedAdventureId(null);
     }
-  }, [room?.adventure_id]);
+  }, [session.room?.adventure_id]);
 
   if (!roomId) return <div>Brak pokoju</div>;
   if (!me) return <div>Ładowanie...</div>;
@@ -67,9 +60,7 @@ const RoomPage: React.FC = () => {
 
     setSelectedAdventureId(next);
 
-    if (next === null) {
-      return;
-    }
+    if (next === null) return;
 
     await selectAdventure(next);
   };
@@ -98,29 +89,29 @@ const RoomPage: React.FC = () => {
       <aside className="room-sidebar">
         <h2 className="room-title">🧙 Postacie</h2>
 
-        {state === "select-character" && (
-          <CharacterSelectPanel onSelect={selectCharacter} />
+        {session.state === "select-character" && (
+          <CharacterSelectPanel onSelect={session.selectCharacter} />
         )}
 
-        {state !== "select-character" && (
+        {session.state !== "select-character" && (
           <div className="active-character">
             <h3>🎮 Aktywna postać</h3>
 
-            {loading && <p>Ładowanie...</p>}
+            {session.loading && <p>Ładowanie...</p>}
 
-            {!loading && activeCharacter && (
+            {!session.loading && session.activeCharacter && (
               <>
-                <p><b>{activeCharacter.name}</b></p>
-                <p>Lvl: {activeCharacter.level}</p>
-                <p>HP: {activeCharacter.health}/{activeCharacter.max_health}</p>
-                <p>Mana: {activeCharacter.mana}/{activeCharacter.max_mana}</p>
+                <p><b>{session.activeCharacter.name}</b></p>
+                <p>Lvl: {session.activeCharacter.level}</p>
+                <p>HP: {session.activeCharacter.health}/{session.activeCharacter.max_health}</p>
+                <p>Mana: {session.activeCharacter.mana}/{session.activeCharacter.max_mana}</p>
               </>
             )}
           </div>
         )}
 
-        {state !== "select-character" && (
-          <Button variant="secondary" onClick={reset}>
+        {session.state !== "select-character" && (
+          <Button variant="secondary" onClick={session.reset}>
             🔄 Zmień postać
           </Button>
         )}
@@ -135,13 +126,13 @@ const RoomPage: React.FC = () => {
 
         {error && <div style={{ color: "red" }}>{error}</div>}
 
-        {state === "select-character" && (
+        {session.state === "select-character" && (
           <div className="room-center-placeholder">
             <p>Wybierz postać</p>
           </div>
         )}
 
-        {state === "lobby" && (
+        {session.state === "lobby" && (
           <div className="room-story">
 
             <h2>⏳ Lobby</h2>
@@ -150,9 +141,7 @@ const RoomPage: React.FC = () => {
               <div className="adventure-panel">
                 <h3>📜 Wybór przygody</h3>
 
-                {adventures.length === 0 && (
-                  <p>Brak przygód</p>
-                )}
+                {adventures.length === 0 && <p>Brak przygód</p>}
 
                 <div className="adventure-grid">
                   {adventures.map((adv) => (
@@ -164,22 +153,12 @@ const RoomPage: React.FC = () => {
                       onClick={() => handleSelectAdventure(adv.id)}
                     >
                       <span className="adventure-title">{adv.title}</span>
-
-                      {adv.description && (
-                        <span className="adventure-desc">
-                          {adv.description.slice(0, 80)}
-                        </span>
-                      )}
+                      <span className="adventure-desc">
+                        {adv.description?.slice(0, 80)}
+                      </span>
                     </button>
                   ))}
                 </div>
-
-                {selectedAdventureId && (
-                  <p style={{ marginTop: 10, opacity: 0.7 }}>
-                    📌 Wybrana przygoda:{" "}
-                    {adventures.find(a => a.id === selectedAdventureId)?.title}
-                  </p>
-                )}
               </div>
             )}
 
@@ -196,8 +175,12 @@ const RoomPage: React.FC = () => {
           </div>
         )}
 
-        {state === "in-game" && (
-          <GameWindow roomId={safeRoomId} />
+        {session.state === "in-game" && (
+          <GameWindow
+            world={session.world}
+            gameEvents={session.gameEvents}
+            sendGame={session.sendGame}
+          />
         )}
       </main>
 
