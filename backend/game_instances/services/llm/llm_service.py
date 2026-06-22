@@ -1,6 +1,7 @@
 from .intent_parser import IntentParser
 from .narration_service import NarrationService
 from .llm_client import LLMClient
+import json
 
 class LLMService:
     """
