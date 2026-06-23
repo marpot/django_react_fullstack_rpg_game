@@ -98,7 +98,7 @@ class RoomViewSet(viewsets.ModelViewSet):
         async_to_sync(channel_layer.group_send)(
             f"gameconsumer_{room.id}",
             {
-                "type": "game_event",
+                "type": "game_started",
                 "payload": {
                     "event": "game_started",
                     "room_id": room.id,

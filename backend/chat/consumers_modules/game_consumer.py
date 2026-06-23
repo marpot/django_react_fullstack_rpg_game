@@ -108,6 +108,9 @@ class GameConsumer(BaseConsumer):
 
         self._game_started_sent = True
 
+        if event.get("payload") is not None:
+            event = event["payload"]
+
         adventure_id = event.get("adventure_id")
         if not adventure_id:
             return
@@ -120,7 +123,11 @@ class GameConsumer(BaseConsumer):
         )
 
         llm = LLMService()
-        world = llm.generate_world({"adventure": {"id": adventure_id}})
+
+        # FIX: make LLM call async-safe (avoid blocking event loop)
+        world = await sync_to_async(llm.generate_world)(
+            {"adventure": {"id": adventure_id}}
+        )
 
         if not isinstance(world, dict):
             world = {
@@ -139,20 +146,16 @@ class GameConsumer(BaseConsumer):
             "game_event",
             {
                 "subtype": "world_start",
+                "event": "game_started",
                 "text": world.get("intro", "A new world begins..."),
                 "world": world,
-                "room_id": self.room_name,
-                "event": "world_start"
+                "room_id": self.room_name
             }
         )
 
     async def game_event(self, event):
-        """
-        FIX: unified event format (no payload wrapper)
-        """
         payload = event.get("payload", None)
 
-        # BACKWARD COMPATIBILITY: accept both formats
         if payload is not None:
             data = payload
         else:

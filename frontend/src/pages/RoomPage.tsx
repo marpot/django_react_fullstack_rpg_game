@@ -35,7 +35,7 @@ const RoomPage: React.FC = () => {
       const res = await api.get("/world/adventures");
       setAdventures(res.data);
     } catch (err) {
-      console.error("[ADVENTURES ERROR]", err)
+      console.error("[ADVENTURES ERROR]", err);
     }
   };
 
@@ -71,6 +71,7 @@ const RoomPage: React.FC = () => {
       await loadAdventures();
 
       setSelectedAdventureId(adventure.id);
+
       await selectAdventure(adventure.id);
 
       setError(null);

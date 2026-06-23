@@ -22,7 +22,8 @@ export const useRoomSession = (roomId: string) => {
   const [gameEvents, setGameEvents] = useState<any[]>([]);
 
   const normalizeEvent = (data: any) => {
-    const event = data?.event || data?.subtype || data?.type || "unknown";
+    const event =
+      data?.event || data?.subtype || data?.type || "unknown";
 
     const text =
       typeof data?.text === "string"
@@ -34,7 +35,6 @@ export const useRoomSession = (roomId: string) => {
     return { event, text, raw: data };
   };
 
-  // FETCH USER
   const fetchMe = async () => {
     const res = await api.get<MeResponse>("/accounts/me/");
     const active = res.data.character ?? null;
@@ -52,13 +52,11 @@ export const useRoomSession = (roomId: string) => {
     return res.data;
   };
 
-  // FETCH ROOM
   const fetchRoom = async () => {
     const res = await getRoomById(roomId);
     setRoom(res.data);
   };
 
-  // INIT
   useEffect(() => {
     if (!roomId) return;
 
@@ -66,7 +64,6 @@ export const useRoomSession = (roomId: string) => {
 
     const run = async () => {
       setLoading(true);
-
       try {
         await Promise.all([fetchMe(), fetchRoom()]);
       } finally {
@@ -81,22 +78,23 @@ export const useRoomSession = (roomId: string) => {
     };
   }, [roomId]);
 
-  // WS GAME PIPELINE
   const { send } = useGameSocket(roomId, (data) => {
     if (data?.type !== "game_event") return;
 
-    const { event, text, raw } = normalizeEvent(data);
+    const payload = data?.payload ?? data;
 
-    console.log("[WS GAME EVENT]", { event, raw });
+    const { event, text, raw } = normalizeEvent(payload);
 
-    // WORLD START → natychmiast game mode
-    if (event === "world_start") {
-      setWorld(data.world ?? raw.world ?? null);
-      setState("in-game");
-    }
+    console.log("[WS GAME EVENT]", { event, payload, raw });
 
-    // GAME START → fallback switch
+    // 🔥 FIX: world może być w payload albo raw
+    const world =
+      payload?.world ?? data?.payload?.world ?? data?.world ?? null;
+
     if (event === "game_started") {
+      console.log("[SESSION WORLD]", world);
+
+      setWorld(world);
       setState("in-game");
     }
 
@@ -110,7 +108,6 @@ export const useRoomSession = (roomId: string) => {
     ]);
   });
 
-  // ACTIONS
   const selectCharacter = async (id: number) => {
     await selectActiveCharacter(id);
 
@@ -138,10 +135,8 @@ export const useRoomSession = (roomId: string) => {
     reset,
     room,
     characterId,
-
     world,
     gameEvents,
-
     sendGame: send,
   };
 };

@@ -37,7 +37,11 @@ export const useGameSocket = (
 
     socket.onmessage = (event) => {
       try {
-        onMessage(JSON.parse(event.data));
+        const data = JSON.parse(event.data);
+
+        console.log("[WS RAW MESSAGE]", data);
+
+        onMessage(data);
       } catch (e) {
         console.error("[useGameSocket] invalid JSON", e);
       }
