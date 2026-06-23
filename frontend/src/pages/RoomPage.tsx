@@ -30,14 +30,21 @@ const RoomPage: React.FC = () => {
 
   const isOwner = session.room?.owner === me?.user?.id;
 
+  const loadAdventures = async () => {
+    try {
+      const res = await api.get("/world/adventures");
+      setAdventures(res.data);
+    } catch (err) {
+      console.error("[ADVENTURES ERROR]", err)
+    }
+  };
+
   React.useEffect(() => {
     api.get("/accounts/me/").then((res) => setMe(res.data));
   }, []);
 
   React.useEffect(() => {
-    api.get("/world/adventures/")
-      .then((res) => setAdventures(res.data))
-      .catch((err) => console.error("[ADVENTURES ERROR]", err));
+    loadAdventures();
   }, []);
 
   React.useEffect(() => {
@@ -60,6 +67,8 @@ const RoomPage: React.FC = () => {
     try {
       const res = await api.post("/world/adventures/generate/");
       const adventure = res.data;
+
+      await loadAdventures();
 
       setSelectedAdventureId(adventure.id);
       await selectAdventure(adventure.id);
