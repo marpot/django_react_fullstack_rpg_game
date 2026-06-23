@@ -21,9 +21,47 @@ function getEventClass(e: any) {
 function getEventText(e: any) {
   if (typeof e === "string") return e;
 
-  if (e.type === "narration") return e.text;
+  if (typeof e.text === "string" && e.text.trim().length > 0) {
+    return e.text;
+  }
 
-  return e.text || e.message || e.raw?.text || JSON.stringify(e);
+  if (typeof e.payload?.text === "string" && e.payload.text.trim().length > 0) {
+    return e.payload.text;
+  }
+
+  if (typeof e.payload?.data?.text === "string" && e.payload.data.text.trim().length > 0) {
+    return e.payload.data.text;
+  }
+
+  if (typeof e.payload?.result?.text === "string" && e.payload.result.text.trim().length > 0) {
+    return e.payload.result.text;
+  }
+
+  if (typeof e.payload?.result?.message === "string" && e.payload.result.message.trim().length > 0) {
+    return e.payload.result.message;
+  }
+
+  if (e.world?.intro) return e.world.intro;
+  if (e.world?.description) return e.world.description;
+  if (e.payload?.world?.intro) return e.payload.world.intro;
+  if (e.payload?.world?.description) return e.payload.world.description;
+
+  if (e.payload?.result?.winner) {
+    return `Zwycięzca: ${e.payload.result.winner}`;
+  }
+
+  if (e.payload?.result) {
+    return JSON.stringify(e.payload.result);
+  }
+
+  if (e.payload?.data) {
+    return JSON.stringify(e.payload.data);
+  }
+
+  if (e.payload?.event) return e.payload.event;
+  if (e.type) return String(e.type);
+
+  return e.message || e.payload || JSON.stringify(e);
 }
 
 export default function GameWindow({
@@ -65,8 +103,8 @@ export default function GameWindow({
 
       {world && (
         <div className="world">
-          <h2>{world.name}</h2>
-          <p>{world.description}</p>
+          <h2>{world.name || world.title || world.intro || "World"}</h2>
+          <p>{world.description || world.situation || world.intro || ""}</p>
         </div>
       )}
 

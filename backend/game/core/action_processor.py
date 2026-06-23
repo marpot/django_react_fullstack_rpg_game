@@ -58,7 +58,10 @@ class ActionProcessor:
         enemy_name = parsed_input.get("target")
         adventure_id = parsed_input.get("adventure")
 
-        enemy_name = enemy_name.lower().strip() if enemy_name else None
+        if isinstance(enemy_name, str):
+            enemy_name = enemy_name.lower().strip().rstrip(".,!?" )
+        else:
+            enemy_name = None
 
         logger.info(f"[COMBAT] START room={room} user_id={user_id} enemy={enemy_name}")
 
@@ -68,19 +71,37 @@ class ActionProcessor:
         room_key = self.state_manager.normalize_room_id(room)
         room_obj = self.state_manager.get_or_create_room(room_key)
 
-        if not room_obj.enemies:
+        if not room_obj.enemies and adventure_id:
             logger.warning("[SEED GUARD] empty enemies")
-
-            if adventure_id:
-                from world.seeders.world_seeder import WorldSeeder
-                WorldSeeder(self.state_manager).seed_from_adventure(adventure_id, room_key)
-                room_obj = self.state_manager.get_room(room_key)
+            from world.seeders.world_seeder import WorldSeeder
+            WorldSeeder(self.state_manager).seed_from_adventure(adventure_id, room_key)
+            room_obj = self.state_manager.get_or_create_room(room_key)
 
         attacker_runtime = self._get_or_create_runtime_player(room_obj, user_id)
-        defender_runtime = self.resolver.resolve_enemy(room_key, enemy_name)
+        if not attacker_runtime:
+            return {
+                "action": "attack",
+                "error": "Missing attacker entity",
+                "text": "Nie znaleziono twojej postaci w stanie gry.",
+            }
 
-        if not attacker_runtime or not defender_runtime:
-            return {"action": "attack", "error": "Missing combat entities"}
+        defender_runtime = self.resolver.resolve_enemy(room_key, enemy_name)
+        if not defender_runtime and adventure_id:
+            from world.seeders.world_seeder import WorldSeeder
+            WorldSeeder(self.state_manager).seed_from_adventure(adventure_id, room_key)
+            room_obj = self.state_manager.get_or_create_room(room_key)
+            defender_runtime = self.resolver.resolve_enemy(room_key, enemy_name)
+
+        if not defender_runtime:
+            return {
+                "action": "attack",
+                "error": "Missing combat entities",
+                "text": "Nie znaleziono przeciwnika do ataku.",
+                "result": {
+                    "requested_enemy": enemy_name,
+                    "available_enemies": list(room_obj.enemies.keys()),
+                },
+            }
 
         result = self.combat_service.resolve(attacker_runtime, defender_runtime)
 

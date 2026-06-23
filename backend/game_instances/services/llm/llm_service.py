@@ -43,9 +43,13 @@ class LLMService:
     def generate_world(self, context: dict) -> dict:
         adventure = context.get("adventure", {})
 
-        title = adventure.get("title", "unknown world")
+        title = adventure.get("title", "Unknown World")
+        description = adventure.get("description", "A strange and mysterious land.")
 
         return {
+            "name": title,
+            "title": title,
+            "description": description,
             "intro": f"You enter {title}, a land filled with danger and mystery.",
             "situation": "The air is heavy. The world reacts to your presence.",
             "rules": {

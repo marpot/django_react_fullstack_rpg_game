@@ -81,25 +81,25 @@ class GameConsumer(BaseConsumer):
 
             result = await sync_to_async(self.processor.process)(parsed)
 
-            await self.send_event(
-                "game_event",
+            await self._send_game_event(
+                "action_result",
                 {
-                    "subtype": "action_result",
-                    "text": result.get("text", str(result)),
                     "data": result,
-                    "user": self.scope["user"].username
-                }
+                    "user": self.scope["user"].username,
+                },
+                text=result.get("text", str(result))
             )
 
         except Exception as e:
             logger.error(f"GAME ERROR: {repr(e)}", exc_info=True)
 
-            await self.send_event(
-                "game_event",
+            await self._send_game_event(
+                "error",
                 {
-                    "subtype": "error",
-                    "text": str(e)
-                }
+                    "reason": "exception",
+                    "details": str(e),
+                },
+                text=str(e)
             )
 
     async def game_started(self, event):
@@ -117,6 +117,9 @@ class GameConsumer(BaseConsumer):
 
         self.adventure_id = adventure_id
 
+        # ensure the room state exists before seeding and before generating world
+        await sync_to_async(self.state_manager.get_or_create_room)(self.room_name)
+
         await sync_to_async(self.seeder.seed_from_adventure)(
             adventure_id,
             self.room_name
@@ -124,7 +127,6 @@ class GameConsumer(BaseConsumer):
 
         llm = LLMService()
 
-        # FIX: make LLM call async-safe (avoid blocking event loop)
         world = await sync_to_async(llm.generate_world)(
             {"adventure": {"id": adventure_id}}
         )
@@ -142,42 +144,73 @@ class GameConsumer(BaseConsumer):
 
         self._world_sent = True
 
-        await self.send_event(
-            "game_event",
+        await self._send_game_event(
+            "game_started",
             {
-                "subtype": "world_start",
-                "event": "game_started",
-                "text": world.get("intro", "A new world begins..."),
                 "world": world,
-                "room_id": self.room_name
-            }
+                "room_id": self.room_name,
+                "adventure_id": adventure_id,
+            },
+            text=world.get("intro", "A new world begins...")
         )
 
+    async def _send_game_event(self, event_name: str, payload: dict | None = None, text: str | None = None):
+        payload = payload or {}
+
+        if text is not None:
+            payload["text"] = text
+
+        payload["event"] = event_name
+
+        await self.send_event("game_event", payload)
+
     async def game_event(self, event):
-        payload = event.get("payload", None)
+        payload = event.get("payload") or {}
+        const_event = payload.get("event") or event.get("event") or "unknown"
+        text = payload.get("text") or event.get("text")
 
-        if payload is not None:
-            data = payload
-        else:
-            data = {
-                k: v for k, v in event.items()
-                if k != "type"
-            }
+        clean_payload = {
+            k: v
+            for k, v in payload.items()
+            if k not in {"text", "event"}
+        }
 
-        await self.send(text_data=json.dumps({
+        output = {
             "type": "game_event",
-            **data
-        }))
+            "event": const_event,
+            "payload": clean_payload,
+        }
+
+        if isinstance(text, str) and text:
+            output["text"] = text
+
+        await self.send(text_data=json.dumps(output))
 
     @sync_to_async
     def _resolve_character(self):
         from accounts.models import PlayerCharacter
+        from game.state.runtime.models import Player as RuntimePlayer
 
         user = self.scope.get("user")
         player = PlayerCharacter.objects.filter(user=user).first()
 
         if player:
             self.character_id = player.id
+
+            room = self.state_manager.get_or_create_room(self.room_name)
+            runtime_player = RuntimePlayer(
+                id=player.user_id,
+                name=player.name,
+                hp=player.health,
+                max_hp=player.health,
+                attack_bonus=getattr(player, "attack_bonus", 0),
+                damage_die=getattr(player, "damage_die", 6),
+                damage_bonus=getattr(player, "damage_bonus", 0),
+                defense=getattr(player, "defense", 0),
+            )
+
+            room.players[player.user_id] = runtime_player
+            room.players[str(player.user_id)] = runtime_player
         else:
             logger.error("[CHARACTER RESOLVE FAILED]")
 

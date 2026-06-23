@@ -20,8 +20,10 @@ class GameStartService:
         self.notifier.emit(room_id, {
             "type": "game_event",
             "event": "world_start",
-            "world": room.world,
-            "intro": intro,
+            "payload": {
+                "world": room.world,
+                "intro": intro,
+            },
         })
 
         return room

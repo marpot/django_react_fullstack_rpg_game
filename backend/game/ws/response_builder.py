@@ -3,9 +3,11 @@ class ResponseBuilder:
     def build_action_response(self, parsed, result):
         return {
             "type": "game_event",
-            "subtype": "action_result",
-            "action": parsed,
-            "result": result,
+            "event": "action_result",
+            "payload": {
+                "action": parsed,
+                "result": result,
+            },
         }
 
     def build_state_response(self, state):

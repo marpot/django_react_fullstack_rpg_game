@@ -22,17 +22,43 @@ export const useRoomSession = (roomId: string) => {
   const [gameEvents, setGameEvents] = useState<any[]>([]);
 
   const normalizeEvent = (data: any) => {
+    const payload = data?.payload ?? {};
     const event =
-      data?.event || data?.subtype || data?.type || "unknown";
+      payload?.event || data?.event || data?.subtype || data?.type || "unknown";
 
     const text =
-      typeof data?.text === "string"
+      typeof payload?.text === "string"
+        ? payload.text
+        : typeof data?.text === "string"
         ? data.text
+        : typeof payload?.data?.text === "string"
+        ? payload.data.text
+        : typeof payload?.result?.text === "string"
+        ? payload.result.text
         : typeof data?.message === "string"
         ? data.message
         : "";
 
-    return { event, text, raw: data };
+    const normalized: any = {
+      event,
+      type: event,
+      text,
+      payload,
+    };
+
+    if (payload?.world) {
+      normalized.world = payload.world;
+    }
+
+    if (payload?.room_id) {
+      normalized.room_id = payload.room_id;
+    }
+
+    if (payload?.adventure_id) {
+      normalized.adventure_id = payload.adventure_id;
+    }
+
+    return normalized;
   };
 
   const fetchMe = async () => {
@@ -81,17 +107,20 @@ export const useRoomSession = (roomId: string) => {
   const { send } = useGameSocket(roomId, (data) => {
     if (data?.type !== "game_event") return;
 
-    const payload = data?.payload ?? data;
+    const { type: event, text, payload: normalizedPayload, world: normalizedWorld } = normalizeEvent(data);
 
-    const { event, text, raw } = normalizeEvent(payload);
+    console.log("[WS GAME EVENT]", { event, payload: normalizedPayload, world: normalizedWorld });
 
-    console.log("[WS GAME EVENT]", { event, payload, raw });
-
-    // 🔥 FIX: world może być w payload albo raw
-    const world =
-      payload?.world ?? data?.payload?.world ?? data?.world ?? null;
+    const world = normalizedWorld ?? normalizedPayload?.world ?? data?.payload?.world ?? data?.world ?? null;
+    let eventText = text;
 
     if (event === "game_started") {
+      eventText =
+        eventText ||
+        world?.intro ||
+        world?.description ||
+        "The adventure has begun.";
+
       console.log("[SESSION WORLD]", world);
 
       setWorld(world);
@@ -102,8 +131,9 @@ export const useRoomSession = (roomId: string) => {
       ...prev,
       {
         type: event,
-        text,
-        raw,
+        text: eventText,
+        payload: normalizedPayload,
+        world,
       },
     ]);
   });
