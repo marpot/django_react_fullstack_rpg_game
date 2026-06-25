@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 
 export const useGameSocket = (
   roomId: string,
-  onMessage: (data: any) => void
+  onMessage: (data: any) => void,
+  resetKey?: number
 ) => {
   const ws = useRef<WebSocket | null>(null);
   const initialized = useRef(false);
@@ -10,7 +11,15 @@ export const useGameSocket = (
 
   useEffect(() => {
     if (!roomId) return;
-    if (initialized.current || connecting.current) return;
+
+    // 🔥 pełny reset po zmianie resetKey / roomId
+    if (ws.current) {
+      ws.current.close();
+      ws.current = null;
+    }
+
+    initialized.current = false;
+    connecting.current = false;
 
     connecting.current = true;
 
@@ -63,7 +72,7 @@ export const useGameSocket = (
       initialized.current = false;
       connecting.current = false;
     };
-  }, [roomId]);
+  }, [roomId, resetKey]);
 
   const send = (message: any) => {
     if (ws.current?.readyState !== WebSocket.OPEN) return;

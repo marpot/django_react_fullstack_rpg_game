@@ -21,6 +21,9 @@ export const useRoomSession = (roomId: string) => {
   const [world, setWorld] = useState<any | null>(null);
   const [gameEvents, setGameEvents] = useState<any[]>([]);
 
+  // 🔥 RESET KEY DO SOCKETA
+  const [socketResetKey, setSocketResetKey] = useState(0);
+
   const normalizeEvent = (data: any) => {
     const payload = data?.payload ?? {};
     const event =
@@ -107,11 +110,20 @@ export const useRoomSession = (roomId: string) => {
   const { send } = useGameSocket(roomId, (data) => {
     if (data?.type !== "game_event") return;
 
-    const { type: event, text, payload: normalizedPayload, world: normalizedWorld } = normalizeEvent(data);
+    const {
+      type: event,
+      text,
+      payload: normalizedPayload,
+      world: normalizedWorld,
+    } = normalizeEvent(data);
 
-    console.log("[WS GAME EVENT]", { event, payload: normalizedPayload, world: normalizedWorld });
+    const world =
+      normalizedWorld ??
+      normalizedPayload?.world ??
+      data?.payload?.world ??
+      data?.world ??
+      null;
 
-    const world = normalizedWorld ?? normalizedPayload?.world ?? data?.payload?.world ?? data?.world ?? null;
     let eventText = text;
 
     if (event === "game_started") {
@@ -120,8 +132,6 @@ export const useRoomSession = (roomId: string) => {
         world?.intro ||
         world?.description ||
         "The adventure has begun.";
-
-      console.log("[SESSION WORLD]", world);
 
       setWorld(world);
       setState("in-game");
@@ -136,7 +146,7 @@ export const useRoomSession = (roomId: string) => {
         world,
       },
     ]);
-  });
+  }, socketResetKey);
 
   const selectCharacter = async (id: number) => {
     await selectActiveCharacter(id);
@@ -155,6 +165,10 @@ export const useRoomSession = (roomId: string) => {
     setCharacterId(null);
     setWorld(null);
     setGameEvents([]);
+
+    setSocketResetKey((prev) => prev + 1);
+
+    fetchRoom();
   };
 
   return {
