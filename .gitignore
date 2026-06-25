@@ -37,6 +37,7 @@ db.sqlite3
 node_modules/
 dist/
 build/
+.npmrc
 
 # =========================
 # SYSTEM
@@ -52,3 +53,4 @@ Thumbs.db
 planAdventureUi.prompt.md
 repomix-output.xml
 .github/workflows/
+
