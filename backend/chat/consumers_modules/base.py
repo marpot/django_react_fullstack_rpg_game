@@ -45,7 +45,6 @@ class BaseConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
-   
     async def send_event(self, event_type: str, payload: dict):
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -54,6 +53,21 @@ class BaseConsumer(AsyncWebsocketConsumer):
                 "payload": payload
             }
         )
+
+    async def _send_game_event(self, event_type: str, payload: dict, text: str = None):
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "game_event",
+                "event": event_type,
+                "payload": payload,
+                "text": text,
+            }
+        )
+
+    # ✅ MUSI ISTNIEĆ (inaczej frontend NIC nie dostanie)
+    async def game_event(self, event):
+        await self.send(text_data=json.dumps(event))
 
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
