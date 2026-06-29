@@ -1,5 +1,6 @@
 from game_instances.services.llm.core.llm_client import LLMClient
 
+
 class NarrationService:
     """
     Generuje narrację RPG (story layer).
@@ -42,7 +43,7 @@ WORLD:
 
         llm_output = self.client.generate(system_prompt, user_prompt)
 
-        if llm_output:
+        if llm_output and llm_output != "{}":
             return llm_output
 
         return f"Zdarzenie ({event_type}) się rozwija."

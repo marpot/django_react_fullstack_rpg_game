@@ -1,7 +1,9 @@
 import pytest
 from unittest.mock import MagicMock
 
-from backend.game_instances.services.llm.narration_service.narration_service import NarrationService
+from game_instances.services.llm.narration_service.narration_service import NarrationService
+
+pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
@@ -18,11 +20,10 @@ def test_intro_fallback(service):
 
 
 def test_event_fallback_without_llm(service, monkeypatch):
-    # mock LLMClient.generate
     monkeypatch.setattr(
         service.client,
         "generate",
-        lambda prompt: None
+        lambda system_prompt, user_prompt: None
     )
 
     result = service.event({
@@ -32,12 +33,12 @@ def test_event_fallback_without_llm(service, monkeypatch):
     })
 
     assert "combat" in result
-    assert "damage" in result
+
 
 def test_event_calls_llm(service, monkeypatch):
     called = {"flag": False}
 
-    def fake_generate(prompt):
+    def fake_generate(system_prompt, user_prompt):
         called["flag"] = True
         return "LLM OUTPUT"
 

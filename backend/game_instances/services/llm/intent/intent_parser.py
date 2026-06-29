@@ -3,6 +3,15 @@ class IntentParser:
     Zamienia input gracza na akcję gry.
     """
 
+    ALLOWED_ACTIONS = {
+        "attack",
+        "move",
+        "inspect",
+        "talk",
+        "defend",
+        "use_item",
+    }
+
     def parse(self, player_input) -> dict:
         text = ""
 
@@ -24,24 +33,33 @@ class IntentParser:
         def has(*keywords: str) -> bool:
             return any(k in text for k in keywords)
 
+        action = "unknown"
+        target = None
+        method = None
+
         if has("attack", "atak", "walcz", "fight"):
-            return {"action": "attack", "target": self._target(text)}
+            action = "attack"
+        elif has("talk", "porozmawiaj", "mów"):
+            action = "talk"
+        elif has("move", "go", "idź", "chodź"):
+            action = "move"
+        elif has("inspect", "look", "sprawdź", "rozejrzyj"):
+            action = "inspect"
 
-        if has("talk", "porozmawiaj", "mów"):
-            return {"action": "talk", "target": self._target(text)}
+        # bezpieczeństwo
+        if action not in self.ALLOWED_ACTIONS:
+            return {
+                "action": "unknown",
+                "target": None,
+                "method": None,
+            }
 
-        if has("move", "go", "idź", "chodź"):
-            return {"action": "move", "target": self._target(text)}
-
-        if has("inspect", "look", "sprawdź", "rozejrzyj"):
-            return {"action": "inspect", "target": "environment"}
+        words = text.split()
+        if len(words) > 1:
+            target = words[-1]
 
         return {
-            "action": "unknown",
-            "target": None,
-            "error": "unknown_intent_fallback",
+            "action": action,
+            "target": target,
+            "method": method,
         }
-
-    def _target(self, text: str):
-        words = text.split()
-        return words[-1] if len(words) > 1 else None

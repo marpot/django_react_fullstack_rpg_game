@@ -1,5 +1,7 @@
 from openai import OpenAI
 import os
+import re
+import json
 
 
 class LLMClient:
@@ -14,11 +16,53 @@ class LLMClient:
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
-                {"role": "system", "content": system_prompt},
+                {
+                    "role": "system",
+                    "content": (
+                        system_prompt
+                        + "\n"
+                        + """
+You are STRICT JSON intent parser.
+
+Return ONLY this schema:
+
+{
+  "action": "attack|move|inspect|talk|defend|use_item",
+  "target": string or null,
+  "method": string or null
+}
+
+RULES:
+- NO extra fields
+- NO hp
+- NO damage
+- NO result
+- NO message
+- ONLY JSON
+"""
+                    )
+                },
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.2,
             max_tokens=200,
         )
 
-        return response.choices[0].message.content
+        raw = response.choices[0].message.content or ""
+
+        # wyciągnij JSON
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
+        if not match:
+            return "{}"
+
+        try:
+            parsed = json.loads(match.group(0))
+        except json.JSONDecodeError:
+            return "{}"
+
+        # 🔥 HARD FILTER (to jest klucz)
+        return json.dumps({
+            "action": parsed.get("action"),
+            "target": parsed.get("target"),
+            "method": parsed.get("method"),
+        })

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class CombatResult:
     attacker_hit: bool
@@ -17,7 +18,10 @@ class CombatService:
         attacker_hit, attacker_damage = self._attack(attacker, defender)
         defender_hit, defender_damage = self._attack(defender, attacker)
 
-        winner = self._resolve_winner(attacker,defender)
+        # ❌ NIE MUTUJEMY STANU TU
+        # HP zmienia ActionProcessor
+
+        winner = self._resolve_winner(attacker, defender)
 
         return CombatResult(
             attacker_hit=attacker_hit,
@@ -36,7 +40,6 @@ class CombatService:
             return "defender"
         return None
 
-
     def _attack(self, attacker, defender):
         roll = self.dice.roll(20)
         total_attack = roll + attacker.attack_bonus
@@ -45,11 +48,8 @@ class CombatService:
 
         if not hit:
             return False, 0
-        
+
         raw_damage = self.dice.roll(attacker.damage_die) + attacker.damage_bonus
-
         mitigated = max(0, raw_damage - getattr(defender, "armor", 0))
-
-        defender.hp = max(0, defender.hp - mitigated)
 
         return True, mitigated
