@@ -31,6 +31,7 @@ def test_npcs_endpoint():
 
     session = GameSession.objects.create(
         player=player,
+        adventure=adventure,
         progress={
             "adventure_id": adventure.id
     }

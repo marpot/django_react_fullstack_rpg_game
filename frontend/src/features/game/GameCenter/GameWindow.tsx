@@ -1,103 +1,82 @@
 import { useEffect, useRef, useState } from "react";
-import { useGameSocket } from "../hooks/useGameSocket";
 import "@/styles/features/game/GameWindow.scss";
 
 type Props = {
-  roomId: string;
+  world: any;
+  gameEvents: any[];
+  sendGame: (data: any) => void;
 };
 
-type GameEvent = any;
+function getEventClass(type: string) {
+  switch (type) {
+    case "game_started":
+      return "system";
+    case "action_result":
+      return "player";
+    case "error":
+      return "error";
+    default:
+      return "narration";
+  }
+}
 
-export default function GameWindow({ roomId }: Props) {
-  const [gameLog, setGameLog] = useState<GameEvent[]>([]);
+export default function GameWindow({
+  world,
+  gameEvents,
+  sendGame,
+}: Props) {
   const [input, setInput] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const logEndRef  = useRef<HTMLDivElement | null>(null);
+  const logEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [gameLog]);
-
-  const { send: sendGame } = useGameSocket(roomId, (msg) => {
-    console.log("[GAME WS]", msg);
-
-    if (msg.type === "game_event") {
-      if (msg.subtype === "error") {
-        setError(msg.text);
-        return;
-      }
-
-      if (msg.event === "game_started") {
-        setError(null);
-      }
-
-      setGameLog((prev) => [...prev, msg]);
-      return;
-    }
-
-    setGameLog((prev) => [...prev, msg]);
-  });
+  }, [gameEvents]);
 
   const handleSend = () => {
     if (!input.trim()) return;
 
-    const action = {
+    sendGame({
       type: "player_action",
       message: input,
-    };
+    });
 
-    sendGame(action);
-
-    setGameLog((prev) => [...prev, action]);
     setInput("");
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      handleSend();
-    }
   };
 
   return (
     <div className="gameWindow">
-      {/* HEADER */}
       <div className="header">
-        <div style={{ fontWeight: 600, letterSpacing: "1px" }}>
-          🧙 ELDORIA — GAME WINDOW
-        </div>
-
+        <div>🧙 ELDORIA</div>
         <div style={{ fontSize: 12, opacity: 0.6 }}>
-          real-time RPG engine
+          real-time engine
         </div>
       </div>
 
-      {error && <div className="error">{error}</div>}
+      {world && (
+        <div className="world">
+          <h2>{world.name || world.title || world.intro || "World"}</h2>
+          <p>{world.description || world.lore?.situation || world.situation || world.intro || ""}</p>
+        </div>
+      )}
 
-      {/* WORLD FEED */}
       <div className="log">
-        {gameLog.map((e, i) => (
-          <div key={i} style={{ marginBottom: 8 }}>
-            {typeof e === "string"
-              ? e
-              : e.message || JSON.stringify(e)}
+        {gameEvents.map((e, i) => (
+          <div key={i} className={`log-line ${getEventClass(e.type)}`}>
+            {e.text}
           </div>
         ))}
 
         <div ref={logEndRef} />
       </div>
 
-      {/* INPUT BAR */}
       <div className="inputBar">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type action... (e.g. look around)"
+          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          placeholder="Type action..."
         />
-
-        <button onClick={handleSend}>
-          Send
-        </button>
+        <button onClick={handleSend}>Send</button>
       </div>
     </div>
   );

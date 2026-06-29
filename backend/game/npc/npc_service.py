@@ -3,7 +3,7 @@
 import logging
 from game.npc.npc_models import NPC
 from game.npc.npc_registry import NPCRegistry
-from game_instances.services.llm.llm_client import LLMClient
+from game_instances.services.llm.core.llm_client import LLMClient
 logger = logging.getLogger(__name__)
 
 

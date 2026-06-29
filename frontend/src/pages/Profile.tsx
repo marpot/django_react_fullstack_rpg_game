@@ -20,26 +20,28 @@ const Profile: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="profile-loading">Loading...</div>;
+  if (loading) return <div className="profile-loading">Ładowanie...</div>;
   if (error) return <div className="profile-error">{error}</div>;
-  if (!profile) return <div className="profile-error">No profile data</div>;
+  if (!profile) return <div className="profile-error">Brak danych profilu</div>;
 
   return (
     <div className="profile-page">
 
       <div className="profile-header">
         <h1>{profile.username}</h1>
-        <button onClick={() => navigate("/dashboard")}>Back</button>
+        <button onClick={() => navigate("/dashboard")}>
+          Powrót do panelu
+        </button>
       </div>
 
-      {/* ACTIVE CHARACTER */}
+      {/* AKTYWNA POSTAĆ */}
       <div className="profile-card">
-        <h3>Active Character</h3>
+        <h3>Aktywna postać</h3>
 
         {profile.activeCharacter ? (
           <>
             <p><b>{profile.activeCharacter.name}</b></p>
-            <p>Level: {profile.activeCharacter.level}</p>
+            <p>Poziom: {profile.activeCharacter.level}</p>
             <p>
               HP: {profile.activeCharacter.health}/{profile.activeCharacter.max_health}
             </p>
@@ -48,13 +50,13 @@ const Profile: React.FC = () => {
             </p>
           </>
         ) : (
-          <p>No active character</p>
+          <p>Brak aktywnej postaci</p>
         )}
       </div>
 
-      {/* CHARACTERS GRID */}
+      {/* POSTACIE */}
       <div className="profile-card">
-        <h3>Characters</h3>
+        <h3>Postacie</h3>
 
         <div className="character-grid">
           {profile.characters.map((c) => {
@@ -69,7 +71,7 @@ const Profile: React.FC = () => {
                 <div className="char-name">{c.name}</div>
 
                 <div className="char-meta">
-                  <span>Lvl {c.level}</span>
+                  <span>Poziom {c.level}</span>
                 </div>
 
                 <div className="char-stats">
@@ -81,21 +83,21 @@ const Profile: React.FC = () => {
         </div>
       </div>
 
-      {/* STATS */}
+      {/* STATYSTYKI */}
       <div className="profile-grid">
         <div className="profile-card">
-          <h3>Battle Stats</h3>
+          <h3>Statystyki walk</h3>
 
-          <p>Played: {profile.stats.gamesPlayed}</p>
-          <p>Wins: {profile.stats.gamesWon}</p>
-          <p>Losses: {profile.stats.gamesLost}</p>
-          <p>Win rate: {profile.stats.winRate}%</p>
+          <p>Gry: {profile.stats.gamesPlayed}</p>
+          <p>Zwycięstwa: {profile.stats.gamesWon}</p>
+          <p>Porażki: {profile.stats.gamesLost}</p>
+          <p>Współczynnik wygranych: {profile.stats.winRate}%</p>
         </div>
 
         <div className="profile-card">
-          <h3>Rank Info</h3>
-          <p>Rank: Adventurer</p>
-          <p>Status: Active</p>
+          <h3>Ranga</h3>
+          <p>Ranga: Adventurer</p>
+          <p>Status: Aktywny</p>
         </div>
       </div>
 

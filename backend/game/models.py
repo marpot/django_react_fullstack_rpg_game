@@ -8,6 +8,13 @@ class GameSession(models.Model):
         on_delete=models.CASCADE,
         related_name="sessions"
     )
+
+    adventure = models.ForeignKey(
+        'world.Adventure',
+        on_delete=models.CASCADE,
+        related_name="sessions"
+    )
+
     progress = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -15,6 +15,9 @@ class Player:
     damage_bonus: int
     defense: int
 
+    location: str = "start"
+    armor: int = 0
+
 
 # =========================
 # ENEMY (runtime entity)

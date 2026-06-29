@@ -11,53 +11,73 @@ import "@/styles/pages/room-page.scss";
 import Button from "@/components/ui/Button/Button";
 
 import { useRoomSession } from "@/features/room/hooks/useRoomSession";
-import { useGameSocket } from "@/features/game/hooks/useGameSocket";
 import { useRoomAdventure } from "@/features/room/hooks/useRoomAdventure";
 
 const RoomPage: React.FC = () => {
   const params = useParams<{ roomId: string }>();
   const roomId = React.useMemo(() => params.roomId, [params.roomId]);
-
-  const safeRoomId = React.useMemo(() => {
-    return roomId ? String(roomId) : "";
-  }, [roomId]);
+  const safeRoomId = React.useMemo(() => String(roomId || ""), [roomId]);
 
   const navigate = useNavigate();
+
   const [me, setMe] = React.useState<any>(null);
   const [error, setError] = React.useState<string | null>(null);
-
   const [adventures, setAdventures] = React.useState<any[]>([]);
+
+  // 🔥 LOCAL UI STATE (fix na highlight)
+  const [selectedAdventureId, setSelectedAdventureId] = React.useState<number | null>(null);
+
+  const session = useRoomSession(safeRoomId);
+  const { selectAdventure } = useRoomAdventure(safeRoomId);
+
+  const isOwner = session.room?.owner === me?.user?.id;
+
+  const loadAdventures = async () => {
+    try {
+      const res = await api.get("/world/adventures");
+      setAdventures(res.data);
+    } catch (err) {
+      console.error("[ADVENTURES ERROR]", err);
+    }
+  };
 
   React.useEffect(() => {
     api.get("/accounts/me/").then((res) => setMe(res.data));
   }, []);
 
   React.useEffect(() => {
-    api.get("/world/adventures/")
-      .then((res) => setAdventures(res.data))
-      .catch((err) => console.error("[ADVENTURES ERROR]", err));
+    loadAdventures();
   }, []);
 
-  const {
-    state,
-    activeCharacter,
-    loading,
-    selectCharacter,
-    reset,
-    room,
-  } = useRoomSession(safeRoomId);
+  // 🔥 SYNC Z BACKENDU (gdy wraca state pokoju)
+  React.useEffect(() => {
+    if (session.room?.adventure_id) {
+      setSelectedAdventureId(session.room.adventure_id);
+    }
+  }, [session.room?.adventure_id]);
 
-  const { selectAdventure, loading: adventureLoading } =
-    useRoomAdventure(safeRoomId);
+  const handleSelectAdventure = async (adventureId: number) => {
+    setSelectedAdventureId(adventureId); // UI natychmiast
+    await selectAdventure(adventureId);   // backend
+  };
 
-  const isOwner = room?.owner === me?.user?.id;
+  const handleGenerateAdventure = async () => {
+    try {
+      const res = await api.post("/world/adventures/generate/");
+      const adventure = res.data;
 
-  useGameSocket(safeRoomId, (data) => {
-    console.log("[GameSocket EVENT]", data);
-  });
+      await loadAdventures();
 
-  if (!roomId) return <div>Brak pokoju</div>;
-  if (!me) return <div>Ładowanie...</div>;
+      setSelectedAdventureId(adventure.id);
+
+      await selectAdventure(adventure.id);
+
+      setError(null);
+    } catch (err: any) {
+      console.error("[GENERATE ADVENTURE ERROR]", err);
+      setError("Nie udało się wygenerować przygody");
+    }
+  };
 
   const handleStartGame = async () => {
     if (!isOwner) return;
@@ -68,16 +88,17 @@ const RoomPage: React.FC = () => {
     } catch (err: any) {
       const data = err.response?.data;
 
-      const message = data?.message || data?.error || data?.detail;
-
       if (data?.code === "NO_ADVENTURE") {
         setError("Wybierz przygodę przed rozpoczęciem gry");
         return;
       }
 
-      setError(message || "Unexpected error");
+      setError(data?.message || "Błąd startu gry");
     }
   };
+
+  if (!roomId) return <div>Brak pokoju</div>;
+  if (!me) return <div>Ładowanie...</div>;
 
   return (
     <div className="room-layout">
@@ -85,39 +106,27 @@ const RoomPage: React.FC = () => {
       <aside className="room-sidebar">
         <h2 className="room-title">🧙 Postacie</h2>
 
-        {state === "select-character" && (
-          <CharacterSelectPanel onSelect={selectCharacter} />
+        {session.state === "select-character" && (
+          <CharacterSelectPanel onSelect={session.selectCharacter} />
         )}
 
-        {state !== "select-character" && (
+        {session.state !== "select-character" && (
           <div className="active-character">
             <h3>🎮 Aktywna postać</h3>
 
-            {loading && <p>Ładowanie postaci...</p>}
-
-            {!loading && activeCharacter && (
+            {!session.loading && session.activeCharacter && (
               <>
-                <p><b>{activeCharacter.name}</b></p>
-                <p>Level: {activeCharacter.level}</p>
-                <p>HP: {activeCharacter.health}/{activeCharacter.max_health}</p>
-                <p>Mana: {activeCharacter.mana}/{activeCharacter.max_mana}</p>
-                <p>STR: {activeCharacter.strength}</p>
-                <p>DEX: {activeCharacter.dexterity}</p>
-                <p>INT: {activeCharacter.intelligence}</p>
+                <p><b>{session.activeCharacter.name}</b></p>
+                <p>Lvl: {session.activeCharacter.level}</p>
+                <p>HP: {session.activeCharacter.health}/{session.activeCharacter.max_health}</p>
               </>
-            )}
-
-            {!loading && !activeCharacter && (
-              <p>Brak aktywnej postaci</p>
             )}
           </div>
         )}
 
-        {state !== "select-character" && (
-          <Button variant="secondary" onClick={reset}>
-            🔄 Zmień postać
-          </Button>
-        )}
+        <Button variant="secondary" onClick={session.reset}>
+          🔄 Zmień postać
+        </Button>
 
         <Button variant="danger" onClick={() => navigate("/dashboard")}>
           🚪 Opuść pokój
@@ -127,69 +136,61 @@ const RoomPage: React.FC = () => {
       <main className="room-main">
         <h1 className="room-header">🏰 Pokój: {roomId}</h1>
 
-        {error && (
-          <div style={{ color: "red", marginBottom: 10 }}>
-            {error}
-          </div>
-        )}
+        {error && <div style={{ color: "red" }}>{error}</div>}
 
-        {state === "select-character" && (
-          <div className="room-center-placeholder">
-            <p>Wybierz postać po lewej stronie</p>
-          </div>
-        )}
+        {session.state === "lobby" && (
+          <div className="room-story">
 
-        {state === "lobby" && (
-          <div className="room-center-placeholder">
             <h2>⏳ Lobby</h2>
 
             {isOwner && (
-              <div style={{ marginBottom: 20 }}>
-                <h3>📜 Wybierz przygodę</h3>
+              <div className="adventure-panel">
 
-                <select
-                  disabled={adventureLoading}
-                  onChange={(e) => selectAdventure(Number(e.target.value))}
-                  defaultValue=""
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #444",
-                    background: "#1e1e1e",
-                    color: "white",
-                    cursor: "pointer",
-                  }}
-                >
-                  <option value="" disabled>
-                    -- wybierz przygodę --
-                  </option>
+                <Button variant="secondary" onClick={handleGenerateAdventure}>
+                  🎲 Generuj przygodę
+                </Button>
 
-                  {adventures.map((adventure) => (
-                    <option key={adventure.id} value={adventure.id}>
-                      {adventure.title}
-                    </option>
+                <h3>📜 Wybór przygody</h3>
+
+                <div className="adventure-grid">
+                  {adventures.map((adv) => (
+                    <button
+                      key={adv.id}
+                      className={`adventure-card ${
+                        selectedAdventureId === adv.id ? "selected" : ""
+                      }`}
+                      onClick={() => handleSelectAdventure(adv.id)}
+                    >
+                      <span>{adv.title}</span>
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
             )}
 
-            {adventureLoading && (
-              <p style={{ color: "gray" }}>Ustawianie przygody...</p>
-            )}
+            <div style={{ marginTop: 20 }}>
+              {isOwner ? (
+                <Button
+                  variant="primary"
+                  onClick={handleStartGame}
+                  disabled={!selectedAdventureId}
+                >
+                  🎮 Start gry
+                </Button>
+              ) : (
+                <p>Czekasz na hosta...</p>
+              )}
+            </div>
 
-            {isOwner ? (
-              <Button variant="primary" onClick={handleStartGame}>
-                🎮 Rozpocznij grę (host)
-              </Button>
-            ) : (
-              <p>Czekasz aż twórca pokoju rozpocznie grę...</p>
-            )}
           </div>
         )}
 
-        {state === "in-game" && (
-          <GameWindow roomId={safeRoomId} />
+        {session.state === "in-game" && (
+          <GameWindow
+            world={session.world}
+            gameEvents={session.gameEvents}
+            sendGame={session.sendGame}
+          />
         )}
       </main>
 

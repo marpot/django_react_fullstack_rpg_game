@@ -16,36 +16,79 @@ export const useRoomSession = (roomId: string) => {
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
   const [loading, setLoading] = useState(true);
   const [room, setRoom] = useState<any>(null);
+  const [characterId, setCharacterId] = useState<number | null>(null);
 
-  // =========================
-  // FETCH USER
-  // =========================
+  const [world, setWorld] = useState<any | null>(null);
+  const [gameEvents, setGameEvents] = useState<any[]>([]);
+
+  const [socketResetKey, setSocketResetKey] = useState(0);
+
+  const normalizeEvent = (data: any) => {
+    const payload = data?.payload ?? {};
+    const event =
+      payload?.event ||
+      data?.event ||
+      data?.subtype ||
+      data?.type ||
+      "unknown";
+
+    const text =
+      typeof payload?.text === "string"
+        ? payload.text
+        : typeof data?.text === "string"
+        ? data.text
+        : typeof payload?.data?.text === "string"
+        ? payload.data.text
+        : typeof payload?.result?.text === "string"
+        ? payload.result.text
+        : typeof data?.message === "string"
+        ? data.message
+        : "";
+
+    const normalized: any = {
+      event,
+      type: event,
+      text,
+      payload,
+    };
+
+    if (payload?.world) {
+      normalized.world = payload.world;
+    }
+
+    if (payload?.room_id) {
+      normalized.room_id = payload.room_id;
+    }
+
+    if (payload?.adventure_id) {
+      normalized.adventure_id = payload.adventure_id;
+    }
+
+    return normalized;
+  };
+
   const fetchMe = async () => {
     const res = await api.get<MeResponse>("/accounts/me/");
     const active = res.data.character ?? null;
 
     setActiveCharacter(active);
 
-    if (!active) {
-      setState("select-character");
+    if (active) {
+      setCharacterId(active.id);
+      setState((prev) => (prev === "select-character" ? "lobby" : prev));
     } else {
-      setState("lobby");
+      setCharacterId(null);
+      setState("select-character");
     }
 
     return res.data;
   };
 
-  // =========================
-  // FETCH ROOM
-  // =========================
   const fetchRoom = async () => {
     const res = await getRoomById(roomId);
     setRoom(res.data);
   };
 
-  // =========================
-  // INIT
-  // =========================
   useEffect(() => {
     if (!roomId) return;
 
@@ -53,7 +96,6 @@ export const useRoomSession = (roomId: string) => {
 
     const run = async () => {
       setLoading(true);
-
       try {
         await Promise.all([fetchMe(), fetchRoom()]);
       } finally {
@@ -68,29 +110,72 @@ export const useRoomSession = (roomId: string) => {
     };
   }, [roomId]);
 
-  // =========================
-  // WEBSOCKET → SOURCE OF TRUTH FOR GAME STATE
-  // =========================
-  useGameSocket(roomId, (data) => {
-    console.log("[useRoomSession WS]", data);
+  const { send } = useGameSocket(
+    roomId,
+    (data) => {
+      if (!data?.type) return;
 
-    if (data.type === "game_event" && data.event === "game_started") {
-      setState("in-game");
-    }
-  });
+      const {
+        type: event,
+        text,
+        payload: normalizedPayload,
+        world: normalizedWorld,
+      } = normalizeEvent(data);
 
-  // =========================
-  // ACTIONS
-  // =========================
+      const world =
+        normalizedWorld ??
+        normalizedPayload?.world ??
+        data?.payload?.world ??
+        data?.world ??
+        null;
+
+      let eventText = text;
+
+      if (event === "game_started") {
+        eventText =
+          eventText ||
+          world?.intro ||
+          world?.description ||
+          "The adventure has begun.";
+
+        setWorld(world);
+        setState("in-game");
+      }
+
+      setGameEvents((prev) => [
+        ...prev,
+        {
+          type: event,
+          text: eventText || text || "",
+          payload: normalizedPayload,
+          world,
+        },
+      ]);
+    },
+    socketResetKey
+  );
+
   const selectCharacter = async (id: number) => {
     await selectActiveCharacter(id);
+
+    localStorage.setItem("character_id", String(id));
+    setCharacterId(id);
+
     await fetchMe();
+
     setState("lobby");
   };
 
   const reset = () => {
     setState("select-character");
     setActiveCharacter(null);
+    setCharacterId(null);
+    setWorld(null);
+    setGameEvents([]);
+
+    setSocketResetKey((prev) => prev + 1);
+
+    fetchRoom();
   };
 
   return {
@@ -100,5 +185,9 @@ export const useRoomSession = (roomId: string) => {
     selectCharacter,
     reset,
     room,
+    characterId,
+    world,
+    gameEvents,
+    sendGame: send,
   };
 };

@@ -2,13 +2,16 @@ from django.urls import path
 from .views import  (
     AdventureListCreateView, AdventureDetailView,
     LocationListCreateView, LocationDetailView,
-    ChoiceListCreateView, ChoiceDetailView
+    ChoiceListCreateView, ChoiceDetailView,
+    generate_adventure
 )
 
 urlpatterns = [
     path('adventures/', AdventureListCreateView.as_view(), name='adventure-list-create'),
     path('adventures/<int:pk>/', AdventureDetailView.as_view(), name='adventure-detail'),
-    
+
+    path('adventures/generate/', generate_adventure, name='adventure-generate'),
+
     path('locations/', LocationListCreateView.as_view(), name='location-list-create'),
     path('locations/<int:pk>/', LocationDetailView.as_view(), name='location-detail'),
     
