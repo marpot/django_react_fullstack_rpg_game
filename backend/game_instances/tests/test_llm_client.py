@@ -1,6 +1,6 @@
 import json
 import pytest
-from game_instances.services.llm.llm_client import LLMClient
+from backend.game_instances.services.llm.core.llm_client import LLMClient
 
 pytestmark = pytest.mark.django_db
 

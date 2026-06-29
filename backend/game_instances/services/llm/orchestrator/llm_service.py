@@ -1,45 +1,37 @@
-from .intent_parser import IntentParser
-from .narration_service import NarrationService
-from .llm_client import LLMClient
-import json
+from game_instances.services.llm.intent.intent_parser import IntentParser
+from game_instances.services.llm.narration_service.narration_service import NarrationService
+from game_instances.services.llm.core.llm_client import LLMClient
 
 class LLMService:
     """
-    Orchestator LLM System
+    Orchestrator LLM system (FACADE)
     """
 
     def __init__(self):
         self.parser = IntentParser()
         self.narration = NarrationService()
-        self.client = LLMClient()
-
 
     # -------------------------
-    # PLAYER INPUT → ACTION
+    # INPUT → ACTION
     # -------------------------
     def parse_player_input(self, player_input: str) -> dict:
         return self.parser.parse(player_input)
-    
+
     # -------------------------
     # INTRO STORY
     # -------------------------
     def generate_intro(self, context: dict) -> dict:
-        text = self.narration.intro(context)
-
-        return {
-            "text": text
-        }
+        return {"text": self.narration.intro(context)}
 
     # -------------------------
     # EVENT STORY
     # -------------------------
     def generate_event_narration(self, context: dict) -> dict:
-        text = self.narration.event(context)
+        return {"text": self.narration.event(context)}
 
-        return {
-            "text": text
-        }
-    
+    # -------------------------
+    # WORLD (STATIC DTO)
+    # -------------------------
     def generate_world(self, context: dict) -> dict:
         adventure = context.get("adventure", {})
 
@@ -50,8 +42,8 @@ class LLMService:
             "name": title,
             "title": title,
             "description": description,
-            "intro": f"You enter {title}, a land filled with danger and mystery.",
-            "situation": "The air is heavy. The world reacts to your presence.",
+            "intro": f"Wkraczasz do {title}, krainy pełnej niebezpieczeństw i tajemnic.",
+            "situation": "Powietrze jest ciężkie. Świat reaguje na twoją obecność.",
             "rules": {
                 "danger_level": "medium",
                 "npc_enabled": True,

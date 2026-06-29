@@ -5,10 +5,9 @@ from asgiref.sync import sync_to_async
 
 from .base import BaseConsumer
 from chat.models import Room
-from game_instances.services.llm.llm_service import LLMService
+from game_instances.services.llm.orchestrator.llm_service import LLMService
 from game.core.action_processor import ActionProcessor
 from world.seeders.world_seeder import WorldSeeder
-from game.models import GameSession
 from game.core.events.memory_builder import GameMemoryBuilder
 
 logger = logging.getLogger(__name__)
@@ -20,6 +19,7 @@ class GameConsumer(BaseConsumer):
         super().__init__(*args, **kwargs)
         self._game_started_sent = False
         self._world_sent = False
+        self.world = None  # 🔥 ważne
 
     async def on_connect(self):
         logger.info("=== GAME CONSUMER WS CONNECTED===")
@@ -40,11 +40,13 @@ class GameConsumer(BaseConsumer):
             )()
 
             self.adventure_id = getattr(room.adventure, "id", None)
-
             await self._resolve_character()
 
         except Room.DoesNotExist:
             logger.warning(f"[GAME CONSUMER] room not found: {self.room_name}")
+
+    async def _resolve_character(self):
+        self.character_id = self.scope["user"].id
 
     async def receive(self, text_data):
         try:
@@ -69,7 +71,7 @@ class GameConsumer(BaseConsumer):
             parsed = llm.parse_player_input({
                 "input": user_input,
                 "memory": memory,
-                "world": None
+                "world": self.world
             })
 
             if not isinstance(parsed, dict) or "action" not in parsed:
@@ -78,6 +80,7 @@ class GameConsumer(BaseConsumer):
             parsed["room"] = self.room_name
             parsed["user_id"] = self.scope["user"].id
             parsed["adventure"] = self.adventure_id
+            parsed["world"] = self.world  # 🔥 kluczowa zmiana
 
             result = await sync_to_async(self.processor.process)(parsed)
 
@@ -87,7 +90,7 @@ class GameConsumer(BaseConsumer):
                     "data": result,
                     "user": self.scope["user"].username,
                 },
-                text=result.get("text", str(result))
+                text=result.get("text", "")
             )
 
         except Exception as e:
@@ -117,7 +120,6 @@ class GameConsumer(BaseConsumer):
 
         self.adventure_id = adventure_id
 
-        # ensure the room state exists before seeding and before generating world
         await sync_to_async(self.state_manager.get_or_create_room)(self.room_name)
 
         await sync_to_async(self.seeder.seed_from_adventure)(
@@ -127,17 +129,29 @@ class GameConsumer(BaseConsumer):
 
         llm = LLMService()
 
-        world = await sync_to_async(llm.generate_world)(
+        world_raw = await sync_to_async(llm.generate_world)(
             {"adventure": {"id": adventure_id}}
         )
 
-        if not isinstance(world, dict):
-            world = {
+        if not isinstance(world_raw, dict):
+            world_raw = {
                 "intro": "A strange world forms...",
                 "situation": "The world is unstable."
             }
 
-        await self._save_world_state(world)
+        self.world = {
+            "name": world_raw.get("name", "Unknown World"),
+            "title": world_raw.get("title", "Unknown World"),
+            "description": world_raw.get("description", ""),
+            "intro": world_raw.get("intro", ""),
+            "lore": {
+                "situation": world_raw.get("situation", "")
+            },
+            "rules": world_raw.get("rules", {}),
+            "seed": world_raw.get("seed", {}),
+        }
+
+        logger.info(f"[GAME_CONSUMER] world generated: {self.world}")
 
         if self._world_sent:
             return
@@ -147,97 +161,9 @@ class GameConsumer(BaseConsumer):
         await self._send_game_event(
             "game_started",
             {
-                "world": world,
+                "world": self.world,
                 "room_id": self.room_name,
                 "adventure_id": adventure_id,
             },
-            text=world.get("intro", "A new world begins...")
+            text=self.world.get("intro", "A new world begins...")
         )
-
-    async def _send_game_event(self, event_name: str, payload: dict | None = None, text: str | None = None):
-        payload = payload or {}
-
-        if text is not None:
-            payload["text"] = text
-
-        payload["event"] = event_name
-
-        await self.send_event("game_event", payload)
-
-    async def game_event(self, event):
-        payload = event.get("payload") or {}
-        const_event = payload.get("event") or event.get("event") or "unknown"
-        text = payload.get("text") or event.get("text")
-
-        clean_payload = {
-            k: v
-            for k, v in payload.items()
-            if k not in {"text", "event"}
-        }
-
-        output = {
-            "type": "game_event",
-            "event": const_event,
-            "payload": clean_payload,
-        }
-
-        if isinstance(text, str) and text:
-            output["text"] = text
-
-        await self.send(text_data=json.dumps(output))
-
-    @sync_to_async
-    def _resolve_character(self):
-        from accounts.models import PlayerCharacter
-        from game.state.runtime.models import Player as RuntimePlayer
-
-        user = self.scope.get("user")
-        player = PlayerCharacter.objects.filter(user=user).first()
-
-        if player:
-            self.character_id = player.id
-
-            room = self.state_manager.get_or_create_room(self.room_name)
-            runtime_player = RuntimePlayer(
-                id=player.user_id,
-                name=player.name,
-                hp=player.health,
-                max_hp=player.health,
-                attack_bonus=getattr(player, "attack_bonus", 0),
-                damage_die=getattr(player, "damage_die", 6),
-                damage_bonus=getattr(player, "damage_bonus", 0),
-                defense=getattr(player, "defense", 0),
-            )
-
-            room.players[player.user_id] = runtime_player
-            room.players[str(player.user_id)] = runtime_player
-        else:
-            logger.error("[CHARACTER RESOLVE FAILED]")
-
-    @sync_to_async
-    def _save_world_state(self, world_data: dict):
-        from accounts.models import PlayerCharacter
-
-        if not self.adventure_id:
-            return
-
-        player = PlayerCharacter.objects.filter(id=self.character_id).first()
-
-        if not player:
-            return
-
-        session, _ = GameSession.objects.get_or_create(
-            player=player,
-            adventure_id=self.adventure_id,
-            defaults={"progress": {}}
-        )
-
-        session.progress = {
-            "world": {
-                "adventure_id": self.adventure_id,
-                "room_id": self.room_name,
-                "state": world_data,
-            }
-        }
-
-        session.save()

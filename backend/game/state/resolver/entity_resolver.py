@@ -1,19 +1,24 @@
 from game.state.runtime.models import Player, Enemy as RuntimeEnemy
 
+PL_MAP = {
+    "goblina": "goblin",
+    "wilka": "wolf",
+    "bandytę": "bandit",
+    "bandyta": "bandit",
+}
 
 class EntityResolver:
     def __init__(self, state_manager):
         self.state_manager = state_manager
 
-    def _get_room(self,room_name: str):
+    def _get_room(self, room_name: str):
         if hasattr(self.state_manager, "get_or_create_room"):
             return self.state_manager.get_or_create_room(room_name)
-        
+
         if hasattr(self.state_manager, "get_room"):
             return self.state_manager.get_room(room_name)
-        
+
         return None
-        
 
     def resolve_player(self, room_name: str, user_id: int):
         room = self.state_manager.get_or_create_room(room_name)
@@ -28,14 +33,15 @@ class EntityResolver:
     def resolve_enemy(self, room_name: str, enemy_name: str):
         room = self.state_manager.get_or_create_room(room_name)
 
-        # 🔥 NORMALIZACJA INPUTU (FIX BUGA)
         if isinstance(enemy_name, dict):
             enemy_name = enemy_name.get("name") or enemy_name.get("id")
 
         if not isinstance(enemy_name, str):
             return None
 
+        # ✔ FIX: normalizacja językowa
         enemy_name = enemy_name.lower().strip()
+        enemy_name = PL_MAP.get(enemy_name, enemy_name)
 
         enemy = room.enemies.get(enemy_name)
 

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 
-from game_instances.services.llm.narration_service import NarrationService
+from backend.game_instances.services.llm.narration_service.narration_service import NarrationService
 
 
 @pytest.fixture

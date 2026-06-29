@@ -21,13 +21,16 @@ export const useRoomSession = (roomId: string) => {
   const [world, setWorld] = useState<any | null>(null);
   const [gameEvents, setGameEvents] = useState<any[]>([]);
 
-  // 🔥 RESET KEY DO SOCKETA
   const [socketResetKey, setSocketResetKey] = useState(0);
 
   const normalizeEvent = (data: any) => {
     const payload = data?.payload ?? {};
     const event =
-      payload?.event || data?.event || data?.subtype || data?.type || "unknown";
+      payload?.event ||
+      data?.event ||
+      data?.subtype ||
+      data?.type ||
+      "unknown";
 
     const text =
       typeof payload?.text === "string"
@@ -107,46 +110,50 @@ export const useRoomSession = (roomId: string) => {
     };
   }, [roomId]);
 
-  const { send } = useGameSocket(roomId, (data) => {
-    if (data?.type !== "game_event") return;
+  const { send } = useGameSocket(
+    roomId,
+    (data) => {
+      if (!data?.type) return;
 
-    const {
-      type: event,
-      text,
-      payload: normalizedPayload,
-      world: normalizedWorld,
-    } = normalizeEvent(data);
-
-    const world =
-      normalizedWorld ??
-      normalizedPayload?.world ??
-      data?.payload?.world ??
-      data?.world ??
-      null;
-
-    let eventText = text;
-
-    if (event === "game_started") {
-      eventText =
-        eventText ||
-        world?.intro ||
-        world?.description ||
-        "The adventure has begun.";
-
-      setWorld(world);
-      setState("in-game");
-    }
-
-    setGameEvents((prev) => [
-      ...prev,
-      {
+      const {
         type: event,
-        text: eventText,
+        text,
         payload: normalizedPayload,
-        world,
-      },
-    ]);
-  }, socketResetKey);
+        world: normalizedWorld,
+      } = normalizeEvent(data);
+
+      const world =
+        normalizedWorld ??
+        normalizedPayload?.world ??
+        data?.payload?.world ??
+        data?.world ??
+        null;
+
+      let eventText = text;
+
+      if (event === "game_started") {
+        eventText =
+          eventText ||
+          world?.intro ||
+          world?.description ||
+          "The adventure has begun.";
+
+        setWorld(world);
+        setState("in-game");
+      }
+
+      setGameEvents((prev) => [
+        ...prev,
+        {
+          type: event,
+          text: eventText || text || "",
+          payload: normalizedPayload,
+          world,
+        },
+      ]);
+    },
+    socketResetKey
+  );
 
   const selectCharacter = async (id: number) => {
     await selectActiveCharacter(id);
