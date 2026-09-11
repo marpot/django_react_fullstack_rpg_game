@@ -1,240 +1,135 @@
+# RPG Game Platform 🎮
 
----
+**Full-stack real-time RPG platform built with Django, React, WebSockets and a modular runtime game engine.**
 
-# RPG Game Platform
+This project explores the architecture behind a multiplayer RPG rather than only implementing a game UI. It combines persistent Django models with per-room runtime state, real-time WebSocket communication, turn-based actions, NPC interactions and LLM-assisted gameplay.
 
-## 🚀 Project Overview
+## ✨ Key Features
 
-This is a full-stack **real-time RPG game platform** built with Django and React.
+- JWT-based registration and authentication
+- Game rooms and multiplayer sessions
+- Real-time chat and gameplay over WebSockets
+- Turn-based combat with attack resolution, damage and winner logic
+- In-memory runtime state for players, enemies and NPCs
+- Modular action system for gameplay commands
+- NPC registry, spawning and dialogue flow
+- LLM-assisted natural-language action parsing and NPC dialogue
+- Runtime ↔ ORM synchronization
+- Persisted gameplay/event history
+- Automatic entity seeding for adventures
+- Automated backend test suite
 
-Players can:
+## 🧠 Architecture
 
-* register and authenticate via JWT
-* create and join game rooms
-* interact with dynamic story events
-* engage in turn-based combat with runtime state
-* interact with NPCs via dialogue system
-* communicate in real-time via WebSocket chat
-
-The system is designed as a **modular, event-driven game backend**, functioning as a lightweight multiplayer game engine.
-
----
-
-## 🧠 Key Features
-
-### Backend
-
-* JWT authentication (SimpleJWT)
-* REST API (Django REST Framework)
-* Real-time communication (Django Channels + WebSockets)
-
-#### Core Gameplay Systems
-
-* turn-based combat system (attack resolution, damage, winner logic)
-* runtime entity system (Player / Enemy / NPC in memory)
-* auto-seeding enemies per adventure
-* NPC system (runtime-only, no persistence layer)
-* LLM-powered player input parsing and NPC dialogue
-* ORM ↔ runtime state synchronization
-* event tracking system (combat + narrative events)
-
----
-
-## 🧠 Core Architecture
-
-### Runtime State Layer (IMPORTANT)
-
-Game logic does NOT operate directly on ORM models.
-
-Instead, the system uses **in-memory runtime state per room**:
-
-* `RoomState` → players, enemies, NPCs
-* `StateManager` → central state container
-* `EntityResolver` → bridges runtime ↔ ORM
-* `ActionProcessor` → single entry point for game actions
-
-This enables:
-
-* low-latency combat resolution
-* NPC interactions without DB writes
-* deterministic per-room simulation
-* scalable real-time gameplay loop
-
----
-
-## ⚙️ Event System
-
-The backend uses an internal event system:
-
-* combat events
-* NPC dialogue events
-* system/game state updates
-
-Events are:
-
-* persisted in DB (history tracking)
-* streamed via WebSocket
-* decoupled from core gameplay logic
-
----
-
-## 🤖 NPC System
-
-NPCs are runtime entities generated per room.
-
-Key properties:
-
-* defined in static registry (`NPCRegistry`)
-* spawned per adventure via seeding system
-* stored in memory (`RoomState.npcs`)
-* no database persistence
-* dialogue generated via LLM integration
-
-NPC flow:
-
+```text
+React frontend
+      │
+      ├── REST API + JWT
+      │
+      └── WebSockets + JWT
+              │
+              ▼
+Django + DRF + Channels
+      │
+      ├── PostgreSQL
+      ├── Redis / Channels
+      │
+      ▼
+Runtime Game Engine
+      │
+      ├── RoomState
+      ├── StateManager
+      ├── EntityResolver
+      └── ActionProcessor
 ```
+
+### Runtime State Layer
+
+Core gameplay does not operate directly on database models. Each game room maintains runtime state containing active players, enemies and NPCs.
+
+- `RoomState` stores entities participating in a room
+- `StateManager` manages runtime room state
+- `EntityResolver` connects runtime entities with persistent models
+- `ActionProcessor` orchestrates gameplay actions
+
+The action layer is modular: individual actions such as attack, move and inspect are separated from the processor, keeping the main gameplay flow easier to extend and test.
+
+## ⚔️ Gameplay Flow
+
+1. A player authenticates and joins a room.
+2. The frontend sends an action through the game WebSocket.
+3. Natural-language input can be converted into a structured action by the LLM layer.
+4. `ActionProcessor` dispatches the action to the appropriate gameplay logic.
+5. Runtime entities are resolved from the room state.
+6. Combat, movement, inspection or NPC interaction is processed.
+7. Runtime and persistent state are synchronized where required.
+8. A gameplay event is emitted and broadcast to connected clients.
+
+## 🤖 NPC & LLM Layer
+
+NPCs are runtime entities created for individual game rooms. They are defined through `NPCRegistry`, spawned by the game services and stored in `RoomState` rather than persisted as normal database entities.
+
+```text
 Adventure → NPCRegistry → NPCService → RoomState
 ```
 
----
+The LLM integration is used for natural-language command interpretation and dynamic NPC dialogue. The broader narrative/story generation layer remains an area for future development rather than part of the completed MVP.
 
-## 🧠 LLM Integration
+## 📡 Communication
 
-The system uses an LLM layer for:
+**REST API** handles authentication and persistent application data.  
+**WebSockets** handle the real-time game loop, chat, NPC interactions and gameplay events.  
+**JWT** provides the authentication layer for both HTTP and WebSocket connections.
 
-* parsing natural language player input into structured actions
-* generating NPC dialogue responses
+Development WebSocket endpoints:
 
-This enables:
-
-* natural language gameplay commands
-* dynamic NPC conversations
-* extensible action system
-
----
-
-## 🏗 Architecture
-
-### System Design
-
-```
-Frontend (React)
-        |
-        | REST API + WebSocket (JWT)
-        v
-Backend (Django + DRF + Channels)
-        |
-        +---------------------------+
-        |                           |
-        v                           v
- PostgreSQL                    Redis (Channels)
-        |
-        v
- Runtime State Manager (In-Memory Game Engine)
-```
-
----
-
-## 🔄 Communication Layers
-
-* REST API → authentication + world data
-* WebSocket → real-time game loop (combat, chat, NPC, events)
-* JWT → unified auth layer (HTTP + WS)
-
----
-
-## 🎮 WebSocket Game Layer
-
-GameConsumer handles real-time gameplay:
-
-* player actions
-* NPC interactions
-* combat results
-* runtime state synchronization
-
-It acts as a bridge:
-
-```
-Frontend ↔ ActionProcessor ↔ Runtime State
-```
-
----
-
-## ⚔️ Gameplay Loop (MVP)
-
-1. Player joins room
-2. Action sent via WebSocket (`attack`, `talk`, `inspect`)
-3. LLM parses input into structured intent
-4. ActionProcessor resolves runtime state
-5. Auto-seeding if room is empty
-6. Combat or NPC interaction resolved
-7. Runtime state updated
-8. ORM synchronization (health, persistence)
-9. Event emitted + broadcast via WebSocket
-
----
-
-## 📡 WebSocket Endpoints
-
-```
+```text
 ws://localhost:8001/ws/chat/<room_id>/?token=<JWT>
 ws://localhost:8001/ws/game/<room_id>/?token=<JWT>
 ```
 
----
+## 🛠 Tech Stack
 
-## 🧩 Tech Stack
+**Backend:** Python · Django · Django REST Framework · Django Channels  
+**Frontend:** React · JavaScript · Axios · Webpack  
+**Data / Real-time:** PostgreSQL · Redis · WebSockets  
+**Testing:** Pytest · pytest-django · pytest-asyncio  
+**Infrastructure:** Docker · Docker Compose
 
-### Backend
+## 🧪 Testing
 
-* Django
-* Django REST Framework
-* Django Channels
-* PostgreSQL
-* Redis
+The backend includes automated tests covering core application and gameplay behavior, including authentication, models, serializers, NPC systems, entity resolution, room actions and WebSocket consumers.
 
-### Frontend
+Run the backend test suite through the project Makefile:
 
-* React
-* Webpack
-* Axios
+```bash
+make test-backend
+```
 
-### DevOps
+The latest action-system refactor was merged with **43/43 tests passing**.
 
-* Docker
-* Docker Compose
+## 🚀 Running the Project
 
----
+The application is containerized with Docker Compose. With Docker and Docker Compose installed, start the project from the repository root:
 
-## 📈 Future Improvements
+```bash
+docker compose up --build
+```
 
-* skill system
-* turn-based combat UI
-* persistent world simulation
-* matchmaking system
-* advanced AI NPC memory system
-* observability + telemetry layer
+The stack starts the application services required by the Django/React development environment, including PostgreSQL and Redis.
 
----
+## 📌 Project Status
+
+**MVP complete.**
+
+Implemented systems include authentication, real-time chat, runtime game state, modular gameplay actions, combat, NPC interactions, LLM-assisted commands/dialogue, automatic entity seeding, event processing, persistence synchronization and the WebSocket game loop.
+
+Future work could include a richer combat UI, skills, persistent world simulation, matchmaking, advanced NPC memory, narrative generation and observability.
+
+## 📸 Screenshots
+
+Screenshots and a gameplay walkthrough will be added as a final portfolio-polish step.
 
 ## 👨‍💻 Author
 
-Marcin Potoczny
-
----
-
-## 🧠 Project Status
-
-### MVP COMPLETE
-
-* authentication
-* chat system
-* runtime game state engine
-* combat system
-* NPC system (runtime + LLM dialogue)
-* auto-seeding system
-* event system
-* ORM synchronization
-* WebSocket game loop
-
----
+**Marcin Potoczny**
