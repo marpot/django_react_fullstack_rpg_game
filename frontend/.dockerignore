@@ -5,3 +5,8 @@ Dockerfile
 .git
 .gitignore
 .env
+.env.*
+!.env.example
+dist
+build
+coverage

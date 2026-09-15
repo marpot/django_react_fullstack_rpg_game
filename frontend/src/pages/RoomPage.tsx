@@ -24,7 +24,6 @@ const RoomPage: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [adventures, setAdventures] = React.useState<any[]>([]);
 
-  // 🔥 LOCAL UI STATE (fix na highlight)
   const [selectedAdventureId, setSelectedAdventureId] = React.useState<number | null>(null);
 
   const session = useRoomSession(safeRoomId);
@@ -49,7 +48,6 @@ const RoomPage: React.FC = () => {
     loadAdventures();
   }, []);
 
-  // 🔥 SYNC Z BACKENDU (gdy wraca state pokoju)
   React.useEffect(() => {
     if (session.room?.adventure_id) {
       setSelectedAdventureId(session.room.adventure_id);

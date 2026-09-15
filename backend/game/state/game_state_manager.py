@@ -34,7 +34,7 @@ class RoomState:
 class GameStateManager:
     """
     Centralny runtime świata gry (MVP in-memory).
-    Trzyma wszystkie roomy i i ch stan.
+    Trzyma wszystkie roomy i ich stan.
     """
 
     def normalize_room_id(self, room_id: str | int) -> str:

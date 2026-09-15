@@ -113,7 +113,7 @@ export default {
         secure: false,
       },
       {
-        context: ['/ws/chat'],
+        context: ['/ws/chat', '/ws/game'],
         target: `ws://${backendHost}:8001`,
         ws: true,
         changeOrigin: true,

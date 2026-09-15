@@ -20,7 +20,12 @@ const getWsUrl = () => {
     return process.env.REACT_APP_WS_URL;
   }
 
-  return isLocal ? "ws://localhost:8001" : `ws://${window.location.host}`;
+  if (isLocal) {
+    return "ws://localhost:8001";
+  }
+
+  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+  return `${protocol}://${window.location.host}`;
 };
 
 export const config: Config = {

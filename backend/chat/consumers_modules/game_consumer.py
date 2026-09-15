@@ -169,6 +169,20 @@ class GameConsumer(BaseConsumer):
                 text=str(e)
             )
 
+    async def game_event(self, event):
+        if event.get("event") == "game_started":
+            payload = event.get("payload") or {}
+            world = payload.get("world")
+            if world:
+                self.world = world
+            adventure_id = payload.get("adventure_id")
+            if adventure_id:
+                self.adventure_id = adventure_id
+            self._game_started_sent = True
+            self._world_sent = True
+
+        await super().game_event(event)
+
     async def game_started(self, event):
         if self._game_started_sent:
             return

@@ -12,8 +12,11 @@ import logging
 from .models import Room
 from .serializers import RoomSerializer
 
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
+from game.middleware.state_middleware import STATE_MANAGER
+from game.services.game_start_service import GameStartService
+from game.ws.channel_notifier import GameChannelNotifier
+from game_instances.services.llm.orchestrator.llm_service import LLMService
+from world.seeders.world_seeder import WorldSeeder
 
 logger = logging.getLogger(__name__)
 
@@ -92,20 +95,18 @@ class RoomViewSet(viewsets.ModelViewSet):
 
         logger.info(f"[START GAME] using adventure_id={adventure.id}")
 
-        channel_layer = get_channel_layer()
+        start_service = GameStartService(
+            seeder=WorldSeeder(STATE_MANAGER),
+            llm=LLMService(),
+            notifier=GameChannelNotifier(),
+            state_manager=STATE_MANAGER,
+        )
 
-        # 🔥 FIX: Channels consumer expects payload wrapper
-        async_to_sync(channel_layer.group_send)(
-            f"gameconsumer_{room.id}",
-            {
-                "type": "game_started",
-                "payload": {
-                    "event": "game_started",
-                    "room_id": room.id,
-                    "adventure_id": adventure.id,
-                    "text": "Game started"
-                }
-            }
+        start_service.start_game(
+            adventure_id=adventure.id,
+            room_id=room.id,
+            user_id=request.user.id,
+            adventure=adventure,
         )
 
         room.state = "in_game"

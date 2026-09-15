@@ -24,7 +24,8 @@ export const useGameSocket = (
     connecting.current = true;
 
     const token = localStorage.getItem("access_token");
-    const url = `ws://localhost:8001/ws/game/${roomId}/?token=${token}`;
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const url = `${wsProtocol}//${window.location.host}/ws/game/${roomId}/?token=${token}`;
 
     const socket = new WebSocket(url);
     ws.current = socket;
