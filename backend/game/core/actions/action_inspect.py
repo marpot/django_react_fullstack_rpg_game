@@ -13,12 +13,12 @@ class InspectAction:
 
     def handle(self, parsed_input, world=None):
         room = parsed_input.get("room")
-        user_id = parsed_input.get("user_id")
+        participant_id = parsed_input.get("participant_id")
 
         room_key = self.state_manager.normalize_room_id(room)
         room_obj = self.state_manager.get_or_create_room(room_key)
 
-        self.runtime_player_service.get_or_create(room_obj, user_id)
+        self.runtime_player_service.get_or_create(room_obj, participant_id)
 
         enemies = list(room_obj.enemies.keys())
 

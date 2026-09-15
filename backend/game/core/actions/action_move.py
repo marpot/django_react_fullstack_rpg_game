@@ -22,13 +22,13 @@ class MoveAction:
 
     def handle(self, parsed_input, world=None):
         room = parsed_input.get("room")
-        user_id = parsed_input.get("user_id")
+        participant_id = parsed_input.get("participant_id")
         target = parsed_input.get("target")
 
         room_key = self.state_manager.normalize_room_id(room)
         room_obj = self.state_manager.get_or_create_room(room_key)
 
-        player = self.runtime_player_service.get_or_create(room_obj, user_id)
+        player = self.runtime_player_service.get_or_create(room_obj, participant_id)
 
         if not player:
             return self.response_fn(

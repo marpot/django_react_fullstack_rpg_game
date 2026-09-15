@@ -17,3 +17,25 @@ class Room(models.Model):
 
     def __str__(self):
         return self.name
+
+class RoomParticipant(models.Model):
+    room = models.ForeignKey("Room", on_delete=models.CASCADE, related_name="participants")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
+    character = models.ForeignKey(
+        "accounts.PlayerCharacter",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="room_participations",
+    )
+
+    name = models.CharField(max_length=255)
+    is_ai = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("room", "user")
+
+    def __str__(self):
+        return f"{self.name} ({'AI' if self.is_ai else 'HUMAN'})"

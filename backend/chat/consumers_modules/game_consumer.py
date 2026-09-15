@@ -5,7 +5,7 @@ import re
 from asgiref.sync import sync_to_async
 
 from .base import BaseConsumer
-from chat.models import Room
+from chat.models import Room, RoomParticipant
 from game_instances.services.llm.orchestrator.llm_service import LLMService
 from game.core.action_processor import ActionProcessor
 from game.core.choice_service import AdventureChoiceService
@@ -86,6 +86,7 @@ class GameConsumer(BaseConsumer):
         self.seeder = WorldSeeder(self.state_manager)
 
         self.adventure_id = None
+        self.participant_id = None
         self.character_id = None
 
         self.room_name = str(self.room_name)
@@ -97,13 +98,54 @@ class GameConsumer(BaseConsumer):
             )()
 
             self.adventure_id = getattr(room.adventure, "id", None)
-            await self._resolve_character()
+            await self._resolve_participant()
 
         except Room.DoesNotExist:
             logger.warning(f"[GAME CONSUMER] room not found: {self.room_name}")
 
-    async def _resolve_character(self):
-        self.character_id = self.scope["user"].id
+    async def _resolve_participant(self):
+        """
+        Resolve RoomParticipant for the authenticated user in this room.
+
+        Returns participant_id, character_id from the database.
+        Does NOT trust frontend character_id.
+        """
+        user = self.scope["user"]
+        if not user.is_authenticated:
+            logger.warning("[GAME CONSUMER] unauthenticated user")
+            return
+
+        participant = await sync_to_async(
+            lambda: (
+                RoomParticipant.objects
+                .select_related("character")
+                .filter(
+                    room_id=self.room_name,
+                    user=user,
+                    is_ai=False,
+                )
+                .first()
+            )
+        )()
+
+        if participant is None:
+            logger.warning(
+                f"[GAME CONSUMER] no participant found for user={user.id} "
+                f"in room={self.room_name}"
+            )
+            return
+
+        self.participant_id = participant.id
+        character = participant.character
+
+        if character is not None and character.user_id == user.id:
+            self.character_id = character.id
+
+        if self.character_id is None:
+            logger.warning(
+                f"[GAME CONSUMER] human participant={participant.id} "
+                "has no valid owned character"
+            )
 
     async def receive(self, text_data):
         try:
@@ -111,10 +153,43 @@ class GameConsumer(BaseConsumer):
             user_input = data.get("message", "")
 
             if data.get("type") == "init":
-                self.character_id = data.get("character_id")
+                # Frontend może wysłać character_id — NIE traktujemy tego jako
+                # źródła autoryzacji ani identyfikacji tury.
+                # participant_id jest ustalany przez _resolve_participant() z DB.
+                frontend_char_id = data.get("character_id")
+                if self.participant_id is not None and self.character_id is not None:
+                    if frontend_char_id is not None and frontend_char_id != self.character_id:
+                        logger.warning(
+                            f"[GAME CONSUMER] frontend character_id={frontend_char_id} "
+                            f"mismatches database character_id={self.character_id}; "
+                            f"ignoring frontend value"
+                        )
                 return
 
             if not isinstance(user_input, str) or not user_input.strip():
+                return
+
+            if self.participant_id is None:
+                logger.warning(
+                    "[GAME CONSUMER] no participant_id resolved for user; "
+                    "rejecting action"
+                )
+                await self._send_game_event(
+                    "error",
+                    {"reason": "no_participant", "details": "Nie jesteś uczestnikiem tego pokoju."},
+                    text="Nie jesteś uczestnikiem tego pokoju.",
+                )
+                return
+
+            if self.character_id is None:
+                await self._send_game_event(
+                    "error",
+                    {
+                        "reason": "no_character",
+                        "details": "Wybierz postać przed rozpoczęciem rozgrywki.",
+                    },
+                    text="Wybierz postać przed rozpoczęciem rozgrywki.",
+                )
                 return
 
             memory = await sync_to_async(GameMemoryBuilder().build)(
@@ -135,7 +210,7 @@ class GameConsumer(BaseConsumer):
                 return
 
             parsed["room"] = self.room_name
-            parsed["user_id"] = self.scope["user"].id
+            parsed["participant_id"] = self.participant_id
             parsed["adventure"] = self.adventure_id
             parsed["world"] = self.world  # 🔥 kluczowa zmiana
 
@@ -168,6 +243,20 @@ class GameConsumer(BaseConsumer):
                 },
                 text=str(e)
             )
+
+    async def game_event(self, event):
+        if event.get("event") == "game_started":
+            payload = event.get("payload") or {}
+            world = payload.get("world")
+            if world:
+                self.world = world
+            adventure_id = payload.get("adventure_id")
+            if adventure_id:
+                self.adventure_id = adventure_id
+            self._game_started_sent = True
+            self._world_sent = True
+
+        await super().game_event(event)
 
     async def game_started(self, event):
         if self._game_started_sent:

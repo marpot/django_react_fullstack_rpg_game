@@ -4,7 +4,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { api } from "@/api/client";
 
 import Chat from "@/features/chat/Chat";
-import CharacterSelectPanel from "@/components/Room/CharacterSelectPanel";
 import GameWindow from "@/features/game/GameCenter/GameWindow";
 
 import "@/styles/pages/room-page.scss";
@@ -24,7 +23,6 @@ const RoomPage: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [adventures, setAdventures] = React.useState<any[]>([]);
 
-  // 🔥 LOCAL UI STATE (fix na highlight)
   const [selectedAdventureId, setSelectedAdventureId] = React.useState<number | null>(null);
 
   const session = useRoomSession(safeRoomId);
@@ -49,12 +47,9 @@ const RoomPage: React.FC = () => {
     loadAdventures();
   }, []);
 
-  // 🔥 SYNC Z BACKENDU (gdy wraca state pokoju)
   React.useEffect(() => {
-    if (session.room?.adventure_id) {
-      setSelectedAdventureId(session.room.adventure_id);
-    }
-  }, [session.room?.adventure_id]);
+    setSelectedAdventureId(session.room?.adventure ?? null);
+  }, [session.room?.adventure]);
 
   const handleSelectAdventure = async (adventureId: number) => {
     setSelectedAdventureId(adventureId); // UI natychmiast
@@ -106,11 +101,17 @@ const RoomPage: React.FC = () => {
       <aside className="room-sidebar">
         <h2 className="room-title">🧙 Postacie</h2>
 
-        {session.state === "select-character" && (
-          <CharacterSelectPanel onSelect={session.selectCharacter} />
+        {session.sessionError && (
+          <div style={{ color: "red" }}>{session.sessionError}</div>
         )}
 
-        {session.state !== "select-character" && (
+        {session.state === "missing-character" && (
+          <Button variant="secondary" onClick={() => navigate("/profile")}>
+            Przejdź do Profilu
+          </Button>
+        )}
+
+        {session.activeCharacter && (
           <div className="active-character">
             <h3>🎮 Aktywna postać</h3>
 
@@ -123,10 +124,6 @@ const RoomPage: React.FC = () => {
             )}
           </div>
         )}
-
-        <Button variant="secondary" onClick={session.reset}>
-          🔄 Zmień postać
-        </Button>
 
         <Button variant="danger" onClick={() => navigate("/dashboard")}>
           🚪 Opuść pokój
@@ -142,6 +139,15 @@ const RoomPage: React.FC = () => {
           <div className="room-story">
 
             <h2>⏳ Lobby</h2>
+
+            <div>
+              <h3>Gracze</h3>
+              <ul>
+                {session.room!.participants.map((participant) => (
+                  <li key={participant.participant_id}>{participant.name}</li>
+                ))}
+              </ul>
+            </div>
 
             {isOwner && (
               <div className="adventure-panel">

@@ -3,6 +3,8 @@
 # =========================
 .env
 .env.*
+!.env.example
+!.env.prod.example
 .venv/
 venv/
 backend/env/
@@ -53,4 +55,3 @@ Thumbs.db
 planAdventureUi.prompt.md
 repomix-output.xml
 .github/workflows/
-

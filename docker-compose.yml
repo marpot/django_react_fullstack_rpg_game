@@ -1,76 +1,133 @@
+name: django_rpg_dev
+
 services:
   db:
-    image: postgres:14
-    restart: always
+    image: postgres:14-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: django_rpg
-      
+      POSTGRES_DB: ${POSTGRES_DB:-django_rpg}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - django_rpg_db_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    mem_limit: 384m
+    restart: unless-stopped
     networks:
       - backend_net
 
   redis:
-    image: redis:7
-    restart: always
+    image: redis:7-alpine
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    mem_limit: 128m
+    restart: unless-stopped
     networks:
       - backend_net
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
     env_file:
-      - .env.docker
+      - path: .env.docker
+        required: false
+    environment:
+      DEBUG: "True"
+      POSTGRES_DB: ${POSTGRES_DB:-django_rpg}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      CORS_ALLOW_ALL_ORIGINS: "True"
     volumes:
       - ./backend:/app
-    
     ports:
       - "8001:8000"
     command: /app/entrypoints/web.sh
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    cpus: 0.5
+    mem_limit: 512m
     restart: unless-stopped
     networks:
       - backend_net
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
 
   celery:
-    build: ./backend
+    build:
+      context: ./backend
     env_file:
-      - .env.docker
-    command: celery -A app worker -l info --concurrency=1
+      - path: .env.docker
+        required: false
+    environment:
+      DEBUG: "True"
+      POSTGRES_DB: ${POSTGRES_DB:-django_rpg}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      CORS_ALLOW_ALL_ORIGINS: "True"
+    command: /app/entrypoints/worker.sh
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    cpus: 0.25
+    mem_limit: 256m
     restart: unless-stopped
+    profiles: [full]
     networks:
       - backend_net
-    profiles: ["full"]
 
   celery-beat:
-    build: ./backend
+    build:
+      context: ./backend
     env_file:
-      - .env.docker
-    command: celery -A app beat -l info --max-interval=30
+      - path: .env.docker
+        required: false
+    environment:
+      DEBUG: "True"
+      POSTGRES_DB: ${POSTGRES_DB:-django_rpg}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      CORS_ALLOW_ALL_ORIGINS: "True"
+    command: /app/entrypoints/beat.sh
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    cpus: 0.25
+    mem_limit: 256m
     restart: unless-stopped
+    profiles: [full]
     networks:
       - backend_net
-    profiles: ["full"]
 
 networks:
   backend_net:
     driver: bridge
 
 volumes:
-  db_data:
+  django_rpg_db_data:
+    name: django_rpg_db_data

@@ -7,11 +7,11 @@ class GameLoopService:
         self.state_sync = state_sync
         self.builder = builder
 
-    def handle_action(self, room_name, user_id, user_input, adventure_id):
+    def handle_action(self, room_name, participant_id, user_input, adventure_id):
         parsed = self.llm.parse_player_input(user_input)
 
         parsed["room"] = room_name
-        parsed["user_id"] = user_id
+        parsed["participant_id"] = participant_id
         parsed["adventure"] = adventure_id
 
         result = self.processor.process(parsed)

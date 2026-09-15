@@ -5,21 +5,29 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
+from accounts.models import PlayerCharacter
+from chat.services.room_participants_service import RoomParticipantsService
 from chat.services.room_service import RoomService
 
 import logging
 
 from .models import Room
-from .serializers import RoomSerializer
+from .serializers import (
+    RoomParticipantSerializer,
+    RoomSerializer,
+)
 
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
+from game.middleware.state_middleware import STATE_MANAGER
+from game.services.game_start_service import GameStartService
+from game.ws.channel_notifier import GameChannelNotifier
+from game_instances.services.llm.orchestrator.llm_service import LLMService
+from world.seeders.world_seeder import WorldSeeder
 
 logger = logging.getLogger(__name__)
 
 
 class RoomViewSet(viewsets.ModelViewSet):
-    queryset = Room.objects.all()
+    queryset = Room.objects.prefetch_related("participants")
     serializer_class = RoomSerializer
     permission_classes = [IsAuthenticated]
 
@@ -44,6 +52,36 @@ class RoomViewSet(viewsets.ModelViewSet):
         logger.info(f"ROOM ID: {room.id}")
         logger.info(f"ROOM ADVENTURE_ID: {room.adventure_id}")
         logger.info("================================")
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def join(self, request, pk=None):
+        room = self.get_object()
+        character = PlayerCharacter.objects.filter(
+            user=request.user,
+            is_active=True,
+        ).first()
+
+        if character is None:
+            return Response(
+                {
+                    "code": "NO_ACTIVE_CHARACTER",
+                    "error": "Select an active character in Profile first.",
+                },
+                status=400,
+            )
+
+        participant = RoomParticipantsService.add_human(
+            room,
+            request.user,
+            character,
+        )
+
+        return Response(
+            RoomParticipantSerializer(
+                participant,
+                context={"request": request},
+            ).data
+        )
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def set_adventure(self, request, pk=None):
@@ -92,20 +130,17 @@ class RoomViewSet(viewsets.ModelViewSet):
 
         logger.info(f"[START GAME] using adventure_id={adventure.id}")
 
-        channel_layer = get_channel_layer()
+        start_service = GameStartService(
+            seeder=WorldSeeder(STATE_MANAGER),
+            llm=LLMService(),
+            notifier=GameChannelNotifier(),
+            state_manager=STATE_MANAGER,
+        )
 
-        # 🔥 FIX: Channels consumer expects payload wrapper
-        async_to_sync(channel_layer.group_send)(
-            f"gameconsumer_{room.id}",
-            {
-                "type": "game_started",
-                "payload": {
-                    "event": "game_started",
-                    "room_id": room.id,
-                    "adventure_id": adventure.id,
-                    "text": "Game started"
-                }
-            }
+        start_service.start_game(
+            adventure_id=adventure.id,
+            room_id=room.id,
+            adventure=adventure,
         )
 
         room.state = "in_game"

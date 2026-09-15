@@ -1,12 +1,34 @@
 from rest_framework import serializers
 import logging
 
-from .models import Room
+from .models import Room, RoomParticipant
 from world.models import Adventure
 
 logger = logging.getLogger(__name__)
 
 
+class RoomParticipantSerializer(serializers.ModelSerializer):
+    participant_id = serializers.IntegerField(source="id", read_only=True)
+    character_id = serializers.IntegerField(read_only=True)
+    is_current_user = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RoomParticipant
+        fields = (
+            "participant_id",
+            "character_id",
+            "name",
+            "is_ai",
+            "is_current_user",
+        )
+
+    def get_is_current_user(self, obj):
+        request = self.context.get("request")
+        return bool(
+            request
+            and request.user.is_authenticated
+            and obj.user_id == request.user.id
+        )
 class RoomSerializer(serializers.ModelSerializer):
 
     adventure = serializers.PrimaryKeyRelatedField(
@@ -17,6 +39,7 @@ class RoomSerializer(serializers.ModelSerializer):
 
     adventure_title = serializers.SerializerMethodField()
     owner_id = serializers.IntegerField(source='owner.id', read_only=True)
+    participants = RoomParticipantSerializer(many=True, read_only=True)
 
     class Meta:
         model = Room
