@@ -105,7 +105,6 @@ class RoomViewSet(viewsets.ModelViewSet):
         start_service.start_game(
             adventure_id=adventure.id,
             room_id=room.id,
-            user_id=request.user.id,
             adventure=adventure,
         )
 

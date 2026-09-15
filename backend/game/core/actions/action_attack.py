@@ -26,7 +26,7 @@ class AttackAction:
     def handle(self, parsed_input, world=None):
         from world.models import Enemy as EnemyORM
         room = parsed_input.get("room")
-        user_id = parsed_input.get("user_id")
+        participant_id = parsed_input.get("participant_id")
         enemy_name = parsed_input.get("target")
 
         if isinstance(enemy_name, str):
@@ -37,7 +37,7 @@ class AttackAction:
         room_key = self.state_manager.normalize_room_id(room)
         room_obj = self.state_manager.get_or_create_room(room_key)
 
-        attacker = self.runtime_player_service.get_or_create(room_obj, user_id)
+        attacker = self.runtime_player_service.get_or_create(room_obj, participant_id)
 
         if not attacker:
             return self.response_fn(

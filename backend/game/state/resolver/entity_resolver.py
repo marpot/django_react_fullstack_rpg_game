@@ -20,10 +20,10 @@ class EntityResolver:
 
         return None
 
-    def resolve_player(self, room_name: str, user_id: int):
+    def resolve_player(self, room_name: str, participant_id: int):
         room = self.state_manager.get_or_create_room(room_name)
 
-        player = room.players.get(user_id) or room.players.get(str(user_id))
+        player = room.players.get(participant_id)
 
         if player:
             return self._normalize_player(player)
@@ -77,4 +77,8 @@ class EntityResolver:
             damage_die=player.damage_die,
             damage_bonus=player.damage_bonus,
             defense=player.defense,
+            location=player.location,
+            armor=player.armor,
+            user_id=player.user_id,
+            character_id=player.character_id,
         )

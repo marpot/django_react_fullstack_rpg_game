@@ -73,17 +73,17 @@ class GameStateManager:
         room = self.get_or_create_room(self.normalize_room_id(room_name))
         return room.enemies.get(enemy_name)
     
-    def get_player(self, room_name: str, user_id: int):
+    def get_player(self, room_name: str, participant_id: int):
         room = self.get_or_create_room(self.normalize_room_id(room_name))
-        player = room.players.get(user_id)
+        player = room.players.get(participant_id)
         if player:
             return player
         
         return None
     
-    def add_player(self, room_name: str, user_id: int, player: Player):
+    def add_player(self, room_name: str, participant_id: int, player: Player):
         room = self.get_or_create_room(self.normalize_room_id(room_name))
-        room.players[user_id] = player
+        room.players[participant_id] = player
 
     def add_enemy(self, room_name: str, enemy):
         room = self.get_or_create_room(self.normalize_room_id(room_name))

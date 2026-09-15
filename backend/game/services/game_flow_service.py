@@ -15,7 +15,7 @@ class GameFlowService:
         self.turn_service = turn_service
         self.processor = ActionProcessor(state_manager)
 
-    async def handle(self, consumer, user_input, world, room_name, user_id, adventure_id):
+    async def handle(self, consumer, user_input, world, room_name, participant_id, adventure_id):
 
         memory = await sync_to_async(GameMemoryBuilder().build)(
             adventure_id,
@@ -36,16 +36,16 @@ class GameFlowService:
 
         parsed.update({
             "room": room_name,
-            "user_id": user_id,
+            "participant_id": participant_id,
             "adventure": adventure_id,
             "world": world,
         })
 
         room_obj = self.turn_service.get_room(room_name)
 
-        self.turn_service.register_player(room_obj, user_id)
+        self.turn_service.register_player(room_obj, participant_id)
 
-        if not self.turn_service.is_player_turn(room_obj, user_id):
+        if not self.turn_service.is_player_turn(room_obj, participant_id):
             return {
                 "blocked": True,
                 "room_obj": room_obj

@@ -17,6 +17,8 @@ class Player:
 
     location: str = "start"
     armor: int = 0
+    user_id: int | None = None
+    character_id: int | None = None
 
 
 # =========================

@@ -4,13 +4,13 @@ from game.state.game_state_manager import GameStateManager, Enemy
 
 class GameBootstrap:
     @staticmethod
-    def seed_test_world(state: GameStateManager, room: str, user_id: int):
+    def seed_test_world(state: GameStateManager, room: str, participant_id: int):
         room_state = state.get_or_create_room(room)
 
-        if user_id not in room_state.players:
-            room_state.players[user_id] = Player(
-            id=user_id,
-            name=f"player_{user_id}",
+        if participant_id not in room_state.players:
+            room_state.players[participant_id] = Player(
+            id=participant_id,
+            name=f"player_{participant_id}",
             max_hp=100,
             hp=100,
             attack_bonus=5,

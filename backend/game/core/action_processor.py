@@ -70,18 +70,7 @@ class ActionProcessor:
             "world": world or {}
         })
 
-    def _advance_turn(self, room_obj, user_id):
-        if not room_obj.turn_order:
-            room_obj.turn_order = [user_id]
-
-        if user_id not in room_obj.turn_order:
-            room_obj.turn_order.append(user_id)
-
-        if room_obj.current_player_id is None:
-            room_obj.current_player_id = room_obj.turn_order[0]
-            room_obj.current_turn_index = 0
-            return room_obj.current_player_id
-
+    def _advance_turn(self, room_obj):
         current_index = room_obj.turn_order.index(room_obj.current_player_id)
         next_index = (current_index + 1) % len(room_obj.turn_order)
 
@@ -90,23 +79,23 @@ class ActionProcessor:
 
         return room_obj.current_player_id
 
-    def _record_history(self, room_obj, user_id, action, result):
-        if user_id not in room_obj.player_histories:
-            room_obj.player_histories[user_id] = []
+    def _record_history(self, room_obj, participant_id, action, result):
+        if participant_id not in room_obj.player_histories:
+            room_obj.player_histories[participant_id] = []
 
-        room_obj.player_histories[user_id].append({
+        room_obj.player_histories[participant_id].append({
             "action": action,
             "result": result,
-            "timestamp": len(room_obj.player_histories[user_id]),
+            "timestamp": len(room_obj.player_histories[participant_id]),
         })
 
-    def _turn_state(self, room_obj, user_id):
+    def _turn_state(self, room_obj, participant_id):
         return {
             "current_player_id": room_obj.current_player_id,
             "current_turn_index": room_obj.current_turn_index,
             "turn_order": room_obj.turn_order,
-            "is_your_turn": room_obj.current_player_id == user_id,
-            "history": room_obj.player_histories.get(user_id, []),
+            "is_your_turn": room_obj.current_player_id == participant_id,
+            "history": room_obj.player_histories.get(participant_id, []),
         }
 
     def process(self, parsed_input):
@@ -116,7 +105,8 @@ class ActionProcessor:
         world = parsed_input.get("world")
 
         if parsed_input.get("error") == "unknown_intent_fallback":
-            return self._handle_inspect(parsed_input, world)
+            action = "inspect"
+            parsed_input = {**parsed_input, "action": action}
 
         if not action or action == "unknown":
             return self._response(
@@ -126,19 +116,54 @@ class ActionProcessor:
             )
 
         room = parsed_input.get("room")
-        user_id = parsed_input.get("user_id")
+        participant_id = parsed_input.get("participant_id")
+
+        if participant_id is None:
+            return self._response(
+                "error",
+                "Participant identity is required",
+                {"error": "missing_participant_id"},
+            )
 
         room_obj = self.state_manager.get_or_create_room(
             self.state_manager.normalize_room_id(room)
         )
 
-        if user_id is not None:
-            if user_id not in room_obj.turn_order:
-                room_obj.turn_order.append(user_id)
-            if room_obj.current_player_id is None:
-                room_obj.current_player_id = user_id
-                room_obj.current_turn_index = 0
-            room_obj.player_histories.setdefault(user_id, [])
+        if (
+            participant_id not in room_obj.players
+            or participant_id not in room_obj.turn_order
+        ):
+            return self._response(
+                "error",
+                "Participant is not part of the active game",
+                {
+                    "error": "participant_not_in_game",
+                    "turn_state": self._turn_state(room_obj, participant_id),
+                },
+            )
+
+        if (
+            room_obj.current_player_id is None
+            or room_obj.current_player_id not in room_obj.turn_order
+        ):
+            return self._response(
+                "error",
+                "Active game has an invalid turn state",
+                {
+                    "error": "invalid_turn_state",
+                    "turn_state": self._turn_state(room_obj, participant_id),
+                },
+            )
+
+        if room_obj.current_player_id != participant_id:
+            return self._response(
+                "error",
+                "It is not this participant's turn",
+                {
+                    "error": "not_your_turn",
+                    "turn_state": self._turn_state(room_obj, participant_id),
+                },
+            )
 
         if action == "attack":
             result = self.attack_action.handle(parsed_input, world)
@@ -150,7 +175,7 @@ class ActionProcessor:
             result = self.move_action.handle(parsed_input, world)
 
         elif action == "look":
-            return self._handle_inspect(parsed_input, world)
+            result = self._handle_inspect(parsed_input, world)
 
         elif action == "talk":
             result = NPCService(self.state_manager).talk(
@@ -163,10 +188,9 @@ class ActionProcessor:
             return self._response(action, "Unhandled action", {"error": "unhandled_action"})
 
         # wspólna część (turn + history)
-        if user_id is not None:
-            self._record_history(room_obj, user_id, action, result.get("result", {}))
-            self._advance_turn(room_obj, user_id)
-            result["turn_state"] = self._turn_state(room_obj, user_id)
+        self._record_history(room_obj, participant_id, action, result.get("result", {}))
+        self._advance_turn(room_obj)
+        result["turn_state"] = self._turn_state(room_obj, participant_id)
 
         return result
 

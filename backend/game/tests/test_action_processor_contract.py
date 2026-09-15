@@ -6,6 +6,8 @@ from game.state.game_state_manager import GameStateManager
 from game.state.runtime.models import Player, Enemy as RuntimeEnemy
 
 from accounts.models import PlayerCharacter
+from chat.models import Room
+from chat.services.room_participants_service import RoomParticipantsService
 from world.models import Adventure, Enemy as EnemyORM
 
 pytestmark = pytest.mark.django_db
@@ -18,7 +20,7 @@ def _base_env():
     User = get_user_model()
     user = User.objects.create_user(username="hero", password="x")
 
-    PlayerCharacter.objects.create(
+    character = PlayerCharacter.objects.create(
         user=user,
         name="Hero",
         health=100,
@@ -29,21 +31,35 @@ def _base_env():
         title="test",
         creator=user
     )
+    room_record = Room.objects.create(
+        name="testroom",
+        owner=user,
+        adventure=adventure,
+    )
+    participant = RoomParticipantsService.add_human(
+        room_record,
+        user,
+        character,
+    )
+    room = state.get_or_create_room(room_record.id)
+    room.turn_order = [participant.id]
+    room.current_player_id = participant.id
+    room.player_histories = {participant.id: []}
 
-    return state, processor, user, adventure
+    return state, processor, participant, adventure, room_record
 
 
 # -----------------------------
 # CONTRACT TEST 1: SHAPE CHECK
 # -----------------------------
 def test_attack_response_contract_shape():
-    state, processor, user, adventure = _base_env()
+    state, processor, participant, adventure, room_record = _base_env()
 
     state.add_player(
-        "testroom",
-        user.id,
+        room_record.id,
+        participant.id,
         Player(
-            id=user.id,
+            id=participant.id,
             name="Hero",
             hp=100,
             max_hp=100,
@@ -55,7 +71,7 @@ def test_attack_response_contract_shape():
     )
 
     state.add_enemy(
-        "testroom",
+        room_record.id,
         RuntimeEnemy(
             id="goblin",
             name="goblin",
@@ -80,8 +96,8 @@ def test_attack_response_contract_shape():
     result = processor.process({
         "action": "attack",
         "target": "goblin",
-        "room": "testroom",
-        "user_id": user.id,
+        "room": room_record.id,
+        "participant_id": participant.id,
         "adventure": adventure.id
     })
 
@@ -97,13 +113,13 @@ def test_attack_response_contract_shape():
 # CONTRACT TEST 2: ATTACK CHANGES STATE
 # -----------------------------
 def test_attack_reduces_hp():
-    state, processor, user, adventure = _base_env()
+    state, processor, participant, adventure, room_record = _base_env()
 
     state.add_player(
-        "testroom",
-        user.id,
+        room_record.id,
+        participant.id,
         Player(
-            id=user.id,
+            id=participant.id,
             name="Hero",
             hp=100,
             max_hp=100,
@@ -115,7 +131,7 @@ def test_attack_reduces_hp():
     )
 
     state.add_enemy(
-        "testroom",
+        room_record.id,
         RuntimeEnemy(
             id="goblin",
             name="goblin",
@@ -140,26 +156,26 @@ def test_attack_reduces_hp():
     result = processor.process({
         "action": "attack",
         "target": "goblin",
-        "room": "testroom",
-        "user_id": user.id,
+        "room": room_record.id,
+        "participant_id": participant.id,
         "adventure": adventure.id
     })
 
     assert "error" not in result
-    assert state.get_room("testroom").enemies["goblin"].hp < 30
+    assert state.get_room(room_record.id).enemies["goblin"].hp < 30
 
 
 # -----------------------------
 # CONTRACT TEST 3: NO NEGATIVE HP
 # -----------------------------
 def test_enemy_hp_never_negative():
-    state, processor, user, adventure = _base_env()
+    state, processor, participant, adventure, room_record = _base_env()
 
     state.add_player(
-        "testroom",
-        user.id,
+        room_record.id,
+        participant.id,
         Player(
-            id=user.id,
+            id=participant.id,
             name="Hero",
             hp=100,
             max_hp=100,
@@ -171,7 +187,7 @@ def test_enemy_hp_never_negative():
     )
 
     state.add_enemy(
-        "testroom",
+        room_record.id,
         RuntimeEnemy(
             id="goblin",
             name="goblin",
@@ -196,10 +212,10 @@ def test_enemy_hp_never_negative():
     result = processor.process({
         "action": "attack",
         "target": "goblin",
-        "room": "testroom",
-        "user_id": user.id,
+        "room": room_record.id,
+        "participant_id": participant.id,
         "adventure": adventure.id
     })
 
     assert "error" not in result
-    assert state.get_room("testroom").enemies["goblin"].hp >= 0
+    assert state.get_room(room_record.id).enemies["goblin"].hp >= 0

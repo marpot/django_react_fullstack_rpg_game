@@ -90,7 +90,7 @@ def test_full_combat_flow():
         "action": "attack",
         "target": "goblin",
         "room": "testroom",
-        "user_id": user.id,
+        "participant_id": user.id,
         "adventure": adventure.id
     })
 
@@ -141,7 +141,7 @@ def test_attack_triggers_enemy_seed_when_room_is_empty():
         "action": "attack",
         "target": "goblin",
         "room": "testroom",
-        "user_id": user.id,
+        "participant_id": user.id,
         "adventure": adventure.id
     })
 
@@ -198,7 +198,7 @@ def test_enemy_hp_never_goes_negative():
         "action": "attack",
         "target": "goblin",
         "room": "testroom",
-        "user_id": user.id,
+        "participant_id": user.id,
         "adventure": adventure.id
     })
 

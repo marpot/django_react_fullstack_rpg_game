@@ -1,5 +1,5 @@
 from chat.models import RoomParticipant
-from game.state.runtime.models import Player
+from game.state.runtime.runtime_player_service import RuntimePlayerService
 
 
 class GameStartService:
@@ -10,7 +10,7 @@ class GameStartService:
         self.notifier = notifier
         self.state_manager = state_manager
 
-    def start_game(self, adventure_id, room_id, user_id, adventure=None):
+    def start_game(self, adventure_id, room_id, adventure=None):
 
         # 1. seed world (SOURCE OF TRUTH)
         self.seeder.seed_from_adventure(adventure_id, room_id)
@@ -20,24 +20,45 @@ class GameStartService:
 
         participants = list(
             RoomParticipant.objects.filter(room_id=room_id)
+            .select_related("user", "character")
+            .order_by("id")
         )
 
-        room_state.players = {
-            p.id: Player(id=p.id, name=getattr(p, "name", str(p.id)))
-            for p in participants
-        }
+        room_state.players = {}
+
+        runtime_player_service = RuntimePlayerService(self.state_manager)
+
+        for participant in participants:
+            runtime_player_service.get_or_create(
+                room_state,
+                participant.id,
+            )
 
         room_state.turn_order = list(room_state.players.keys())
+        room_state.player_histories = {
+            participant_id: [] for participant_id in room_state.turn_order
+        }
 
         if room_state.turn_order:
             room_state.current_player_id = room_state.turn_order[0]
+            room_state.current_turn_index = 0
+        else:
+            room_state.current_player_id = None
             room_state.current_turn_index = 0
 
         # 2. LLM world DTO
         adventure_context = {"id": adventure_id}
         if adventure is not None:
-            adventure_context["title"] = getattr(adventure, "title", None) or adventure.get("title")
-            adventure_context["description"] = getattr(adventure, "description", None) or adventure.get("description")
+            if isinstance(adventure, dict):
+                adventure_context.update({
+                    "title": adventure.get("title"),
+                    "description": adventure.get("description"),
+                })
+            else:
+                adventure_context.update({
+                    "title": getattr(adventure, "title", None),
+                    "description": getattr(adventure, "description", None),
+                })
 
         world_raw = self.llm.generate_world({"adventure": adventure_context})
 
