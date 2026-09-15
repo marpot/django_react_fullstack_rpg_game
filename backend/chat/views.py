@@ -4,13 +4,20 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from django.shortcuts import get_object_or_404
 
+from accounts.models import PlayerCharacter
+from chat.services.room_participants_service import RoomParticipantsService
 from chat.services.room_service import RoomService
 
 import logging
 
 from .models import Room
-from .serializers import RoomSerializer
+from .serializers import (
+    RoomParticipantSerializer,
+    RoomSerializer,
+    SelectRoomCharacterSerializer,
+)
 
 from game.middleware.state_middleware import STATE_MANAGER
 from game.services.game_start_service import GameStartService
@@ -22,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class RoomViewSet(viewsets.ModelViewSet):
-    queryset = Room.objects.all()
+    queryset = Room.objects.prefetch_related("participants")
     serializer_class = RoomSerializer
     permission_classes = [IsAuthenticated]
 
@@ -47,6 +54,30 @@ class RoomViewSet(viewsets.ModelViewSet):
         logger.info(f"ROOM ID: {room.id}")
         logger.info(f"ROOM ADVENTURE_ID: {room.adventure_id}")
         logger.info("================================")
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def select_character(self, request, pk=None):
+        room = self.get_object()
+        input_serializer = SelectRoomCharacterSerializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+
+        character = get_object_or_404(
+            PlayerCharacter,
+            id=input_serializer.validated_data["character_id"],
+            user=request.user,
+        )
+        participant = RoomParticipantsService.add_human(
+            room,
+            request.user,
+            character,
+        )
+
+        return Response(
+            RoomParticipantSerializer(
+                participant,
+                context={"request": request},
+            ).data
+        )
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def set_adventure(self, request, pk=None):

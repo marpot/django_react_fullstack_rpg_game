@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { api } from "@/api/client";
-import { selectActiveCharacter, getRoomById } from "@/services/room.service";
+import {
+  getRoomById,
+  selectActiveCharacter,
+  selectRoomCharacter,
+  type RoomDTO,
+} from "@/services/room.service";
 import { useGameSocket } from "@/features/game/hooks/useGameSocket";
 import type { Character } from "@/features/room/room.types";
 
@@ -15,7 +20,7 @@ export const useRoomSession = (roomId: string) => {
   const [state, setState] = useState<RoomState>("select-character");
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
   const [loading, setLoading] = useState(true);
-  const [room, setRoom] = useState<any>(null);
+  const [room, setRoom] = useState<RoomDTO | null>(null);
   const [characterId, setCharacterId] = useState<number | null>(null);
 
   const [world, setWorld] = useState<any | null>(null);
@@ -69,24 +74,13 @@ export const useRoomSession = (roomId: string) => {
 
   const fetchMe = async () => {
     const res = await api.get<MeResponse>("/accounts/me/");
-    const active = res.data.character ?? null;
-
-    setActiveCharacter(active);
-
-    if (active) {
-      setCharacterId(active.id);
-      setState((prev) => (prev === "select-character" ? "lobby" : prev));
-    } else {
-      setCharacterId(null);
-      setState("select-character");
-    }
-
     return res.data;
   };
 
   const fetchRoom = async () => {
     const res = await getRoomById(roomId);
     setRoom(res.data);
+    return res.data;
   };
 
   useEffect(() => {
@@ -97,7 +91,19 @@ export const useRoomSession = (roomId: string) => {
     const run = async () => {
       setLoading(true);
       try {
-        await Promise.all([fetchMe(), fetchRoom()]);
+        const [meData, roomData] = await Promise.all([fetchMe(), fetchRoom()]);
+        const participant = roomData.participants.find(
+          (item) => item.is_current_user
+        );
+        const selectedCharacter = participant
+          ? meData.characters.find(
+              (character) => character.id === participant.character_id
+            ) ?? null
+          : null;
+
+        setActiveCharacter(selectedCharacter);
+        setCharacterId(selectedCharacter?.id ?? null);
+        setState(selectedCharacter ? "lobby" : "select-character");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -157,11 +163,15 @@ export const useRoomSession = (roomId: string) => {
 
   const selectCharacter = async (id: number) => {
     await selectActiveCharacter(id);
+    await selectRoomCharacter(roomId, id);
 
     localStorage.setItem("character_id", String(id));
     setCharacterId(id);
 
-    await fetchMe();
+    const [meData] = await Promise.all([fetchMe(), fetchRoom()]);
+    setActiveCharacter(
+      meData.characters.find((character) => character.id === id) ?? null
+    );
 
     setState("lobby");
   };

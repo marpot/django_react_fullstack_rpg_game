@@ -49,10 +49,10 @@ const RoomPage: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    if (session.room?.adventure_id) {
-      setSelectedAdventureId(session.room.adventure_id);
+    if (session.room?.adventure) {
+      setSelectedAdventureId(session.room.adventure);
     }
-  }, [session.room?.adventure_id]);
+  }, [session.room?.adventure]);
 
   const handleSelectAdventure = async (adventureId: number) => {
     setSelectedAdventureId(adventureId); // UI natychmiast
@@ -140,6 +140,15 @@ const RoomPage: React.FC = () => {
           <div className="room-story">
 
             <h2>⏳ Lobby</h2>
+
+            <div>
+              <h3>Gracze</h3>
+              <ul>
+                {session.room?.participants.map((participant) => (
+                  <li key={participant.participant_id}>{participant.name}</li>
+                ))}
+              </ul>
+            </div>
 
             {isOwner && (
               <div className="adventure-panel">

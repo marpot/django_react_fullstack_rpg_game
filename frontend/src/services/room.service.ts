@@ -8,12 +8,26 @@ export type CharacterDTO = {
   hp: number;
 };
 
+export type RoomParticipantDTO = {
+  participant_id: number;
+  character_id: number | null;
+  name: string;
+  is_ai: boolean;
+  is_current_user: boolean;
+};
+
+export type RoomDTO = Room & {
+  owner: number;
+  state: "lobby" | "in_game";
+  participants: RoomParticipantDTO[];
+};
+
 export const getRooms = () => {
   return api.get<Room[]>("/chat/rooms/");
 };
 
 export const getRoomById = (roomId: string) => {
-  return api.get(`/chat/rooms/${roomId}/`);
+  return api.get<RoomDTO>(`/chat/rooms/${roomId}/`);
 };
 
 export const createRoom = (data: {
@@ -37,6 +51,13 @@ export const selectActiveCharacter = (characterId: number) => {
   return api.post("/accounts/select-active-character/", {
     character_id: characterId,
   });
+};
+
+export const selectRoomCharacter = (roomId: string, characterId: number) => {
+  return api.post<RoomParticipantDTO>(
+    `/chat/rooms/${roomId}/select_character/`,
+    { character_id: characterId }
+  );
 };
 
 export const startGame = (roomId: string) => {
