@@ -4,7 +4,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404
 
 from accounts.models import PlayerCharacter
 from chat.services.room_participants_service import RoomParticipantsService
@@ -16,7 +15,6 @@ from .models import Room
 from .serializers import (
     RoomParticipantSerializer,
     RoomSerializer,
-    SelectRoomCharacterSerializer,
 )
 
 from game.middleware.state_middleware import STATE_MANAGER
@@ -56,16 +54,22 @@ class RoomViewSet(viewsets.ModelViewSet):
         logger.info("================================")
 
     @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
-    def select_character(self, request, pk=None):
+    def join(self, request, pk=None):
         room = self.get_object()
-        input_serializer = SelectRoomCharacterSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
-
-        character = get_object_or_404(
-            PlayerCharacter,
-            id=input_serializer.validated_data["character_id"],
+        character = PlayerCharacter.objects.filter(
             user=request.user,
-        )
+            is_active=True,
+        ).first()
+
+        if character is None:
+            return Response(
+                {
+                    "code": "NO_ACTIVE_CHARACTER",
+                    "error": "Select an active character in Profile first.",
+                },
+                status=400,
+            )
+
         participant = RoomParticipantsService.add_human(
             room,
             request.user,

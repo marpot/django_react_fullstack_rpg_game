@@ -4,7 +4,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { api } from "@/api/client";
 
 import Chat from "@/features/chat/Chat";
-import CharacterSelectPanel from "@/components/Room/CharacterSelectPanel";
 import GameWindow from "@/features/game/GameCenter/GameWindow";
 
 import "@/styles/pages/room-page.scss";
@@ -49,9 +48,7 @@ const RoomPage: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    if (session.room?.adventure) {
-      setSelectedAdventureId(session.room.adventure);
-    }
+    setSelectedAdventureId(session.room?.adventure ?? null);
   }, [session.room?.adventure]);
 
   const handleSelectAdventure = async (adventureId: number) => {
@@ -104,11 +101,17 @@ const RoomPage: React.FC = () => {
       <aside className="room-sidebar">
         <h2 className="room-title">🧙 Postacie</h2>
 
-        {session.state === "select-character" && (
-          <CharacterSelectPanel onSelect={session.selectCharacter} />
+        {session.sessionError && (
+          <div style={{ color: "red" }}>{session.sessionError}</div>
         )}
 
-        {session.state !== "select-character" && (
+        {session.state === "missing-character" && (
+          <Button variant="secondary" onClick={() => navigate("/profile")}>
+            Przejdź do Profilu
+          </Button>
+        )}
+
+        {session.activeCharacter && (
           <div className="active-character">
             <h3>🎮 Aktywna postać</h3>
 
@@ -121,10 +124,6 @@ const RoomPage: React.FC = () => {
             )}
           </div>
         )}
-
-        <Button variant="secondary" onClick={session.reset}>
-          🔄 Zmień postać
-        </Button>
 
         <Button variant="danger" onClick={() => navigate("/dashboard")}>
           🚪 Opuść pokój
@@ -144,7 +143,7 @@ const RoomPage: React.FC = () => {
             <div>
               <h3>Gracze</h3>
               <ul>
-                {session.room?.participants.map((participant) => (
+                {session.room!.participants.map((participant) => (
                   <li key={participant.participant_id}>{participant.name}</li>
                 ))}
               </ul>

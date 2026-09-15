@@ -53,10 +53,9 @@ export const selectActiveCharacter = (characterId: number) => {
   });
 };
 
-export const selectRoomCharacter = (roomId: string, characterId: number) => {
+export const joinRoom = (roomId: string) => {
   return api.post<RoomParticipantDTO>(
-    `/chat/rooms/${roomId}/select_character/`,
-    { character_id: characterId }
+    `/chat/rooms/${roomId}/join/`
   );
 };
 

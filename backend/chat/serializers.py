@@ -29,12 +29,6 @@ class RoomParticipantSerializer(serializers.ModelSerializer):
             and request.user.is_authenticated
             and obj.user_id == request.user.id
         )
-
-
-class SelectRoomCharacterSerializer(serializers.Serializer):
-    character_id = serializers.IntegerField(min_value=1)
-
-
 class RoomSerializer(serializers.ModelSerializer):
 
     adventure = serializers.PrimaryKeyRelatedField(

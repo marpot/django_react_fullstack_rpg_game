@@ -2,31 +2,34 @@ import { useEffect, useState } from "react";
 import { api } from "@/api/client";
 import {
   getRoomById,
-  selectActiveCharacter,
-  selectRoomCharacter,
+  joinRoom,
   type RoomDTO,
 } from "@/services/room.service";
 import { useGameSocket } from "@/features/game/hooks/useGameSocket";
 import type { Character } from "@/features/room/room.types";
 
-export type RoomState = "select-character" | "lobby" | "in-game";
+export type RoomState =
+  | "loading"
+  | "missing-character"
+  | "error"
+  | "lobby"
+  | "in-game";
 
 type MeResponse = {
-  character: Character;
-  characters: Character[];
+  character: Character | null;
 };
 
 export const useRoomSession = (roomId: string) => {
-  const [state, setState] = useState<RoomState>("select-character");
+  const [state, setState] = useState<RoomState>("loading");
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
   const [loading, setLoading] = useState(true);
   const [room, setRoom] = useState<RoomDTO | null>(null);
   const [characterId, setCharacterId] = useState<number | null>(null);
+  const [joined, setJoined] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
   const [world, setWorld] = useState<any | null>(null);
   const [gameEvents, setGameEvents] = useState<any[]>([]);
-
-  const [socketResetKey, setSocketResetKey] = useState(0);
 
   const normalizeEvent = (data: any) => {
     const payload = data?.payload ?? {};
@@ -90,20 +93,81 @@ export const useRoomSession = (roomId: string) => {
 
     const run = async () => {
       setLoading(true);
+      setJoined(false);
+      setSessionError(null);
+      setState("loading");
       try {
-        const [meData, roomData] = await Promise.all([fetchMe(), fetchRoom()]);
-        const participant = roomData.participants.find(
-          (item) => item.is_current_user
-        );
-        const selectedCharacter = participant
-          ? meData.characters.find(
-              (character) => character.id === participant.character_id
-            ) ?? null
-          : null;
+        const meData = await fetchMe();
+        const activeCharacter = meData.character ?? null;
 
-        setActiveCharacter(selectedCharacter);
-        setCharacterId(selectedCharacter?.id ?? null);
-        setState(selectedCharacter ? "lobby" : "select-character");
+        if (!activeCharacter) {
+          if (mounted) {
+            setActiveCharacter(null);
+            setCharacterId(null);
+            setState("missing-character");
+            setSessionError(
+              "Wybierz aktywną postać w Profilu przed wejściem do pokoju."
+            );
+          }
+          return;
+        }
+
+        const joinResponse = await joinRoom(roomId);
+        const roomData = await fetchRoom();
+
+        if (!Array.isArray(roomData.participants)) {
+          throw new Error(
+            "Room API contract violation: participants must be an array"
+          );
+        }
+
+        const currentParticipant = roomData.participants.find(
+          (participant) =>
+            participant.participant_id === joinResponse.data.participant_id
+        );
+
+        const joinedWithActiveCharacter = Boolean(
+          currentParticipant
+          && currentParticipant.character_id === activeCharacter.id
+          && joinResponse.data.character_id === activeCharacter.id
+        );
+
+        if (!joinedWithActiveCharacter) {
+          throw new Error(
+            "Room join contract violation: active participant is missing"
+          );
+        }
+
+        if (mounted) {
+          setActiveCharacter(activeCharacter);
+          setCharacterId(activeCharacter.id);
+          setState("lobby");
+          setJoined(true);
+          localStorage.setItem("character_id", String(activeCharacter.id));
+        }
+      } catch (error: any) {
+        console.error("[ROOM SESSION ERROR]", {
+          status: error?.response?.status,
+          data: error?.response?.data,
+          error,
+        });
+
+        if (mounted) {
+          setJoined(false);
+          if (error?.response?.data?.code === "NO_ACTIVE_CHARACTER") {
+            setState("missing-character");
+            setSessionError(
+              "Wybierz aktywną postać w Profilu przed wejściem do pokoju."
+            );
+          } else {
+            setState("error");
+            setSessionError(
+              error?.response?.data?.error
+              ?? error?.message
+              ?? "Nie udało się dołączyć do pokoju."
+            );
+          }
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -117,7 +181,7 @@ export const useRoomSession = (roomId: string) => {
   }, [roomId]);
 
   const { send } = useGameSocket(
-    roomId,
+    joined ? roomId : "",
     (data) => {
       if (!data?.type) return;
 
@@ -157,43 +221,14 @@ export const useRoomSession = (roomId: string) => {
           world,
         },
       ]);
-    },
-    socketResetKey
+    }
   );
-
-  const selectCharacter = async (id: number) => {
-    await selectActiveCharacter(id);
-    await selectRoomCharacter(roomId, id);
-
-    localStorage.setItem("character_id", String(id));
-    setCharacterId(id);
-
-    const [meData] = await Promise.all([fetchMe(), fetchRoom()]);
-    setActiveCharacter(
-      meData.characters.find((character) => character.id === id) ?? null
-    );
-
-    setState("lobby");
-  };
-
-  const reset = () => {
-    setState("select-character");
-    setActiveCharacter(null);
-    setCharacterId(null);
-    setWorld(null);
-    setGameEvents([]);
-
-    setSocketResetKey((prev) => prev + 1);
-
-    fetchRoom();
-  };
 
   return {
     state,
     activeCharacter,
     loading,
-    selectCharacter,
-    reset,
+    sessionError,
     room,
     characterId,
     world,
