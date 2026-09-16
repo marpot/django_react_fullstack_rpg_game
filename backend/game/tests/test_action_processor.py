@@ -196,11 +196,13 @@ def test_narration_provider_failure_preserves_action_and_turn(action, fake_llm_p
     room.turn_order = [1, 2]
     room.current_player_id = 1
     room.player_histories = {1: [], 2: []}
-    fake_llm_provider.error = RuntimeError("provider unavailable")
+    def failed_narration(action, result, world):
+        raise RuntimeError("provider unavailable")
 
     processor = ActionProcessor(
         state_manager=state,
         combat_service=CombatService(DiceService(seed=1)),
+        narrate_fn=failed_narration,
     )
     result = processor.process({
         "action": action,

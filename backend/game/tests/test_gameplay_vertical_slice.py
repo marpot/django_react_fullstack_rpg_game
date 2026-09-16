@@ -11,6 +11,7 @@ from game.core.game_command import GameCommand
 from game.services.game_start_service import GameStartService
 from game.state.game_state_manager import GameStateManager
 from game_instances.services.llm.orchestrator.llm_service import LLMService
+from game_instances.services.llm.orchestrator.ai_game_master import AIGameMaster
 from world.models import Adventure, Enemy
 from world.seeders.world_seeder import WorldSeeder
 
@@ -67,7 +68,7 @@ def test_two_players_start_act_and_advance_canonical_turn(fake_llm_provider):
     assert "goblin" in runtime.enemies
     notifier.emit.assert_called_once()
 
-    processor = ActionProcessor(state)
+    processor = ActionProcessor(state, narrate_fn=AIGameMaster().narrate_event)
     result = processor.process(
         GameCommand(action="inspect", target=None, method=None),
         room=room.id,

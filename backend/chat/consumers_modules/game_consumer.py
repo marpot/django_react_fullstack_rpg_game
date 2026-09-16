@@ -6,7 +6,7 @@ from asgiref.sync import sync_to_async
 
 from .base import BaseConsumer
 from chat.models import Room, RoomParticipant
-from game_instances.services.llm.orchestrator.llm_service import LLMService
+from game_instances.services.llm.orchestrator.ai_game_master import AIGameMaster
 from game.core.action_processor import ActionProcessor
 
 logger = logging.getLogger(__name__)
@@ -76,7 +76,10 @@ class GameConsumer(BaseConsumer):
         logger.info("=== GAME CONSUMER WS CONNECTED===")
 
         self.state_manager = self.scope["state_manager"]
-        self.processor = ActionProcessor(self.state_manager)
+        self.ai_game_master = AIGameMaster()
+        self.processor = ActionProcessor(
+            self.state_manager, narrate_fn=self.ai_game_master.narrate_event,
+        )
 
         self.adventure_id = None
         self.participant_id = None
@@ -230,8 +233,7 @@ class GameConsumer(BaseConsumer):
             if has_command:
                 parsed = data["command"]
             else:
-                llm = LLMService()
-                parsed = await sync_to_async(llm.parse_player_input)(
+                parsed = await sync_to_async(self.ai_game_master.interpret_player_input)(
                     {"input": user_input},
                     state_manager=self.state_manager,
                     room=self.room_name,

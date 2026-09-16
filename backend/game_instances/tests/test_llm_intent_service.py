@@ -9,6 +9,7 @@ from game.state.game_state_manager import GameStateManager
 from game.state.runtime.models import Enemy, Player
 from game_instances.services.llm.core.llm_client import LLMClient
 from game_instances.services.llm.intent.game_context import GameContextBuilder
+from game_instances.services.llm.orchestrator.ai_game_master import AIGameMaster
 from game_instances.services.llm.orchestrator.llm_service import LLMService
 
 
@@ -65,9 +66,9 @@ def _runtime():
 def test_deterministic_commands_do_not_call_provider(message):
     state, room = _runtime()
     provider = FakeProvider(error=AssertionError("provider must not run"))
-    service = LLMService(intent_client=LLMClient(provider))
+    service = AIGameMaster(intent_client=LLMClient(provider))
 
-    parsed = service.parse_player_input(
+    parsed = service.interpret_player_input(
         message, state_manager=state, room=room.name, participant_id=1,
     )
 
@@ -75,16 +76,25 @@ def test_deterministic_commands_do_not_call_provider(message):
     assert provider.calls == []
 
 
+def test_legacy_service_delegates_input_interpretation():
+    provider = FakeProvider(error=AssertionError("provider must not run"))
+    parsed = LLMService(intent_client=LLMClient(provider)).parse_player_input("inspect room")
+
+    assert GameCommand.from_mapping(parsed).action == "inspect"
+    assert provider.calls == []
+
+
 def test_natural_text_uses_bounded_server_context_and_returns_command():
     state, room = _runtime()
     provider = FakeProvider('{"action":"attack","target":"goblin","method":"sword"}')
-    service = LLMService(intent_client=LLMClient(provider))
+    service = AIGameMaster(intent_client=LLMClient(provider))
 
-    parsed = service.parse_player_input(
+    parsed = service.interpret_player_input(
         {"input": NATURAL_INPUT, "world": {"hp": 999}, "memory": {"damage": 999}},
         state_manager=state, room=room.name, participant_id=1,
     )
 
+    assert set(parsed) == {"action", "target", "method"}
     assert GameCommand.from_mapping(parsed) == GameCommand(
         action="attack", target="goblin", method="sword",
     )
@@ -135,9 +145,9 @@ def test_game_context_limits_names_and_history():
 ])
 def test_invalid_provider_intent_is_rejected_without_mechanics(response):
     state, room = _runtime()
-    service = LLMService(intent_client=LLMClient(FakeProvider(response=response)))
+    service = AIGameMaster(intent_client=LLMClient(FakeProvider(response=response)))
 
-    parsed = service.parse_player_input(
+    parsed = service.interpret_player_input(
         NATURAL_INPUT, state_manager=state, room=room.name, participant_id=1,
     )
     result = ActionProcessor(state).process(parsed, room=room.name, participant_id=1)
@@ -152,11 +162,11 @@ def test_invalid_provider_intent_is_rejected_without_mechanics(response):
 
 def test_provider_exception_does_not_change_state_or_turn():
     state, room = _runtime()
-    service = LLMService(intent_client=LLMClient(FakeProvider(
+    service = AIGameMaster(intent_client=LLMClient(FakeProvider(
         error=RuntimeError("provider unavailable")
     )))
 
-    parsed = service.parse_player_input(
+    parsed = service.interpret_player_input(
         NATURAL_INPUT, state_manager=state, room=room.name, participant_id=1,
     )
     result = ActionProcessor(state).process(parsed, room=room.name, participant_id=1)

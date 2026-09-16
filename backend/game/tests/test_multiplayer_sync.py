@@ -11,6 +11,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from accounts.models import PlayerCharacter
 from chat.models import Room, RoomParticipant
 from game.middleware.state_middleware import STATE_MANAGER
+from game_instances.services.llm.orchestrator.ai_game_master import AIGameMaster
 from game_instances.services.llm.orchestrator.llm_service import LLMService
 from game_instances.services.llm.core.llm_client import LLMClient
 from rpg_project.asgi import application
@@ -90,10 +91,10 @@ async def test_two_players_share_rest_websocket_turns_and_reconnect(two_joined_p
         patch.object(LLMService, "generate_intro", return_value={
             "text": "Shared intro"
         }) as generate_intro,
-        patch.object(LLMService, "parse_player_input", return_value={
+        patch.object(AIGameMaster, "interpret_player_input", return_value={
             "action": "inspect"
         }),
-        patch.object(LLMService, "generate_event_narration", return_value={
+        patch.object(AIGameMaster, "narrate_event", return_value={
             "text": "Inspection complete"
         }),
     ):
@@ -198,13 +199,13 @@ async def test_structured_choice_bypasses_parser_and_preserves_server_identity(t
     with (
         patch.object(LLMService, "generate_world", return_value={"name": "World"}),
         patch.object(LLMService, "generate_intro", return_value={"text": "Intro"}),
-        patch.object(LLMService, "parse_player_input", return_value={
+        patch.object(AIGameMaster, "interpret_player_input", return_value={
             "action": "inspect"
         }) as parse_input,
         patch.object(LLMClient, "generate_intent", side_effect=AssertionError(
             "structured choice must not call provider"
         )) as generate_intent,
-        patch.object(LLMService, "generate_event_narration", return_value={
+        patch.object(AIGameMaster, "narrate_event", return_value={
             "text": "Inspection complete"
         }),
     ):
@@ -286,7 +287,7 @@ async def test_natural_free_text_uses_fake_intent_provider_and_shared_result(two
         patch("game_instances.services.llm.core.llm_client.GroqProvider", return_value=provider),
         patch.object(LLMService, "generate_world", return_value={"name": "World"}),
         patch.object(LLMService, "generate_intro", return_value={"text": "Intro"}),
-        patch.object(LLMService, "generate_event_narration", return_value={
+        patch.object(AIGameMaster, "narrate_event", return_value={
             "text": "Inspection complete"
         }),
     ):

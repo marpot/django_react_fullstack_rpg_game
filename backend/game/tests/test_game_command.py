@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 
 from game.core.action_processor import ActionProcessor
 from game.core.game_command import GameCommand
@@ -52,6 +53,18 @@ def test_valid_move_command_reaches_action_processor():
     assert result["action"] == "move"
     assert room.players[1].location == "north"
     assert room.player_histories[1][-1]["action"] == "move"
+
+
+def test_processor_does_not_construct_ai_services():
+    with (
+        patch("game_instances.services.llm.orchestrator.llm_service.LLMService", side_effect=AssertionError),
+        patch("game_instances.services.llm.core.llm_client.LLMClient", side_effect=AssertionError),
+    ):
+        processor, room = _processor()
+        result = processor.process(GameCommand(action="inspect"), room=room.name, participant_id=1)
+
+    assert result["action"] == "inspect"
+    assert room.current_player_id == 2
 
 
 def test_unknown_action_is_rejected_before_mechanics():

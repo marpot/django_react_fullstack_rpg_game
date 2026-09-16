@@ -6,7 +6,6 @@ from game.services.combat_service import CombatService
 from game.services.dice_service import DiceService
 from game.state.resolver.entity_resolver import EntityResolver
 from game.state.runtime.runtime_player_service import RuntimePlayerService
-from game_instances.services.llm.orchestrator.llm_service import LLMService
 from game.npc.npc_service import NPCService
 
 from game.core.actions.action_attack import AttackAction
@@ -18,8 +17,9 @@ _UNSET = object()
 
 
 class ActionProcessor:
-    def __init__(self, state_manager, combat_service=None, resolver=None):
+    def __init__(self, state_manager, combat_service=None, resolver=None, narrate_fn=None):
         self.state_manager = state_manager
+        self.narrate_fn = narrate_fn
         self.combat_service = combat_service or CombatService(DiceService())
         self.resolver = resolver or EntityResolver(state_manager)
 
@@ -65,12 +65,16 @@ class ActionProcessor:
         }
 
     def _narrate(self, action: str, result: dict, world: dict | None = None):
-        llm = LLMService()
-        return llm.generate_event_narration({
-            "event_type": action,
-            "result": result,
-            "world": world or {}
-        })
+        fallback = {"text": f"Zdarzenie ({action}) się rozwija."}
+        if self.narrate_fn is None:
+            return fallback
+        try:
+            narration = self.narrate_fn(action, result, world)
+            if isinstance(narration, dict) and isinstance(narration.get("text"), str) and narration["text"].strip():
+                return narration
+        except Exception:
+            logger.exception("Event narration failed")
+        return fallback
 
     def _advance_turn(self, room_obj):
         current_index = room_obj.turn_order.index(room_obj.current_player_id)
