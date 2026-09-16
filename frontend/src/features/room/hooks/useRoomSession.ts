@@ -6,6 +6,10 @@ import {
   type RoomDTO,
 } from "@/services/room.service";
 import { useGameSocket } from "@/features/game/hooks/useGameSocket";
+import {
+  extractTurnState,
+  normalizeParticipantId,
+} from "@/features/game/turnState";
 import type { Character } from "@/features/room/room.types";
 
 export type RoomState =
@@ -25,11 +29,13 @@ export const useRoomSession = (roomId: string) => {
   const [loading, setLoading] = useState(true);
   const [room, setRoom] = useState<RoomDTO | null>(null);
   const [characterId, setCharacterId] = useState<number | null>(null);
+  const [currentParticipantId, setCurrentParticipantId] = useState<number | null>(null);
   const [joined, setJoined] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
   const [world, setWorld] = useState<any | null>(null);
   const [gameEvents, setGameEvents] = useState<any[]>([]);
+  const [turnState, setTurnState] = useState<any | null>(null);
 
   const normalizeEvent = (data: any) => {
     const payload = data?.payload ?? {};
@@ -104,6 +110,7 @@ export const useRoomSession = (roomId: string) => {
           if (mounted) {
             setActiveCharacter(null);
             setCharacterId(null);
+            setCurrentParticipantId(null);
             setState("missing-character");
             setSessionError(
               "Wybierz aktywną postać w Profilu przed wejściem do pokoju."
@@ -121,9 +128,18 @@ export const useRoomSession = (roomId: string) => {
           );
         }
 
+        const participantId = normalizeParticipantId(
+          joinResponse.data.participant_id
+        );
+        if (participantId === null) {
+          throw new Error(
+            "Room join contract violation: participant_id must be numeric"
+          );
+        }
+
         const currentParticipant = roomData.participants.find(
           (participant) =>
-            participant.participant_id === joinResponse.data.participant_id
+            normalizeParticipantId(participant.participant_id) === participantId
         );
 
         const joinedWithActiveCharacter = Boolean(
@@ -141,6 +157,7 @@ export const useRoomSession = (roomId: string) => {
         if (mounted) {
           setActiveCharacter(activeCharacter);
           setCharacterId(activeCharacter.id);
+          setCurrentParticipantId(participantId);
           setState("lobby");
           setJoined(true);
           localStorage.setItem("character_id", String(activeCharacter.id));
@@ -154,6 +171,7 @@ export const useRoomSession = (roomId: string) => {
 
         if (mounted) {
           setJoined(false);
+          setCurrentParticipantId(null);
           if (error?.response?.data?.code === "NO_ACTIVE_CHARACTER") {
             setState("missing-character");
             setSessionError(
@@ -198,6 +216,11 @@ export const useRoomSession = (roomId: string) => {
         data?.payload?.world ??
         data?.world ??
         null;
+      const nextTurnState = extractTurnState(data);
+
+      if (nextTurnState !== null) {
+        setTurnState(nextTurnState);
+      }
 
       let eventText = text;
 
@@ -231,6 +254,8 @@ export const useRoomSession = (roomId: string) => {
     sessionError,
     room,
     characterId,
+    currentParticipantId,
+    turnState,
     world,
     gameEvents,
     sendGame: send,

@@ -128,6 +128,19 @@ class RoomViewSet(viewsets.ModelViewSet):
 
         adventure = room.adventure
 
+        if room.state == "in_game":
+            runtime_room = STATE_MANAGER.get_room(room.id)
+            if runtime_room and runtime_room.started and runtime_room.world is not None:
+                return Response(RoomSerializer(room, context={"request": request}).data)
+
+            return Response(
+                {
+                    "code": "GAME_STATE_UNAVAILABLE",
+                    "error": "The running game state is unavailable.",
+                },
+                status=409,
+            )
+
         logger.info(f"[START GAME] using adventure_id={adventure.id}")
 
         start_service = GameStartService(
@@ -149,7 +162,7 @@ class RoomViewSet(viewsets.ModelViewSet):
         logger.info("GAME START EVENT SENT")
         logger.info("================================")
 
-        return Response(RoomSerializer(room).data)
+        return Response(RoomSerializer(room, context={"request": request}).data)
 
 
 class RoomDetailView(APIView):

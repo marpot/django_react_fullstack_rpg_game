@@ -8,8 +8,6 @@ from .base import BaseConsumer
 from chat.models import Room, RoomParticipant
 from game_instances.services.llm.orchestrator.llm_service import LLMService
 from game.core.action_processor import ActionProcessor
-from game.core.choice_service import AdventureChoiceService
-from world.seeders.world_seeder import WorldSeeder
 from game.core.events.memory_builder import GameMemoryBuilder
 
 logger = logging.getLogger(__name__)
@@ -73,17 +71,13 @@ class GameConsumer(BaseConsumer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._game_started_sent = False
-        self._world_sent = False
-        self.world = None  # 🔥 ważne
-        self.choice_service = AdventureChoiceService()
+        self.world = None
 
     async def on_connect(self):
         logger.info("=== GAME CONSUMER WS CONNECTED===")
 
         self.state_manager = self.scope["state_manager"]
         self.processor = ActionProcessor(self.state_manager)
-        self.seeder = WorldSeeder(self.state_manager)
 
         self.adventure_id = None
         self.participant_id = None
@@ -99,6 +93,9 @@ class GameConsumer(BaseConsumer):
 
             self.adventure_id = getattr(room.adventure, "id", None)
             await self._resolve_participant()
+
+            if room.state == "in_game":
+                await self._send_existing_game_state()
 
         except Room.DoesNotExist:
             logger.warning(f"[GAME CONSUMER] room not found: {self.room_name}")
@@ -146,6 +143,44 @@ class GameConsumer(BaseConsumer):
                 f"[GAME CONSUMER] human participant={participant.id} "
                 "has no valid owned character"
             )
+
+    def _build_turn_state(self, room_state):
+        return self.state_manager.build_turn_state(
+            room_state,
+            self.participant_id,
+        )
+
+    async def _send_existing_game_state(self):
+        room_state = self.state_manager.get_room(self.room_name)
+
+        if not room_state or not room_state.started or room_state.world is None:
+            await self.send(text_data=json.dumps({
+                "type": "game_event",
+                "event": "error",
+                "payload": {
+                    "reason": "game_state_unavailable",
+                    "details": "The running game state is unavailable.",
+                },
+                "text": "The running game state is unavailable.",
+            }))
+            return
+
+        self.world = room_state.world
+        self.adventure_id = room_state.adventure_id or self.adventure_id
+
+        await self.send(text_data=json.dumps({
+            "type": "game_event",
+            "event": "game_started",
+            "payload": {
+                "world": room_state.world,
+                "room_id": self.room_name,
+                "adventure_id": self.adventure_id,
+                "turn_state": self._build_turn_state(room_state),
+                "game_state": self.state_manager.build_game_state(room_state),
+                "reconnect": True,
+            },
+            "text": room_state.world.get("intro", "The adventure continues."),
+        }))
 
     async def receive(self, text_data):
         try:
@@ -253,79 +288,14 @@ class GameConsumer(BaseConsumer):
             adventure_id = payload.get("adventure_id")
             if adventure_id:
                 self.adventure_id = adventure_id
-            self._game_started_sent = True
-            self._world_sent = True
 
         await super().game_event(event)
 
     async def game_started(self, event):
-        if self._game_started_sent:
-            return
-
-        self._game_started_sent = True
-
-        if event.get("payload") is not None:
-            event = event["payload"]
-
-        adventure_id = event.get("adventure_id")
-        if not adventure_id:
-            return
-
-        self.adventure_id = adventure_id
-
-        await sync_to_async(self.state_manager.get_or_create_room)(self.room_name)
-
-        await sync_to_async(self.seeder.seed_from_adventure)(
-            adventure_id,
-            self.room_name
-        )
-
-        llm = LLMService()
-
-        world_raw = await sync_to_async(llm.generate_world)(
-            {"adventure": {"id": adventure_id}}
-        )
-
-        if not isinstance(world_raw, dict):
-            world_raw = {
-                "intro": "A strange world forms...",
-                "situation": "The world is unstable."
-            }
-
-        self.world = {
-            "name": world_raw.get("name", "Unknown World"),
-            "title": world_raw.get("title", "Unknown World"),
-            "description": world_raw.get("description", ""),
-            "intro": world_raw.get("intro", ""),
-            "lore": {
-                "situation": world_raw.get("situation", "")
-            },
-            "rules": world_raw.get("rules", {}),
-            "seed": world_raw.get("seed", {}),
-        }
-
-        choices = await sync_to_async(self.choice_service.build_choices)(
-            adventure_id=adventure_id,
-            room_key=self.room_name,
-            event_type="game_started",
-            result={"intro": self.world.get("intro", "")},
-            world=self.world,
-        )
-
-        logger.info(f"[GAME_CONSUMER] world generated: {self.world}")
-
-        if self._world_sent:
-            return
-
-        self._world_sent = True
-
-        await self._send_game_event(
-            "game_started",
-            {
-                "world": self.world,
-                "room_id": self.room_name,
-                "adventure_id": adventure_id,
-                "choices": choices,
-            },
-            text=self.world.get("intro", "A new world begins...")
-        )
+        payload = event.get("payload") or event
+        await self.game_event({
+            "type": "game_event",
+            "event": "game_started",
+            "payload": payload,
+            "text": event.get("text"),
+        })
