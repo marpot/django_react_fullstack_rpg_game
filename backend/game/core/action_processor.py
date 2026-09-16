@@ -1,6 +1,7 @@
 import logging
 
 from game.core.choice_service import AdventureChoiceService
+from game.core.game_command import GameCommand
 from game.services.combat_service import CombatService
 from game.services.dice_service import DiceService
 from game.state.resolver.entity_resolver import EntityResolver
@@ -13,6 +14,7 @@ from game.core.actions.action_move import MoveAction
 from game.core.actions.action_inspect import InspectAction
 
 logger = logging.getLogger(__name__)
+_UNSET = object()
 
 
 class ActionProcessor:
@@ -98,25 +100,41 @@ class ActionProcessor:
             "history": room_obj.player_histories.get(participant_id, []),
         }
 
-    def process(self, parsed_input):
-        logger.info(f"[ACTION PROCESS] input={parsed_input}")
+    def process(
+        self, parsed_input, *, room=_UNSET, participant_id=_UNSET,
+        adventure=_UNSET, world=_UNSET,
+    ):
+        logger.info("[ACTION PROCESS] input=%s", parsed_input)
 
-        action = parsed_input.get("action")
-        world = parsed_input.get("world")
-
-        if parsed_input.get("error") == "unknown_intent_fallback":
-            action = "inspect"
-            parsed_input = {**parsed_input, "action": action}
-
-        if not action or action == "unknown":
+        try:
+            command = (
+                parsed_input if isinstance(parsed_input, GameCommand)
+                else GameCommand.from_mapping(parsed_input)
+            )
+        except (TypeError, ValueError):
             return self._response(
                 "unknown",
                 "Invalid action",
                 {"error": "invalid_action"}
             )
 
-        room = parsed_input.get("room")
-        participant_id = parsed_input.get("participant_id")
+        # Legacy callers may still pass a combined dict. Explicit server context
+        # takes precedence, and only command fields reach action handlers.
+        legacy = parsed_input if isinstance(parsed_input, dict) else {}
+        room = legacy.get("room") if room is _UNSET else room
+        participant_id = legacy.get("participant_id") if participant_id is _UNSET else participant_id
+        adventure = legacy.get("adventure") if adventure is _UNSET else adventure
+        world = legacy.get("world") if world is _UNSET else world
+        parsed_input = {
+            "action": command.action,
+            "target": command.target,
+            "method": command.method,
+            "room": room,
+            "participant_id": participant_id,
+            "adventure": adventure,
+            "world": world,
+        }
+        action = command.action
 
         if participant_id is None:
             return self._response(

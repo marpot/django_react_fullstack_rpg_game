@@ -244,12 +244,13 @@ class GameConsumer(BaseConsumer):
             if not isinstance(parsed, dict) or "action" not in parsed:
                 return
 
-            parsed["room"] = self.room_name
-            parsed["participant_id"] = self.participant_id
-            parsed["adventure"] = self.adventure_id
-            parsed["world"] = self.world  # 🔥 kluczowa zmiana
-
-            result = await sync_to_async(self.processor.process)(parsed)
+            result = await sync_to_async(self.processor.process)(
+                parsed,
+                room=self.room_name,
+                participant_id=self.participant_id,
+                adventure=self.adventure_id,
+                world=self.world,
+            )
             cleaned_text = safe_text(result.get("text", ""))
 
             turn_state = result.get("turn_state", {}) or {}
