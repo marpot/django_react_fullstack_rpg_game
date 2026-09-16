@@ -1,4 +1,9 @@
+import logging
+
 from game_instances.services.llm.core.llm_client import LLMClient
+
+
+logger = logging.getLogger(__name__)
 
 
 class NarrationService:
@@ -41,7 +46,11 @@ WORLD:
 {world}
 """
 
-        llm_output = self.client.generate(system_prompt, user_prompt)
+        try:
+            llm_output = self.client.generate(system_prompt, user_prompt)
+        except Exception:
+            logger.exception("LLM event narration failed")
+            llm_output = None
 
         if llm_output and llm_output != "{}":
             return llm_output

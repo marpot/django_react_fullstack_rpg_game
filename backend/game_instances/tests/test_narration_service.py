@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import MagicMock
 
 from game_instances.services.llm.narration_service.narration_service import NarrationService
 
@@ -52,3 +51,14 @@ def test_event_calls_llm(service, monkeypatch):
 
     assert called["flag"] is True
     assert result == "LLM OUTPUT"
+
+
+def test_event_falls_back_when_provider_raises(service, monkeypatch):
+    def fail(system_prompt, user_prompt):
+        raise RuntimeError("provider unavailable")
+
+    monkeypatch.setattr(service.client, "generate", fail)
+
+    result = service.event({"event_type": "attack", "result": {"damage": 5}})
+
+    assert result == "Zdarzenie (attack) się rozwija."

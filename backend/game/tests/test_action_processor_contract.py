@@ -10,7 +10,7 @@ from chat.models import Room
 from chat.services.room_participants_service import RoomParticipantsService
 from world.models import Adventure, Enemy as EnemyORM
 
-pytestmark = pytest.mark.django_db
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("fake_llm_provider")]
 
 
 def _base_env():
