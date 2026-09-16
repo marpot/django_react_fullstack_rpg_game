@@ -1,21 +1,84 @@
+import json
+import logging
+
+from game.core.game_command import GameCommand
+from game_instances.services.llm.intent.game_context import GameContextBuilder
 from game_instances.services.llm.intent.intent_parser import IntentParser
 from game_instances.services.llm.narration_service.narration_service import NarrationService
 from game_instances.services.llm.core.llm_client import LLMClient
+
+logger = logging.getLogger(__name__)
+
 
 class LLMService:
     """
     Orchestrator LLM system (FACADE)
     """
 
-    def __init__(self):
+    def __init__(self, intent_client=None):
         self.parser = IntentParser()
         self.narration = NarrationService()
+        self.intent_client = intent_client
+        self.context_builder = GameContextBuilder()
 
     # -------------------------
     # INPUT → ACTION
     # -------------------------
-    def parse_player_input(self, player_input: str) -> dict:
-        return self.parser.parse(player_input)
+    def parse_player_input(
+        self, player_input: str | dict, *, state_manager=None,
+        room=None, participant_id=None,
+    ) -> dict:
+        parsed = self.parser.parse(player_input)
+        if parsed.get("action") != "unknown":
+            try:
+                GameCommand.from_mapping(parsed)
+                return parsed
+            except ValueError:
+                pass
+
+        unknown = {"action": "unknown", "target": None, "method": None}
+        if state_manager is None or room is None or participant_id is None:
+            return unknown
+
+        context = self.context_builder.build(state_manager, room, participant_id)
+        if context is None:
+            return unknown
+
+        if isinstance(player_input, str):
+            text = player_input
+        elif isinstance(player_input, dict):
+            text = player_input.get("input") or player_input.get("message") or player_input.get("text")
+        else:
+            text = None
+        if not isinstance(text, str) or not text.strip():
+            return unknown
+
+        system_prompt = (
+            "Interpret the player's message as one game action. "
+            "Use the supplied server context to identify known targets. "
+            "Return only action, target and method; do not invent game state."
+        )
+        user_prompt = json.dumps(
+            {"message": text[:1000], "game_context": context},
+            ensure_ascii=False,
+        )
+        try:
+            client = self.intent_client or LLMClient()
+            candidate = json.loads(client.generate_intent(system_prompt, user_prompt))
+            if not isinstance(candidate, dict) or set(candidate) != {"action", "target", "method"}:
+                return unknown
+            command = GameCommand.from_mapping(candidate)
+        except (TypeError, ValueError):
+            return unknown
+        except Exception:
+            logger.exception("LLM intent interpretation failed")
+            return unknown
+
+        return {
+            "action": command.action,
+            "target": command.target,
+            "method": command.method,
+        }
 
     # -------------------------
     # INTRO STORY

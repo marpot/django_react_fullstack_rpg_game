@@ -1,6 +1,7 @@
 import json
 import re
 
+from game.core.game_command import ALLOWED_ACTIONS
 from game_instances.services.llm.core.provider import GroqProvider, LLMProvider
 
 
@@ -9,7 +10,7 @@ INTENT_PROMPT = """You are STRICT JSON intent parser.
 Return ONLY this schema:
 
 {
-  "action": "attack|move|inspect|talk|defend|use_item",
+  "action": "__ACTIONS__",
   "target": string or null,
   "method": string or null
 }
@@ -21,7 +22,7 @@ RULES:
 - NO result
 - NO message
 - ONLY JSON
-"""
+""".replace("__ACTIONS__", "|".join(sorted(ALLOWED_ACTIONS)))
 
 
 class LLMClient:
@@ -40,6 +41,9 @@ class LLMClient:
         try:
             parsed = json.loads(match.group(0))
         except json.JSONDecodeError:
+            return "{}"
+
+        if not isinstance(parsed, dict) or set(parsed) - {"action", "target", "method"}:
             return "{}"
 
         return json.dumps({

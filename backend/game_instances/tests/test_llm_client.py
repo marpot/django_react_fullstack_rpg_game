@@ -1,5 +1,6 @@
 import json
 
+from game.core.game_command import ALLOWED_ACTIONS
 from game_instances.services.llm.core.llm_client import LLMClient
 
 
@@ -46,15 +47,6 @@ def test_llm_maps_inputs_to_allowed_actions():
     provider = FakeProvider('{"action":"move","target":"north","method":null}')
     llm_client = LLMClient(provider)
 
-    allowed_actions = {
-        "attack",
-        "move",
-        "inspect",
-        "talk",
-        "defend",
-        "use_item",
-    }
-
     response_text = llm_client.generate_intent(
         "SYSTEM: return JSON only",
         "go north"
@@ -63,7 +55,7 @@ def test_llm_maps_inputs_to_allowed_actions():
     intent = parse_json(response_text)
 
     assert isinstance(intent["action"], str)
-    assert intent["action"] in allowed_actions
+    assert intent["action"] in ALLOWED_ACTIONS
 
     assert isinstance(intent.get("target"), (str, type(None)))
     assert isinstance(intent.get("method"), (str, type(None)))
@@ -80,6 +72,7 @@ def test_llm_does_not_return_game_state():
         "attack goblin"
     )
 
+    assert response_text == "{}"
     intent = parse_json(response_text)
 
     forbidden_fields = [

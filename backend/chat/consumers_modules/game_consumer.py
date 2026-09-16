@@ -8,7 +8,6 @@ from .base import BaseConsumer
 from chat.models import Room, RoomParticipant
 from game_instances.services.llm.orchestrator.llm_service import LLMService
 from game.core.action_processor import ActionProcessor
-from game.core.events.memory_builder import GameMemoryBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -231,18 +230,13 @@ class GameConsumer(BaseConsumer):
             if has_command:
                 parsed = data["command"]
             else:
-                memory = await sync_to_async(GameMemoryBuilder().build)(
-                    self.adventure_id,
-                    self.room_name,
-                    20
-                )
-
                 llm = LLMService()
-                parsed = llm.parse_player_input({
-                    "input": user_input,
-                    "memory": memory,
-                    "world": self.world
-                })
+                parsed = await sync_to_async(llm.parse_player_input)(
+                    {"input": user_input},
+                    state_manager=self.state_manager,
+                    room=self.room_name,
+                    participant_id=self.participant_id,
+                )
 
                 if not isinstance(parsed, dict) or "action" not in parsed:
                     return
