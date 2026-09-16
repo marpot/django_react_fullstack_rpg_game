@@ -185,8 +185,6 @@ class GameConsumer(BaseConsumer):
     async def receive(self, text_data):
         try:
             data = json.loads(text_data)
-            user_input = data.get("message", "")
-
             if data.get("type") == "init":
                 # Frontend może wysłać character_id — NIE traktujemy tego jako
                 # źródła autoryzacji ani identyfikacji tury.
@@ -201,8 +199,11 @@ class GameConsumer(BaseConsumer):
                         )
                 return
 
-            if not isinstance(user_input, str) or not user_input.strip():
-                return
+            has_command = "command" in data
+            if not has_command:
+                user_input = data.get("message", "")
+                if not isinstance(user_input, str) or not user_input.strip():
+                    return
 
             if self.participant_id is None:
                 logger.warning(
@@ -227,22 +228,24 @@ class GameConsumer(BaseConsumer):
                 )
                 return
 
-            memory = await sync_to_async(GameMemoryBuilder().build)(
-                self.adventure_id,
-                self.room_name,
-                20
-            )
+            if has_command:
+                parsed = data["command"]
+            else:
+                memory = await sync_to_async(GameMemoryBuilder().build)(
+                    self.adventure_id,
+                    self.room_name,
+                    20
+                )
 
-            llm = LLMService()
+                llm = LLMService()
+                parsed = llm.parse_player_input({
+                    "input": user_input,
+                    "memory": memory,
+                    "world": self.world
+                })
 
-            parsed = llm.parse_player_input({
-                "input": user_input,
-                "memory": memory,
-                "world": self.world
-            })
-
-            if not isinstance(parsed, dict) or "action" not in parsed:
-                return
+                if not isinstance(parsed, dict) or "action" not in parsed:
+                    return
 
             result = await sync_to_async(self.processor.process)(
                 parsed,

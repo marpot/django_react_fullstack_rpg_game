@@ -185,6 +185,85 @@ async def test_two_players_share_rest_websocket_turns_and_reconnect(two_joined_p
 
 
 @pytest.mark.asyncio
+async def test_structured_choice_bypasses_parser_and_preserves_server_identity(two_joined_players):
+    room, (user_a, user_b), (client_a, _), (participant_a, participant_b) = (
+        two_joined_players
+    )
+    STATE_MANAGER.rooms.clear()
+    socket_a = _socket(room, user_a)
+    socket_b = _socket(room, user_b)
+
+    with (
+        patch.object(LLMService, "generate_world", return_value={"name": "World"}),
+        patch.object(LLMService, "generate_intro", return_value={"text": "Intro"}),
+        patch.object(LLMService, "parse_player_input", return_value={
+            "action": "inspect"
+        }) as parse_input,
+        patch.object(LLMService, "generate_event_narration", return_value={
+            "text": "Inspection complete"
+        }),
+    ):
+        try:
+            assert (await socket_a.connect())[0]
+            assert (await socket_b.connect())[0]
+            assert await socket_a.receive_nothing(timeout=0.2)
+            assert await socket_b.receive_nothing(timeout=0.2)
+
+            start = await sync_to_async(client_a.post)(
+                f"/api/chat/rooms/{room.id}/start_game/"
+            )
+            assert start.status_code == 200, start.data
+            await _receive_pair(socket_a, socket_b, "game_started")
+
+            # Client-supplied identity cannot take another participant's turn.
+            await socket_b.send_json_to({
+                "type": "player_action",
+                "command": {"action": "inspect", "participant_id": participant_a},
+            })
+            blocked = await _receive_pair(socket_a, socket_b, "action_result")
+            assert blocked["data"]["result"]["error"] == "not_your_turn"
+            assert STATE_MANAGER.get_room(room.id).current_player_id == participant_a
+            parse_input.assert_not_called()
+
+            await socket_a.send_json_to({
+                "type": "player_action",
+                "command": {
+                    "action": "inspect", "target": None, "method": None,
+                    "participant_id": participant_b, "room": "other-room",
+                    "hp": 999, "damage": 999, "result": {"winner": "client"},
+                },
+            })
+            chosen = await _receive_pair(socket_a, socket_b, "action_result")
+            assert chosen["data"]["action"] == "inspect"
+            assert chosen["data"]["result"]["room"] == str(room.id)
+            assert "hp" not in chosen["data"]["result"]
+            assert "damage" not in chosen["data"]["result"]
+            assert chosen["turn_state"]["current_player_id"] == participant_b
+            assert STATE_MANAGER.get_room(room.id).player_histories[participant_a][-1]["action"] == "inspect"
+            parse_input.assert_not_called()
+
+            await socket_b.send_json_to({
+                "type": "player_action",
+                "command": {"action": "teleport", "participant_id": participant_a},
+            })
+            rejected = await _receive_pair(socket_a, socket_b, "action_result")
+            assert rejected["data"]["result"]["error"] == "invalid_action"
+            assert STATE_MANAGER.get_room(room.id).current_player_id == participant_b
+            parse_input.assert_not_called()
+
+            await socket_b.send_json_to({"type": "player_action", "message": "look around"})
+            typed = await _receive_pair(socket_a, socket_b, "action_result")
+            assert typed["data"]["action"] == "inspect"
+            assert typed["turn_state"]["current_player_id"] == participant_a
+            parse_input.assert_called_once()
+            assert parse_input.call_args.args[0]["input"] == "look around"
+        finally:
+            await socket_a.disconnect()
+            await socket_b.disconnect()
+            STATE_MANAGER.rooms.clear()
+
+
+@pytest.mark.asyncio
 async def test_in_game_db_without_runtime_reports_unavailable(two_joined_players):
     room, (user_a, user_b), (client_a, _), _ = two_joined_players
     STATE_MANAGER.rooms.clear()

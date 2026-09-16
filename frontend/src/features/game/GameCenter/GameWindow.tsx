@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { isParticipantTurn } from "@/features/game/turnState";
+import {
+  choiceActionPayload,
+  type StructuredChoice,
+} from "@/features/game/choiceActionPayload";
 import "@/styles/features/game/GameWindow.scss";
 
 type Props = {
@@ -75,9 +79,9 @@ export default function GameWindow({
   const logEndRef = useRef<HTMLDivElement | null>(null);
 
   const lastEvent = gameEvents[gameEvents.length - 1];
-  const lastChoices = lastEvent?.payload?.choices || [];
+  const lastChoices: StructuredChoice[] = lastEvent?.payload?.choices || [];
   const isMyTurn = isParticipantTurn(turnState, currentParticipantId);
-  const fallbackChoices = [
+  const fallbackChoices: StructuredChoice[] = [
     {
       id: "inspect",
       label: "Rozejrzyj się",
@@ -110,14 +114,9 @@ export default function GameWindow({
     setInput("");
   };
 
-  const handleChoice = (choice: any) => {
-    const message = choice?.message || choice?.label || choice?.title || "";
-    if (!message) return;
-
-    sendGame({
-      type: "player_action",
-      message,
-    });
+  const handleChoice = (choice: StructuredChoice) => {
+    if (typeof choice?.action !== "string") return;
+    sendGame(choiceActionPayload(choice));
   };
 
   return (
@@ -172,7 +171,7 @@ export default function GameWindow({
 
       {visibleChoices.length > 0 && (
         <div className="choiceBar">
-          {visibleChoices.map((choice: any, index: number) => (
+          {visibleChoices.map((choice: StructuredChoice, index: number) => (
             <button
               key={choice.id || `${choice.label}-${index}`}
               className="choiceButton"
