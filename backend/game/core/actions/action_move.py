@@ -46,11 +46,8 @@ class MoveAction:
         )
 
         choices = self.choice_service.build_choices(
-            adventure_id=parsed_input.get("adventure"),
-            room_key=room_key,
-            event_type="move",
-            result={"location": player.location},
-            world=world,
+            enemies=room_obj.enemies,
+            npcs=room_obj.npcs,
         )
 
         return self.response_fn(

@@ -79,6 +79,10 @@ def test_two_players_start_act_and_advance_canonical_turn(fake_llm_provider):
     assert result["action"] == "inspect"
     assert result["result"]["room"] == str(room.id)
     assert result["text"] == "Narracja testowa."
+    assert any(
+        choice["action"] == "attack" and choice["target"] == "goblin"
+        for choice in result["choices"]
+    )
     assert runtime.player_histories[participants[0].id][0]["action"] == "inspect"
     assert runtime.player_histories[participants[1].id] == []
     assert runtime.current_player_id == participants[1].id

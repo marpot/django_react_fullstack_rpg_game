@@ -98,15 +98,8 @@ class AttackAction:
         )
 
         choices = self.choice_service.build_choices(
-            adventure_id=parsed_input.get("adventure"),
-            room_key=room_key,
-            event_type="attack",
-            result={
-                "winner": result.winner,
-                "attacker_damage": result.attacker_damage,
-                "defender_damage": result.defender_damage,
-            },
-            world=world,
+            enemies=room_obj.enemies,
+            npcs=room_obj.npcs,
         )
 
         return self.response_fn(

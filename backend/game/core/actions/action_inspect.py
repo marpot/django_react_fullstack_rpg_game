@@ -32,11 +32,8 @@ class InspectAction:
         )
 
         choices = self.choice_service.build_choices(
-            adventure_id=parsed_input.get("adventure"),
-            room_key=room_key,
-            event_type="inspect",
-            result={"room": room_key, "enemies": enemies},
-            world=world,
+            enemies=room_obj.enemies,
+            npcs=room_obj.npcs,
         )
 
         return self.response_fn(
