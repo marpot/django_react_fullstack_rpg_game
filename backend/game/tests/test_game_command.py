@@ -20,7 +20,7 @@ def _player(participant_id):
     )
 
 
-def _processor(narrate_fn=None):
+def _processor(narrate_fn=None, dialogue_fn=None):
     state = GameStateManager()
     room = state.get_or_create_room("command-room")
     room.players = {1: _player(1), 2: _player(2)}
@@ -32,7 +32,8 @@ def _processor(narrate_fn=None):
     room.current_player_id = 1
     room.player_histories = {1: [], 2: []}
     processor = ActionProcessor(
-        state, combat_service=CombatService(DiceService(seed=1)), narrate_fn=narrate_fn,
+        state, combat_service=CombatService(DiceService(seed=1)),
+        narrate_fn=narrate_fn, dialogue_fn=dialogue_fn,
     )
     return processor, room
 
@@ -64,9 +65,16 @@ def test_processor_does_not_construct_ai_services():
     ):
         processor, room = _processor()
         result = processor.process(GameCommand(action="inspect"), room=room.name, participant_id=1)
+        assert room.current_player_id == 2
+        room.current_player_id = 1
+        room.npcs["guide"] = NPC(id="guide", name="Guide")
+        talk = processor.process(
+            GameCommand(action="talk", target="guide"), room=room.name, participant_id=1,
+        )
 
     assert result["action"] == "inspect"
-    assert room.current_player_id == 2
+    assert talk["action"] == "talk"
+    assert room.current_player_id == 1
 
 
 def test_narration_receives_resolved_result_and_cannot_change_mechanics():
@@ -161,6 +169,69 @@ def test_talk_uses_existing_npc_dialogue_without_changing_game_state():
     assert room.enemies["goblin"].hp == enemy_hp_before
     assert room.current_player_id == 1
     assert room.current_turn_index == 0
+    assert room.player_histories == {1: [], 2: []}
+
+
+def test_talk_resolves_npc_before_dialogue_and_ignores_dialogue_state_claims():
+    calls = []
+
+    def dialogue(talk_result, world, details):
+        calls.append((talk_result, details))
+        talk_result["npc"] = "Invented NPC"
+        return "Daję ci miecz i odbieram 99 HP."
+
+    processor, room = _processor(dialogue_fn=dialogue)
+    room.npcs["guide"] = NPC(
+        id="guide", name="Guide", personality="wise", dialog=["Witaj."],
+    )
+    room.player_histories[1].append({"action": "inspect", "result": {}})
+    before_hp = room.players[1].hp
+    before_history = list(room.player_histories[1])
+
+    result = processor.process(
+        GameCommand(action="talk", target="guide"),
+        room=room.name, participant_id=1,
+        world={"title": "Crypt"}, player_message="Porozmawiaj z przewodnikiem",
+    )
+
+    assert len(calls) == 1
+    canonical, details = calls[0]
+    assert canonical["npc_id"] == "guide"
+    assert canonical["personality"] == "wise"
+    assert details["actor"] == "Player 1"
+    assert details["player_message"] == "Porozmawiaj z przewodnikiem"
+    assert details["recent_actions"] == ["inspect"]
+    assert result["result"]["npc"] == "Guide"
+    assert result["text"] == "Daję ci miecz i odbieram 99 HP."
+    assert room.players[1].hp == before_hp
+    assert room.player_histories[1] == before_history
+    assert room.current_player_id == 1
+
+
+def test_missing_npc_skips_dialogue():
+    processor, room = _processor(dialogue_fn=lambda *args: pytest.fail("dialogue called"))
+
+    result = processor.process(
+        GameCommand(action="talk", target="missing"), room=room.name, participant_id=1,
+    )
+
+    assert result["result"]["error"] == "npc_not_found"
+
+
+def test_dialogue_callback_failure_keeps_deterministic_talk_result():
+    def fail(*args):
+        raise RuntimeError("provider unavailable")
+
+    processor, room = _processor(dialogue_fn=fail)
+    room.npcs["guide"] = NPC(id="guide", name="Guide", dialog=["Witaj."])
+
+    result = processor.process(
+        GameCommand(action="talk", target="guide"), room=room.name, participant_id=1,
+    )
+
+    assert result["action"] == "talk"
+    assert result["text"] == "Witaj."
+    assert room.current_player_id == 1
     assert room.player_histories == {1: [], 2: []}
 
 

@@ -79,6 +79,7 @@ class GameConsumer(BaseConsumer):
         self.ai_game_master = AIGameMaster()
         self.processor = ActionProcessor(
             self.state_manager, narrate_fn=self.ai_game_master.narrate_event,
+            dialogue_fn=self.ai_game_master.dialogue_with_npc,
         )
 
         self.adventure_id = None
@@ -249,6 +250,7 @@ class GameConsumer(BaseConsumer):
                 participant_id=self.participant_id,
                 adventure=self.adventure_id,
                 world=self.world,
+                player_message=None if has_command else user_input,
             )
             cleaned_text = safe_text(result.get("text", ""))
 

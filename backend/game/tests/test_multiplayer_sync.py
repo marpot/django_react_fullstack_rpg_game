@@ -11,6 +11,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from accounts.models import PlayerCharacter
 from chat.models import Room, RoomParticipant
 from game.middleware.state_middleware import STATE_MANAGER
+from game.npc.npc_models import NPC
 from game_instances.services.llm.orchestrator.ai_game_master import AIGameMaster
 from game_instances.services.llm.orchestrator.llm_service import LLMService
 from game_instances.services.llm.core.llm_client import LLMClient
@@ -208,6 +209,7 @@ async def test_structured_choice_bypasses_parser_and_preserves_server_identity(t
         patch.object(AIGameMaster, "narrate_event", return_value={
             "text": "Inspection complete"
         }),
+        patch.object(AIGameMaster, "dialogue_with_npc", return_value="Witaj, wędrowcze.") as dialogue,
     ):
         try:
             assert (await socket_a.connect())[0]
@@ -266,6 +268,18 @@ async def test_structured_choice_bypasses_parser_and_preserves_server_identity(t
             assert typed["turn_state"]["current_player_id"] == participant_a
             parse_input.assert_called_once()
             assert parse_input.call_args.args[0]["input"] == "look around"
+
+            STATE_MANAGER.get_room(room.id).npcs["guide"] = NPC(id="guide", name="Guide")
+            await socket_a.send_json_to({
+                "type": "player_action",
+                "command": {"action": "talk", "target": "guide", "method": None},
+            })
+            spoken = await _receive_pair(socket_a, socket_b, "action_result")
+            assert spoken["data"]["action"] == "talk"
+            assert spoken["data"]["text"] == "Witaj, wędrowcze."
+            dialogue.assert_called_once()
+            assert parse_input.call_count == 1
+            generate_intent.assert_not_called()
         finally:
             await socket_a.disconnect()
             await socket_b.disconnect()

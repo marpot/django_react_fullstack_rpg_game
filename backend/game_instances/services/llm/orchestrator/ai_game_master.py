@@ -3,6 +3,8 @@ import logging
 
 from game.core.game_command import GameCommand
 from game_instances.services.llm.core.llm_client import LLMClient
+from game_instances.services.llm.dialogue.npc_dialogue_context import NPCDialogueContextBuilder
+from game_instances.services.llm.dialogue.npc_dialogue_service import NPCDialogueService
 from game_instances.services.llm.intent.game_context import GameContextBuilder
 from game_instances.services.llm.intent.intent_parser import IntentParser
 from game_instances.services.llm.narration_service.narration_service import NarrationService
@@ -15,12 +17,15 @@ class AIGameMaster:
     """Interpret input and narrate canonical events; never execute commands."""
 
     def __init__(self, *, intent_client=None, narration_service=None,
-                 parser=None, context_builder=None, narration_context_builder=None):
+                 parser=None, context_builder=None, narration_context_builder=None,
+                 dialogue_service=None, dialogue_context_builder=None):
         self.intent_client = intent_client
         self.narration_service = narration_service
         self.parser = parser or IntentParser()
         self.context_builder = context_builder or GameContextBuilder()
         self.narration_context_builder = narration_context_builder or NarrationContextBuilder()
+        self.dialogue_service = dialogue_service
+        self.dialogue_context_builder = dialogue_context_builder or NPCDialogueContextBuilder()
 
     def interpret_player_input(
         self, player_input: str | dict, *, state_manager=None,
@@ -88,3 +93,10 @@ class AIGameMaster:
             self.narration_service = NarrationService()
         context = self.narration_context_builder.build(action, result, world, details)
         return {"text": self.narration_service.event(context)}
+
+    def dialogue_with_npc(self, talk_result: dict, world: dict | None = None,
+                          details: dict | None = None) -> str:
+        context = self.dialogue_context_builder.build(talk_result, world, details)
+        if self.dialogue_service is None:
+            self.dialogue_service = NPCDialogueService()
+        return self.dialogue_service.generate(context)

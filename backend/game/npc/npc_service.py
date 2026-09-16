@@ -25,12 +25,27 @@ class NPCService:
         room = self.state.get_or_create_room(room_id)
         npc = room.npcs.get(npc_id)
 
+        if npc is None and isinstance(npc_id, str):
+            target = npc_id.casefold().strip()
+            matches = []
+            for candidate in room.npcs.values():
+                names = {candidate.id.casefold(), candidate.name.casefold()}
+                forms = names | {
+                    f"{name}iem" for name in names if name.endswith("nik")
+                }
+                if target in forms:
+                    matches.append(candidate)
+            if len(matches) == 1:
+                npc = matches[0]
+
         if not npc:
             return {"error": "npc_not_found", "text": "Nie znaleziono NPC."}
 
         return {
             "action": "talk",
             "npc": npc.name,
+            "npc_id": npc.id,
+            "personality": npc.personality,
             "text": npc.dialog[0] if npc.dialog else f"Rozmawiasz z {npc.name}.",
         }
 

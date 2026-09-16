@@ -18,9 +18,11 @@ _UNSET = object()
 
 
 class ActionProcessor:
-    def __init__(self, state_manager, combat_service=None, resolver=None, narrate_fn=None):
+    def __init__(self, state_manager, combat_service=None, resolver=None,
+                 narrate_fn=None, dialogue_fn=None):
         self.state_manager = state_manager
         self.narrate_fn = narrate_fn
+        self.dialogue_fn = dialogue_fn
         self.combat_service = combat_service or CombatService(DiceService())
         self.resolver = resolver or EntityResolver(state_manager)
 
@@ -108,7 +110,7 @@ class ActionProcessor:
 
     def process(
         self, parsed_input, *, room=_UNSET, participant_id=_UNSET,
-        adventure=_UNSET, world=_UNSET,
+        adventure=_UNSET, world=_UNSET, player_message=None,
     ):
         logger.info("[ACTION PROCESS] input=%s", parsed_input)
 
@@ -206,6 +208,26 @@ class ActionProcessor:
                 parsed_input["room"],
                 parsed_input["target"]
             )
+            if "error" not in result and self.dialogue_fn is not None:
+                player = room_obj.players[participant_id]
+                details = {
+                    "actor": player.name,
+                    "location": player.location,
+                    "player_message": player_message,
+                    "recent_actions": [
+                        entry.get("action")
+                        for entry in room_obj.player_histories.get(participant_id, [])[-3:]
+                        if isinstance(entry, dict)
+                    ],
+                }
+                try:
+                    dialogue = self.dialogue_fn(result.copy(), world, details)
+                    if isinstance(dialogue, str) and dialogue.strip():
+                        result["text"] = dialogue.strip()
+                except Exception:
+                    logger.exception("NPC dialogue failed")
+            result.pop("npc_id", None)
+            result.pop("personality", None)
             return self._response("talk", result.get("text", ""), result)
 
         else:
