@@ -196,7 +196,7 @@ def test_narration_provider_failure_preserves_action_and_turn(action, fake_llm_p
     room.turn_order = [1, 2]
     room.current_player_id = 1
     room.player_histories = {1: [], 2: []}
-    def failed_narration(action, result, world):
+    def failed_narration(action, result, world, details):
         raise RuntimeError("provider unavailable")
 
     processor = ActionProcessor(
@@ -212,7 +212,10 @@ def test_narration_provider_failure_preserves_action_and_turn(action, fake_llm_p
     })
 
     assert result["action"] == result["event_type"] == action
-    assert result["text"] == f"Zdarzenie ({action}) się rozwija."
+    if action == "attack":
+        assert str(result["result"]["attacker_damage"]) in result["text"]
+    else:
+        assert result["text"] == "Przemieszczasz się do: north."
     assert "error" not in result["result"]
     assert room.player_histories[1][-1]["action"] == action
     assert result["turn_state"]["current_player_id"] == room.current_player_id == 2

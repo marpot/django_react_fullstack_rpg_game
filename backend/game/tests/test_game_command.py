@@ -20,7 +20,7 @@ def _player(participant_id):
     )
 
 
-def _processor():
+def _processor(narrate_fn=None):
     state = GameStateManager()
     room = state.get_or_create_room("command-room")
     room.players = {1: _player(1), 2: _player(2)}
@@ -31,7 +31,9 @@ def _processor():
     room.turn_order = [1, 2]
     room.current_player_id = 1
     room.player_histories = {1: [], 2: []}
-    processor = ActionProcessor(state, combat_service=CombatService(DiceService(seed=1)))
+    processor = ActionProcessor(
+        state, combat_service=CombatService(DiceService(seed=1)), narrate_fn=narrate_fn,
+    )
     return processor, room
 
 
@@ -64,6 +66,33 @@ def test_processor_does_not_construct_ai_services():
         result = processor.process(GameCommand(action="inspect"), room=room.name, participant_id=1)
 
     assert result["action"] == "inspect"
+    assert room.current_player_id == 2
+
+
+def test_narration_receives_resolved_result_and_cannot_change_mechanics():
+    observed = {}
+
+    def narrate(action, canonical_result, world, details):
+        observed["action"] = action
+        observed["result"] = canonical_result.copy()
+        observed["hp_at_narration"] = room.enemies["goblin"].hp
+        observed["details"] = details
+        canonical_result["attacker_damage"] = 999
+        return {"text": "Goblin ginie! Zadajesz 999 obrażeń."}
+
+    processor, room = _processor(narrate_fn=narrate)
+    result = processor.process(
+        GameCommand(action="attack", target="goblin"), room=room.name, participant_id=1,
+    )
+
+    assert observed["action"] == "attack"
+    assert observed["result"] == result["result"]
+    assert observed["hp_at_narration"] == room.enemies["goblin"].hp
+    assert observed["details"]["actor"] == "Player 1"
+    assert observed["details"]["target"] == "goblin"
+    assert room.enemies["goblin"].hp == 30 - result["result"]["attacker_damage"]
+    assert room.players[1].hp == 100 - result["result"]["defender_damage"]
+    assert room.player_histories[1][-1]["result"] == result["result"]
     assert room.current_player_id == 2
 
 

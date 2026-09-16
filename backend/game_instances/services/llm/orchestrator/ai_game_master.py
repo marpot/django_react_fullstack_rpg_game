@@ -6,6 +6,7 @@ from game_instances.services.llm.core.llm_client import LLMClient
 from game_instances.services.llm.intent.game_context import GameContextBuilder
 from game_instances.services.llm.intent.intent_parser import IntentParser
 from game_instances.services.llm.narration_service.narration_service import NarrationService
+from game_instances.services.llm.narration_service.narration_context import NarrationContextBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -14,11 +15,12 @@ class AIGameMaster:
     """Interpret input and narrate canonical events; never execute commands."""
 
     def __init__(self, *, intent_client=None, narration_service=None,
-                 parser=None, context_builder=None):
+                 parser=None, context_builder=None, narration_context_builder=None):
         self.intent_client = intent_client
         self.narration_service = narration_service
         self.parser = parser or IntentParser()
         self.context_builder = context_builder or GameContextBuilder()
+        self.narration_context_builder = narration_context_builder or NarrationContextBuilder()
 
     def interpret_player_input(
         self, player_input: str | dict, *, state_manager=None,
@@ -80,11 +82,9 @@ class AIGameMaster:
             "method": command.method,
         }
 
-    def narrate_event(self, action: str, result: dict, world: dict | None = None) -> dict:
+    def narrate_event(self, action: str, result: dict, world: dict | None = None,
+                      details: dict | None = None) -> dict:
         if self.narration_service is None:
             self.narration_service = NarrationService()
-        return {"text": self.narration_service.event({
-            "event_type": action,
-            "result": result,
-            "world": world or {},
-        })}
+        context = self.narration_context_builder.build(action, result, world, details)
+        return {"text": self.narration_service.event(context)}

@@ -2,6 +2,7 @@ import logging
 
 from game.core.choice_service import AdventureChoiceService
 from game.core.game_command import GameCommand
+from game.core.narration_fallback import narration_fallback
 from game.services.combat_service import CombatService
 from game.services.dice_service import DiceService
 from game.state.resolver.entity_resolver import EntityResolver
@@ -64,12 +65,13 @@ class ActionProcessor:
             "turn_state": turn_state or {},
         }
 
-    def _narrate(self, action: str, result: dict, world: dict | None = None):
-        fallback = {"text": f"Zdarzenie ({action}) się rozwija."}
+    def _narrate(self, action: str, result: dict, world: dict | None = None,
+                 details: dict | None = None):
+        fallback = {"text": narration_fallback(action, result)}
         if self.narrate_fn is None:
             return fallback
         try:
-            narration = self.narrate_fn(action, result, world)
+            narration = self.narrate_fn(action, result.copy(), world, details)
             if isinstance(narration, dict) and isinstance(narration.get("text"), str) and narration["text"].strip():
                 return narration
         except Exception:
