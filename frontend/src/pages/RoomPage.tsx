@@ -196,6 +196,8 @@ const RoomPage: React.FC = () => {
             world={session.world}
             gameEvents={session.gameEvents}
             sendGame={session.sendGame}
+            currentParticipantId={session.currentParticipantId}
+            turnState={session.turnState}
           />
         )}
       </main>

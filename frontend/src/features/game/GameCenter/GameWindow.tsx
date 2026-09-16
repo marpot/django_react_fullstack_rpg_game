@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import { isParticipantTurn } from "@/features/game/turnState";
 import "@/styles/features/game/GameWindow.scss";
 
 type Props = {
   world: any;
   gameEvents: any[];
   sendGame: (data: any) => void;
-  currentUserId?: number | null;
+  currentParticipantId: number | null;
+  turnState: any | null;
 };
 
 function getEventClass(event: string) {
@@ -66,15 +68,15 @@ export default function GameWindow({
   world,
   gameEvents,
   sendGame,
-  currentUserId = null,
+  currentParticipantId,
+  turnState,
 }: Props) {
   const [input, setInput] = useState("");
   const logEndRef = useRef<HTMLDivElement | null>(null);
 
   const lastEvent = gameEvents[gameEvents.length - 1];
   const lastChoices = lastEvent?.payload?.choices || [];
-  const turnState = lastEvent?.payload?.turn_state || lastEvent?.turn_state || {};
-  const isMyTurn = currentUserId == null || turnState.current_player_id == null || turnState.current_player_id === currentUserId;
+  const isMyTurn = isParticipantTurn(turnState, currentParticipantId);
   const fallbackChoices = [
     {
       id: "inspect",
@@ -98,7 +100,7 @@ export default function GameWindow({
   }, [gameEvents]);
 
   const handleSend = () => {
-    if (!input.trim()) return;
+    if (!isMyTurn || !input.trim()) return;
 
     sendGame({
       type: "player_action",
@@ -186,11 +188,12 @@ export default function GameWindow({
       <div className="inputBar">
         <input
           value={input}
+          disabled={!isMyTurn}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           placeholder="Type action..."
         />
-        <button onClick={handleSend}>Send</button>
+        <button onClick={handleSend} disabled={!isMyTurn}>Send</button>
       </div>
     </div>
   );
