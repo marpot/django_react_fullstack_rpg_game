@@ -3,14 +3,12 @@
 import logging
 from game.npc.npc_models import NPC
 from game.npc.npc_registry import NPCRegistry
-from game_instances.services.llm.core.llm_client import LLMClient
 logger = logging.getLogger(__name__)
 
 
 class NPCService:
     def __init__(self, state_manager):
         self.state = state_manager
-        self.llm = LLMClient()
 
     # -------------------------
     # SPAWN
@@ -23,34 +21,17 @@ class NPCService:
     # -------------------------
     # TALK
     # -------------------------
-    def talk(self, room_id: str, npc_id: str, message: str):
+    def talk(self, room_id: str, npc_id: str | None):
         room = self.state.get_or_create_room(room_id)
         npc = room.npcs.get(npc_id)
 
         if not npc:
-            return {"error": "NPC not found"}
-
-        prompt = f"""
-            You are NPC in RPG game.
-
-            Name: {npc.name}
-            Personality: {npc.personality}
-            State: {npc.state}
-
-            Player says: {message}
-
-            Rules:
-            - stay in character
-            - max 2 sentences
-            - no meta talk
-            """
-
-        reply = self.llm.generate(prompt)
+            return {"error": "npc_not_found", "text": "Nie znaleziono NPC."}
 
         return {
             "action": "talk",
             "npc": npc.name,
-            "reply": reply
+            "text": npc.dialog[0] if npc.dialog else f"Rozmawiasz z {npc.name}.",
         }
 
     # -------------------------

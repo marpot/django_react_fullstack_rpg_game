@@ -2,6 +2,7 @@ import pytest
 
 from game.core.action_processor import ActionProcessor
 from game.core.game_command import GameCommand
+from game.npc.npc_models import NPC
 from game.services.combat_service import CombatService
 from game.services.dice_service import DiceService
 from game.state.game_state_manager import GameStateManager
@@ -96,4 +97,42 @@ def test_explicit_missing_identity_does_not_fall_back_to_command():
     )
 
     assert result["result"]["error"] == "missing_participant_id"
+    assert room.player_histories == {1: [], 2: []}
+
+
+def test_talk_uses_existing_npc_dialogue_without_changing_game_state():
+    processor, room = _processor()
+    room.npcs["guide"] = NPC(id="guide", name="Guide", dialog=["Witaj, wędrowcze."])
+    hp_before = {player_id: player.hp for player_id, player in room.players.items()}
+    enemy_hp_before = room.enemies["goblin"].hp
+
+    result = processor.process(
+        GameCommand(action="talk", target="guide"),
+        room=room.name,
+        participant_id=1,
+    )
+
+    assert result["action"] == "talk"
+    assert result["text"] == "Witaj, wędrowcze."
+    assert result["result"]["npc"] == "Guide"
+    assert {player_id: player.hp for player_id, player in room.players.items()} == hp_before
+    assert room.enemies["goblin"].hp == enemy_hp_before
+    assert room.current_player_id == 1
+    assert room.current_turn_index == 0
+    assert room.player_histories == {1: [], 2: []}
+
+
+@pytest.mark.parametrize("target", ["unknown", None])
+def test_talk_with_missing_npc_returns_controlled_error(target):
+    processor, room = _processor()
+
+    result = processor.process(
+        GameCommand(action="talk", target=target),
+        room=room.name,
+        participant_id=1,
+    )
+
+    assert result["action"] == "talk"
+    assert result["result"]["error"] == "npc_not_found"
+    assert room.current_player_id == 1
     assert room.player_histories == {1: [], 2: []}

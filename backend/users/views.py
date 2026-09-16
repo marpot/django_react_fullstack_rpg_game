@@ -3,12 +3,10 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView # type: ignore
 from rest_framework_simplejwt.tokens import RefreshToken
-import logging
 from .serializers import UserRegisterSerializer, UserLoginSerializer
 from rest_framework.permissions import AllowAny
 
 User = get_user_model()
-logger = logging.getLogger(__name__)
 
 class UserRegisterView(APIView):
     permission_classes = [AllowAny]
@@ -28,8 +26,6 @@ class UserRegisterView(APIView):
 class UserLoginView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
-        logger.info(f"Otrzymane dane logowania: {request.data}")
-
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 

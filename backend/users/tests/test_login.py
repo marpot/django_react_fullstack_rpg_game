@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 @pytest.mark.django_db
-def test_user_login():
+def test_user_login(caplog):
     user = get_user_model().objects.create_user(
         username="testuser",
         email="testuser@example.com",
@@ -13,6 +13,7 @@ def test_user_login():
     )
 
     client = APIClient()
+    caplog.set_level("INFO", logger="users.views")
 
     response = client.post(reverse("login"), {
         "username": "testuser",
@@ -21,6 +22,7 @@ def test_user_login():
 
     assert response.status_code == status.HTTP_200_OK
     assert "access" in response.data
+    assert "testpassword123" not in caplog.text
 
 @pytest.mark.django_db
 def test_user_login_invalid_credentials():
