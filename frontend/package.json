@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "NODE_OPTIONS=--max-old-space-size=1024 webpack serve --mode development --hot --host 0.0.0.0 --port 3000",
     "build": "webpack --mode production",
-    "test": "jest --passWithNoTests"
+    "test": "jest --passWithNoTests",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@types/pixi.js": "^4.8.9",
@@ -24,6 +25,7 @@
     "@babel/plugin-proposal-private-methods": "7.21.4-esm",
     "@babel/preset-env": "^7.26.7",
     "@babel/preset-react": "^7.26.3",
+    "@playwright/test": "^1.63.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
     "@types/css-modules": "^1.0.5",
     "@types/react": "^19.0.10",
