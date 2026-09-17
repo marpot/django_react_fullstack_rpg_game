@@ -15,23 +15,22 @@ const RoomList: React.FC<Props> = ({ rooms, onRoomClick }) => {
   return (
     <div className="room-grid">
       {rooms.map((room) => (
-        <div
+        <button
+          type="button"
           key={room.id}
           className="room-card"
           onClick={() => onRoomClick(room.id)}
         >
-          <h3 className="room-title">
+          <span className="room-title">
             {room.name}
-          </h3>
+          </span>
 
-          <p className="room-subtitle">
+          <span className="room-subtitle">
             {room.adventure_title ?? 'Brak przygody'}
-          </p>
+          </span>
 
-          <p className="room-hint">
-            Kliknij aby dołączyć
-          </p>
-        </div>
+          <span className="room-hint">Otwórz pokój <span aria-hidden="true">→</span></span>
+        </button>
       ))}
     </div>
   );

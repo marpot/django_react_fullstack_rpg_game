@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CreateRoomForm from '../components/CreateRoomForm';
+import BackToAdventuresButton from '../components/ui/BackToAdventuresButton';
 import '../styles/pages/create-room.scss';
 
 const CreateRoomPage = () => {
@@ -17,25 +18,36 @@ const CreateRoomPage = () => {
 
   return (
     <div className="create-room-page">
-
-      
-
       <div className="create-room-content">
-        <h1 className="create-room-title">
-          Utwórz nowy pokój
-        </h1>
+        <header className="create-room-header">
+          <div>
+            <p className="create-room-eyebrow">
+              ELDORIA CHRONICLES · NOWA WYPRAWA
+            </p>
+
+            <h1 className="create-room-title">
+              Otwórz nową wyprawę
+            </h1>
+
+            <p className="create-room-description">
+              Nadaj nazwę pokojowi i wybierz przygodę, do której zaprosisz innych
+              wędrowców.
+            </p>
+          </div>
+
+          <BackToAdventuresButton />
+        </header>
 
         {showCreateRoomForm ? (
-          <div className="create-room-card">
+          <section className="create-room-card" aria-label="Utwórz pokój">
             <CreateRoomForm onRoomCreated={handleRoomCreated} />
-          </div>
+          </section>
         ) : (
-          <div className="success-message">
+          <div className="success-message" role="status">
             Pokój utworzony. Przenoszenie...
           </div>
         )}
       </div>
-
     </div>
   );
 };

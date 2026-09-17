@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { config } from "@/config/appConfig";
 
 export const useGameSocket = (
   roomId: string,
@@ -21,11 +22,16 @@ export const useGameSocket = (
     initialized.current = false;
     connecting.current = false;
 
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+      return;
+    }
+
     connecting.current = true;
 
-    const token = localStorage.getItem("access_token");
-    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const url = `${wsProtocol}//${window.location.host}/ws/game/${roomId}/?token=${token}`;
+    const url =
+      `${config.WS_URL}/ws/game/${roomId}/?token=${encodeURIComponent(token)}`;
 
     const socket = new WebSocket(url);
     ws.current = socket;

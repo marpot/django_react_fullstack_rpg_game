@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import RoomList from '../components/RoomList';
-import MainLayout from '../components/MainLayout';
 
 import Chat from '../features/chat/Chat';
 
@@ -59,41 +58,42 @@ const Dashboard = () => {
       <div className="dashboard-page">
         <div className="dashboard-container">
 
-        <h1 className="dashboard-title">
-          Labirynt Przygód
-        </h1>
+        <header className="dashboard-hero">
+          <div>
+            <p className="dashboard-eyebrow">ELDORIA CHRONICLES · KRONIKA WYPRAW</p>
+            <h1 className="dashboard-title">Sala Przygód</h1>
+            <p className="dashboard-description">Wybierz wyprawę lub spotkaj innych wędrowców w poczekalni.</p>
+          </div>
+          <Link className="dashboard-create-link" to="/create-room">Nowa wyprawa</Link>
+        </header>
 
         {loading && (
-          <div className="dashboard-info">Ładowanie...</div>
+          <div className="dashboard-info" role="status">Otwieranie kroniki wypraw...</div>
         )}
 
         {error && (
-          <div className="dashboard-error">{error}</div>
+          <div className="dashboard-error" role="alert">{error}</div>
         )}
 
         <div className="dashboard-grid">
 
-          <div className="dashboard-card">
-            <h2 className="dashboard-section-title">
-              Pokoje
-            </h2>
+          <section className="dashboard-card dashboard-card--rooms" aria-labelledby="dashboard-rooms-heading">
+            <h2 className="dashboard-section-title" id="dashboard-rooms-heading">Dostępne wyprawy</h2>
 
-            {!loading && rooms.length === 0 ? (
-              <p>Brak dostępnych pokoi</p>
+            {!loading && !error && rooms.length === 0 ? (
+              <p className="dashboard-empty">W kronice nie ma jeszcze otwartych wypraw.</p>
             ) : (
               <div className="room-list-wrapper">
                 <RoomList rooms={rooms} onRoomClick={navigateToRoom} />
               </div>
             )}
-          </div>
+          </section>
 
-          <div className="dashboard-card">
-            <h2 className="dashboard-section-title">
-              Poczekalnia
-            </h2>
+          <section className="dashboard-card dashboard-card--chat" aria-labelledby="dashboard-chat-heading">
+            <h2 className="dashboard-section-title" id="dashboard-chat-heading">Poczekalnia</h2>
 
             <Chat />
-          </div>
+          </section>
 
         </div>
       </div>

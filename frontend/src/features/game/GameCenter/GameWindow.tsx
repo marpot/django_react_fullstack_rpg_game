@@ -122,19 +122,19 @@ export default function GameWindow({
   return (
     <div className="gameWindow">
       <div className="header">
-        <div>🧙 ELDORIA</div>
-        <div style={{ fontSize: 12, opacity: 0.6 }}>
-          real-time engine
-        </div>
+        <div className="game-brand"><span aria-hidden="true">✦</span> ELDORIA <small>KRONIKA WYPRAWY</small></div>
+        <div className="game-status">Zapis przygody</div>
       </div>
 
       {world ? (
         <div className="world">
+          <div className="world-kicker">Miejsce i okoliczności</div>
           <h2>{world.name || world.title || "World"}</h2>
           <p>{world.description || world.lore?.situation || world.situation || world.intro || ""}</p>
         </div>
       ) : (
         <div className="world">
+          <div className="world-kicker">Kronika jeszcze się nie otworzyła</div>
           <h2>🕯️ Przygotowanie przygody</h2>
           <p>Witaj w pokoju. Host rozpocznie przygodę, a Mistrz Gry od razu wypełni świat narracją.</p>
         </div>
@@ -165,12 +165,13 @@ export default function GameWindow({
         <div ref={logEndRef} />
       </div>
 
-      <div className="turnHint">
+      <div className={`turnHint ${isMyTurn ? "is-ready" : "is-waiting"}`} aria-live="polite">
         {isMyTurn ? "Twoja tura — wybierz akcję." : "Czekasz na swoją turę."}
       </div>
 
       {visibleChoices.length > 0 && (
         <div className="choiceBar">
+          <div className="choice-heading">Możliwe działania</div>
           {visibleChoices.map((choice: StructuredChoice, index: number) => (
             <button
               key={choice.id || `${choice.label}-${index}`}
@@ -190,9 +191,9 @@ export default function GameWindow({
           disabled={!isMyTurn}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          placeholder="Type action..."
+          placeholder="Opisz swoją akcję..."
         />
-        <button onClick={handleSend} disabled={!isMyTurn}>Send</button>
+        <button onClick={handleSend} disabled={!isMyTurn}>Wykonaj</button>
       </div>
     </div>
   );

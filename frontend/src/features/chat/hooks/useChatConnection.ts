@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { config } from "@/config/appConfig";
 import { ChatSocket } from "../services/chatSocket";
 import { ChatReconnect } from "../logic/chatReconnect";
 import { ChatMessage } from "./useChat";
@@ -41,8 +42,7 @@ export const useChatConnection = (
 
     isConnectingRef.current = true;
 
-    // 🔥 PROXY-BASED WS (NIE HARDCORE HOST)
-    const wsUrl = `/ws/chat/${roomId}/`;
+    const wsUrl = `${config.WS_URL}/ws/chat/${roomId}/`;
 
     socketRef.current?.disconnect();
 

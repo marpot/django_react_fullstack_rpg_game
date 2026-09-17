@@ -108,7 +108,7 @@ const AuthForm: React.FC<Props> = ({ mode, loading = false, onSuccess }) => {
           ? 'Ładowanie...'
           : isLogin
             ? 'Zaloguj się'
-            : 'Zarejestruj się'}
+            : 'Rozpocznij przygodę'}
       </Button>
     </form>
   );

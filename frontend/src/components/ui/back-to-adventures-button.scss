@@ -1,0 +1,35 @@
+.back-to-adventures-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 42px;
+  padding: 9px 14px;
+  border: 1px solid var(--chronicle-border);
+  border-radius: 3px;
+  background: #1d1e23;
+  color: #e9d5a7;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.back-to-adventures-button:hover {
+  border-color: #d8b967;
+  background: #292720;
+  color: #f0d99f;
+  transform: translateY(-1px);
+}
+
+.back-to-adventures-button:active { transform: translateY(0); }
+
+.back-to-adventures-button:focus-visible {
+  outline: 2px solid #f0d99f;
+  outline-offset: 3px;
+}
+
+@media (max-width: 700px) {
+  .back-to-adventures-button { width: 100%; }
+}
