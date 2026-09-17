@@ -21,14 +21,19 @@ class NPCService:
     # -------------------------
     # TALK
     # -------------------------
-    def talk(self, room_id: str, npc_id: str | None):
+    def talk(self, room_id: str, npc_id: str | None, location: str | None = None):
         room = self.state.get_or_create_room(room_id)
-        npc = room.npcs.get(npc_id)
+        available = (
+            {key: npc for key, npc in room.npcs.items()
+             if getattr(npc, "location", "start") == location}
+            if location is not None else room.npcs
+        )
+        npc = available.get(npc_id)
 
         if npc is None and isinstance(npc_id, str):
             target = npc_id.casefold().strip()
             matches = []
-            for candidate in room.npcs.values():
+            for candidate in available.values():
                 names = {candidate.id.casefold(), candidate.name.casefold()}
                 forms = names | {
                     f"{name}iem" for name in names if name.endswith("nik")

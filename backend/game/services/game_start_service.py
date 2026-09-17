@@ -1,5 +1,8 @@
 from chat.models import RoomParticipant
+from game.core.choice_service import AdventureChoiceService
+from game.state.seeders.npc_seeder import NPCSeeder
 from game.state.runtime.runtime_player_service import RuntimePlayerService
+from world.models import Location
 
 
 class GameStartService:
@@ -20,6 +23,20 @@ class GameStartService:
             # 1. seed world (SOURCE OF TRUTH)
             self.seeder.seed_from_adventure(adventure_id, room_id)
 
+            locations = list(
+                Location.objects.filter(adventure_id=adventure_id)
+                .order_by("order", "id")[:2]
+            )
+            start_location = locations[0] if locations else None
+            location_id = str(start_location.id) if start_location else "start"
+            next_location_id = str(locations[1].id) if len(locations) > 1 else location_id
+            for enemy in room_state.enemies.values():
+                enemy.location = next_location_id
+            room_state.npcs = {}
+            NPCSeeder(self.state_manager).seed(room_id, adventure_id)
+            for index, npc in enumerate(room_state.npcs.values()):
+                npc.location = location_id if index == 0 else next_location_id
+
             participants = list(
                 RoomParticipant.objects.filter(room_id=room_id)
                 .select_related("user", "character")
@@ -31,10 +48,12 @@ class GameStartService:
             runtime_player_service = RuntimePlayerService(self.state_manager)
 
             for participant in participants:
-                runtime_player_service.get_or_create(
+                player = runtime_player_service.get_or_create(
                     room_state,
                     participant.id,
                 )
+                if player is not None:
+                    player.location = location_id
 
             room_state.turn_order = list(room_state.players.keys())
             room_state.player_histories = {
@@ -98,6 +117,14 @@ class GameStartService:
 
             turn_state = self.state_manager.build_turn_state(room_state)
             game_state = self.state_manager.build_game_state(room_state)
+            first_player = room_state.players.get(room_state.current_player_id)
+            choices = (
+                AdventureChoiceService().build_choices(
+                    enemies=self.state_manager.visible_enemies(room_state, first_player),
+                    npcs=self.state_manager.visible_npcs(room_state, first_player),
+                    exits=self.state_manager.get_exits(room_state, first_player),
+                ) if first_player else []
+            )
 
             # 4. emit JEDEN spójny event
             self.notifier.emit(room_id, {
@@ -110,6 +137,7 @@ class GameStartService:
                     "room_id": room_id,
                     "turn_state": turn_state,
                     "game_state": game_state,
+                    "choices": choices,
                 },
             })
 

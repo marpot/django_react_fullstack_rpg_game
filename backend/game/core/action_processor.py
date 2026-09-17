@@ -1,4 +1,5 @@
 import logging
+from copy import deepcopy
 
 from game.core.choice_service import AdventureChoiceService
 from game.core.game_command import GameCommand
@@ -73,7 +74,7 @@ class ActionProcessor:
         if self.narrate_fn is None:
             return fallback
         try:
-            narration = self.narrate_fn(action, result.copy(), world, details)
+            narration = self.narrate_fn(action, deepcopy(result), world, details)
             if isinstance(narration, dict) and isinstance(narration.get("text"), str) and narration["text"].strip():
                 return narration
         except Exception:
@@ -204,12 +205,13 @@ class ActionProcessor:
             result = self._handle_inspect(parsed_input, world)
 
         elif action == "talk":
+            player = room_obj.players[participant_id]
             result = NPCService(self.state_manager).talk(
                 parsed_input["room"],
-                parsed_input["target"]
+                parsed_input["target"],
+                location=player.location,
             )
             if "error" not in result and self.dialogue_fn is not None:
-                player = room_obj.players[participant_id]
                 details = {
                     "actor": player.name,
                     "location": player.location,
@@ -232,6 +234,9 @@ class ActionProcessor:
 
         else:
             return self._response(action, "Unhandled action", {"error": "unhandled_action"})
+
+        if result.get("result", {}).get("error"):
+            return result
 
         # wspólna część (turn + history)
         self._record_history(room_obj, participant_id, action, result.get("result", {}))

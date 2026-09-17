@@ -33,6 +33,7 @@ class Enemy:
     attack_bonus: int
     damage_die: int
     damage_bonus: int
+    location: str = "start"
 
 
 # =========================

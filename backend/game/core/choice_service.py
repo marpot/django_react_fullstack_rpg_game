@@ -13,11 +13,20 @@ class AdventureChoiceService:
         *,
         enemies: Mapping[str, object],
         npcs: Mapping[str, object],
+        exits=(),
     ) -> list[dict]:
         choices = [self._choice(
             "inspect", None, "Rozejrzyj się",
             "Sprawdź otoczenie i ślady przygody.", "sprawdź otoczenie",
         )]
+
+        for exit_choice in exits[:2]:
+            destination = exit_choice.next_location
+            choices.append(self._choice(
+                "move", str(destination.id), f"Idź do {destination.title}",
+                exit_choice.description or f"Przejdź do {destination.title}.",
+                f"move {destination.title}",
+            ))
 
         seen_enemies = set()
         for enemy in enemies.values():
@@ -29,7 +38,7 @@ class AdventureChoiceService:
                 "attack", target, f"Atakuj {enemy.name}",
                 f"Zaatakuj {enemy.name}.", f"attack {target}",
             ))
-            if len(seen_enemies) >= 3:
+            if len(seen_enemies) >= 3 or len(choices) >= self.MAX_CHOICES - bool(npcs):
                 break
 
         for npc_id, npc in npcs.items():

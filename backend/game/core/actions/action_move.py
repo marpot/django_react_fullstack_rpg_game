@@ -37,8 +37,23 @@ class MoveAction:
                 {"error": "no_player"},
             )
 
-        player.location = target or "unknown"
-        canonical_result = {"location": player.location}
+        exits = self.state_manager.get_exits(room_obj, player)
+        destination = None
+        for choice in exits:
+            candidate = choice.next_location
+            if isinstance(target, str) and target.strip().casefold() in {
+                str(candidate.id), candidate.title.casefold()
+            }:
+                destination = candidate
+                break
+
+        if destination is None:
+            return self.response_fn(
+                "move", "Nie ma takiego przejścia", {"error": "invalid_exit"},
+            )
+
+        player.location = str(destination.id)
+        canonical_result = {"location": player.location, "location_name": destination.title}
 
         narration = self.narrate_fn(
             "move",
@@ -56,8 +71,9 @@ class MoveAction:
         )
 
         choices = self.choice_service.build_choices(
-            enemies=room_obj.enemies,
-            npcs=room_obj.npcs,
+            enemies=self.state_manager.visible_enemies(room_obj, player),
+            npcs=self.state_manager.visible_npcs(room_obj, player),
+            exits=self.state_manager.get_exits(room_obj, player),
         )
 
         return self.response_fn(
