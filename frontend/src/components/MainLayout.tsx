@@ -8,7 +8,13 @@ interface Props {
 
 const MainLayout: React.FC<Props> = ({ children }) => {
   const { pathname } = useLocation();
-  const isChroniclesView = ['/dashboard', '/create-room', '/profile'].includes(pathname);
+
+  const isChroniclesView = [
+    '/dashboard',
+    '/create-room',
+    '/profile',
+    '/settings',
+  ].includes(pathname);
 
   return (
     <div className={`app-layout${isChroniclesView ? ' app-layout--chronicles' : ''}`}>

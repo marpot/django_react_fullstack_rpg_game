@@ -24,20 +24,6 @@
       overflow-wrap: anywhere;
     }
 
-    button {
-      flex: 0 0 auto;
-      min-height: 42px;
-      padding: 9px 14px;
-      border: 1px solid var(--chronicle-border);
-      border-radius: 3px;
-      background: #1d1e23;
-      color: #e9d5a7;
-      font-weight: 600;
-      cursor: pointer;
-
-      &:hover { background: #292720; }
-      &:focus-visible { outline: 2px solid #f0d99f; outline-offset: 2px; }
-    }
   }
 
   .profile-eyebrow {
@@ -153,7 +139,7 @@
 @media (max-width: 700px) {
   .profile-page {
     .profile-header { align-items: flex-start; flex-direction: column; }
-    .profile-header button { width: 100%; }
+    .profile-header .back-to-adventures-button { width: 100%; }
     .profile-active-details dl { grid-template-columns: minmax(0, 1fr); }
   }
 }

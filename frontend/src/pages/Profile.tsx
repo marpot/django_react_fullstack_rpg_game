@@ -1,11 +1,10 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { useProfile } from "../features/profile/hooks/useProfile";
 import { api } from "@/api/client";
+import BackToAdventuresButton from "../components/ui/BackToAdventuresButton";
 import "../styles/pages/profile.scss";
 
 const Profile: React.FC = () => {
-  const navigate = useNavigate();
   const { profile, loading, error, refetch } = useProfile();
 
   const selectCharacter = async (id: number) => {
@@ -33,9 +32,7 @@ const Profile: React.FC = () => {
           <h1>{profile.username}</h1>
           <p className="profile-intro">Twoje postacie i ich droga przez Eldorię.</p>
         </div>
-        <button type="button" onClick={() => navigate("/dashboard")}>
-          Wróć do Sali Przygód
-        </button>
+        <BackToAdventuresButton />
       </header>
 
       <section className="profile-card profile-card--active" aria-labelledby="active-character-heading">

@@ -1,10 +1,8 @@
-import { useNavigate } from 'react-router-dom'
+import BackToAdventuresButton from '@/components/ui/BackToAdventuresButton'
 
 import '@/styles/pages/settings.scss'
 
 function Settings() {
-  const navigate = useNavigate()
-
   return (
     <main className="settings-page">
       <section className="settings-panel">
@@ -40,13 +38,7 @@ function Settings() {
           </div>
         </div>
 
-        <button
-          className="settings-panel__back-button"
-          type="button"
-          onClick={() => navigate('/dashboard')}
-        >
-          Wróć do Sali Przygód
-        </button>
+        <BackToAdventuresButton />
       </section>
     </main>
   )
