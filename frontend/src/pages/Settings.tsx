@@ -1,26 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom'
 
-interface SettingsProps {
-  // Add any props you want to pass to the component here
-}
+import '@/styles/pages/settings.scss'
 
-const Settings: React.FC<SettingsProps> = () => {
-  const [setting, setSetting] = useState<string>('default value');
-
-  useEffect(() => {
-    console.log('Component mounted!');
-  }, []);
-
-  const navigate = useNavigate();
+function Settings() {
+  const navigate = useNavigate()
 
   return (
-    <div>
-      <p>Setting: {setting}</p>
-      <button onClick={() => setSetting('new value')}>Update Setting</button>
-      <button onClick={() => navigate('/dashboard')}>Go to dashboard</button>
-    </div>
-  );
-};
+    <main className="settings-page">
+      <section className="settings-panel">
+        <div className="settings-panel__ornament" aria-hidden="true">
+          ✦
+        </div>
 
-export default Settings;
+        <p className="settings-panel__eyebrow">ELDORIA</p>
+
+        <h1 className="settings-panel__title">Ustawienia</h1>
+
+        <div className="settings-panel__divider" aria-hidden="true">
+          <span />
+          <span className="settings-panel__divider-symbol">◆</span>
+          <span />
+        </div>
+
+        <p className="settings-panel__description">
+          Dodatkowe ustawienia gry pojawią się w przyszłych wersjach Eldorii.
+        </p>
+
+        <div className="settings-panel__notice">
+          <span className="settings-panel__notice-icon" aria-hidden="true">
+            ✦
+          </span>
+
+          <div>
+            <h2>Komnata jest jeszcze zamknięta</h2>
+            <p>
+              Trwają przygotowania do udostępnienia kolejnych możliwości
+              personalizacji Twojej przygody.
+            </p>
+          </div>
+        </div>
+
+        <button
+          className="settings-panel__back-button"
+          type="button"
+          onClick={() => navigate('/dashboard')}
+        >
+          Wróć do Sali Przygód
+        </button>
+      </section>
+    </main>
+  )
+}
+
+export default Settings
