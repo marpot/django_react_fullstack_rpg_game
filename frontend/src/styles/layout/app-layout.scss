@@ -1,3 +1,5 @@
+@use "../tokens/index" as tokens;
+
 .app-layout {
   display: grid;
   grid-template-columns: 240px 1fr;
@@ -13,4 +15,56 @@
 .app-main {
   padding: 24px;
   overflow: auto;
+}
+
+.app-layout--chronicles {
+  --chronicle-surface: #17191e;
+  --chronicle-surface-deep: #101116;
+  --chronicle-border: rgba(201, 162, 74, 0.34);
+  --chronicle-border-soft: rgba(201, 162, 74, 0.18);
+  --chronicle-shadow: 0 18px 38px rgba(0, 0, 0, 0.36);
+
+  grid-template-columns: minmax(208px, 224px) minmax(0, 1fr);
+  height: 100vh;
+  height: 100svh;
+  min-height: 0;
+  overflow: hidden;
+  color: tokens.$color-text;
+  background: tokens.$color-bg;
+
+  .app-sidebar {
+    min-width: 0;
+    border-right: 1px solid var(--chronicle-border);
+    background: linear-gradient(165deg, #191a20 0%, #0d0e13 72%);
+  }
+
+  .app-main {
+    min-width: 0;
+    min-height: 0;
+    padding: clamp(20px, 3vw, 42px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    background:
+      radial-gradient(circle at 78% 4%, rgba(201, 162, 74, 0.095), transparent 36%),
+      radial-gradient(circle at 7% 92%, rgba(58, 70, 91, 0.24), transparent 42%),
+      #101116;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-layout--chronicles {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+
+    .app-sidebar {
+      border-right: 0;
+      border-bottom: 1px solid var(--chronicle-border);
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .app-layout--chronicles .app-main {
+    padding: 18px 14px 28px;
+  }
 }

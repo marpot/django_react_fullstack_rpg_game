@@ -20,86 +20,69 @@ const Profile: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="profile-loading">Ładowanie...</div>;
-  if (error) return <div className="profile-error">{error}</div>;
-  if (!profile) return <div className="profile-error">Brak danych profilu</div>;
+  if (loading) return <div className="profile-page"><div className="profile-loading" role="status">Otwieranie kroniki bohatera...</div></div>;
+  if (error) return <div className="profile-page"><div className="profile-error" role="alert">{error}</div></div>;
+  if (!profile) return <div className="profile-page"><div className="profile-error" role="status">Brak danych profilu</div></div>;
 
   return (
     <div className="profile-page">
 
-      <div className="profile-header">
-        <h1>{profile.username}</h1>
-        <button onClick={() => navigate("/dashboard")}>
-          Powrót do panelu
+      <header className="profile-header">
+        <div>
+          <p className="profile-eyebrow">ELDORIA CHRONICLES · KRONIKA BOHATERA</p>
+          <h1>{profile.username}</h1>
+          <p className="profile-intro">Twoje postacie i ich droga przez Eldorię.</p>
+        </div>
+        <button type="button" onClick={() => navigate("/dashboard")}>
+          Wróć do Sali Przygód
         </button>
-      </div>
+      </header>
 
-      {/* AKTYWNA POSTAĆ */}
-      <div className="profile-card">
-        <h3>Aktywna postać</h3>
+      <section className="profile-card profile-card--active" aria-labelledby="active-character-heading">
+        <h2 id="active-character-heading">Aktywna postać</h2>
 
         {profile.activeCharacter ? (
-          <>
-            <p><b>{profile.activeCharacter.name}</b></p>
-            <p>Poziom: {profile.activeCharacter.level}</p>
-            <p>
-              HP: {profile.activeCharacter.health}/{profile.activeCharacter.max_health}
-            </p>
-            <p>
-              Mana: {profile.activeCharacter.mana}/{profile.activeCharacter.max_mana}
-            </p>
-          </>
+          <div className="profile-active-details">
+            <p className="profile-active-name">{profile.activeCharacter.name}</p>
+            <dl>
+              <div><dt>Poziom</dt><dd>{profile.activeCharacter.level}</dd></div>
+              <div><dt>HP</dt><dd>{profile.activeCharacter.health}/{profile.activeCharacter.max_health}</dd></div>
+              <div><dt>Mana</dt><dd>{profile.activeCharacter.mana}/{profile.activeCharacter.max_mana}</dd></div>
+            </dl>
+          </div>
         ) : (
-          <p>Brak aktywnej postaci</p>
+          <p className="profile-empty">Brak aktywnej postaci.</p>
         )}
-      </div>
+      </section>
 
-      {/* POSTACIE */}
-      <div className="profile-card">
-        <h3>Postacie</h3>
+      <section className="profile-card" aria-labelledby="characters-heading">
+        <h2 id="characters-heading">Twoje postacie</h2>
 
         <div className="character-grid">
           {profile.characters.map((c) => {
             const isActive = profile.activeCharacter?.id === c.id;
 
             return (
-              <div
+              <button
+                type="button"
                 key={c.id}
                 className={`character-card ${isActive ? "active" : ""}`}
+                aria-pressed={isActive}
                 onClick={() => selectCharacter(c.id)}
               >
-                <div className="char-name">{c.name}</div>
+                <span className="char-name">{c.name}</span>
 
-                <div className="char-meta">
-                  <span>Poziom {c.level}</span>
-                </div>
+                <span className="char-meta">Poziom {c.level}</span>
 
-                <div className="char-stats">
+                <span className="char-stats">
                   HP {c.health}/{c.max_health}
-                </div>
-              </div>
+                </span>
+              </button>
             );
           })}
         </div>
-      </div>
-
-      {/* STATYSTYKI */}
-      <div className="profile-grid">
-        <div className="profile-card">
-          <h3>Statystyki walk</h3>
-
-          <p>Gry: {profile.stats.gamesPlayed}</p>
-          <p>Zwycięstwa: {profile.stats.gamesWon}</p>
-          <p>Porażki: {profile.stats.gamesLost}</p>
-          <p>Współczynnik wygranych: {profile.stats.winRate}%</p>
-        </div>
-
-        <div className="profile-card">
-          <h3>Ranga</h3>
-          <p>Ranga: Adventurer</p>
-          <p>Status: Aktywny</p>
-        </div>
-      </div>
+        {profile.characters.length === 0 && <p className="profile-empty">Nie masz jeszcze postaci.</p>}
+      </section>
 
     </div>
   );
