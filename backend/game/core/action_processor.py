@@ -122,6 +122,9 @@ class ActionProcessor:
         except Exception:
             return
 
+        if room_obj.quest.completed or room_obj.adventure_completed:
+            return
+
         player = room_obj.players.get(participant_id)
         if player is None:
             return

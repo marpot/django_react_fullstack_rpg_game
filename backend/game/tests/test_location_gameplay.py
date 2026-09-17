@@ -383,3 +383,51 @@ def test_cienie_eldorii_cannot_skip_required_progression_order():
     act("move", str(village.id))
     assert room.quest.completed is False
     assert room.adventure_completed is False
+
+
+@pytest.mark.django_db
+def test_completed_cienie_eldorii_quest_is_terminal():
+    user = get_user_model().objects.create_user(username="shadows-terminal-hero")
+    character = PlayerCharacter.objects.create(user=user, name="Terminal hero")
+    call_command("seed_world", verbosity=0)
+    adventure = Adventure.objects.get(title="Cienie Eldorii")
+    village = adventure.locations.get(title="Village")
+    forest = adventure.locations.get(title="Forest")
+    room_record = Room.objects.create(name="shadows-terminal-room", owner=user, adventure=adventure)
+    participant = RoomParticipantsService.add_human(room_record, user, character)
+    state = GameStateManager()
+    llm = Mock(generate_world=Mock(return_value={}), generate_intro=Mock(return_value={"text": ""}))
+    GameStartService(WorldSeeder(state), llm, Mock(), state).start_game(
+        adventure.id, room_record.id, adventure=adventure
+    )
+    room = state.get_room(room_record.id)
+    processor = ActionProcessor(
+        state,
+        combat_service=SimpleNamespace(
+            resolve=lambda attacker, defender: SimpleNamespace(
+                attacker_damage=20, defender_damage=0
+            )
+        ),
+    )
+
+    def act(action, target=None):
+        return processor.process(
+            GameCommand(action=action, target=target),
+            room=room_record.id, participant_id=participant.id,
+        )
+
+    act("talk", "guard")
+    act("move", str(forest.id))
+    act("attack", "goblin")
+    act("talk", "merchant")
+    act("move", str(village.id))
+    assert room.quest.status == "completed"
+    assert room.quest.completed is True
+    assert room.adventure_completed is True
+    completed_stage = room.quest.stage
+
+    act("talk", "guard")
+    assert room.quest.status == "completed"
+    assert room.quest.completed is True
+    assert room.quest.stage == completed_stage
+    assert room.adventure_completed is True
