@@ -268,3 +268,430 @@
   border-radius: 6px;
   font-size: 13px;
 }
+
+/* The lobby has its own presentation; the in-game layout above stays intact. */
+.app-layout:has(.room-layout--lobby) {
+  --chronicle-surface: #17191e;
+  --chronicle-surface-deep: #101116;
+  --chronicle-border: rgba(201, 162, 74, 0.34);
+  --chronicle-border-soft: rgba(201, 162, 74, 0.18);
+  --chronicle-shadow: 0 18px 38px rgba(0, 0, 0, 0.36);
+
+  min-width: 0;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  background: #101116;
+
+  > .app-sidebar {
+    min-width: 0;
+    border-color: var(--chronicle-border);
+    background: linear-gradient(165deg, #191a20, #0d0e13 72%);
+  }
+
+  > .app-main {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    background: radial-gradient(circle at 72% 0, rgba(201, 162, 74, 0.07), transparent 38%), #101116;
+  }
+
+  .sidebar {
+    height: 100%;
+    background: transparent;
+    border: 0;
+  }
+
+  .sidebar-btn {
+    border-radius: 3px;
+    background: transparent;
+    color: #d2c9b8;
+  }
+}
+
+.room-page-state {
+  padding: 22px;
+  border: 1px solid rgba(201, 162, 74, 0.34);
+  background: #17191e;
+  color: #e8d7ae;
+  font: 16px/1.5 Georgia, "Times New Roman", serif;
+}
+
+.room-layout--lobby {
+  grid-template-columns: minmax(190px, 0.7fr) minmax(300px, 1.5fr) minmax(260px, 1fr);
+  gap: clamp(14px, 1.8vw, 26px);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: visible;
+  align-items: stretch;
+  color: #e8e3d8;
+}
+
+.room-layout--lobby > * {
+  min-width: 0;
+  overflow: visible;
+  border: 1px solid var(--chronicle-border);
+  border-radius: 4px;
+  background: linear-gradient(155deg, var(--chronicle-surface), var(--chronicle-surface-deep));
+  box-shadow: var(--chronicle-shadow), inset 0 0 0 4px rgba(201, 162, 74, 0.025);
+}
+
+.room-layout--lobby .room-sidebar,
+.room-layout--lobby .room-main,
+.room-layout--lobby .room-chat {
+  padding: clamp(18px, 2vw, 28px);
+}
+
+.room-layout--lobby .room-sidebar { gap: 20px; }
+.room-layout--lobby .room-main { gap: 22px; min-height: 0; }
+.room-layout--lobby .room-chat {
+  height: auto;
+  min-height: 0;
+}
+
+.room-layout--lobby .room-title,
+.room-layout--lobby .room-story h2 {
+  margin: 0;
+  color: #ead29a;
+  font: 600 21px/1.25 Georgia, "Times New Roman", serif;
+}
+
+.room-layout--lobby .room-title {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--chronicle-border-soft);
+}
+
+.room-layout--lobby .room-lobby-header {
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--chronicle-border);
+}
+
+.room-layout--lobby .room-eyebrow,
+.room-layout--lobby .room-section-kicker {
+  margin: 0 0 9px;
+  color: #c6a866;
+  font: 600 11px/1.4 Georgia, "Times New Roman", serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.room-layout--lobby .room-header {
+  margin: 0;
+  color: #f0d99f;
+  font: 600 clamp(28px, 3vw, 40px)/1.14 Georgia, "Times New Roman", serif;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.room-layout--lobby .room-intro {
+  margin: 12px 0 0;
+  color: #aeb4bf;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.room-layout--lobby .room-story { gap: 16px; min-height: 0; flex: 1; }
+
+.room-layout--lobby .room-lobby-section {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--chronicle-border-soft);
+  border-left: 2px solid #8b713d;
+  background: linear-gradient(135deg, #202128, #14161b);
+}
+
+.room-layout--lobby .room-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+}
+
+.room-layout--lobby .room-party-count {
+  color: #b8ae98;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.room-layout--lobby .room-player-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.room-layout--lobby .room-player-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(201, 162, 74, 0.16);
+  background: #11141b;
+}
+
+.room-layout--lobby .room-player-mark { flex: none; color: #c6a866; }
+.room-layout--lobby .room-player-name,
+.room-layout--lobby .room-character-name { min-width: 0; overflow-wrap: anywhere; }
+
+.room-layout--lobby .active-character {
+  padding: 16px;
+  border: 1px solid var(--chronicle-border-soft);
+  background: #11141b;
+}
+
+.room-layout--lobby .active-character h3 {
+  margin: 0 0 14px;
+  color: #bda46c;
+  font: 600 13px/1.3 Georgia, "Times New Roman", serif;
+}
+
+.room-layout--lobby .active-character p {
+  margin: 7px 0;
+  color: #b9bfcb;
+  font-size: 13px;
+}
+
+.room-layout--lobby .active-character .room-character-name {
+  color: #f0d99f;
+  font: 600 19px/1.3 Georgia, "Times New Roman", serif;
+}
+
+.room-layout--lobby .room-empty,
+.room-layout--lobby .room-waiting,
+.room-layout--lobby .room-lobby-notice {
+  margin: 0;
+  color: #b9bfcb;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.room-layout--lobby .room-lobby-notice {
+  padding: 18px;
+  border: 1px dashed var(--chronicle-border);
+}
+
+.room-layout--lobby .adventure-panel { gap: 14px; min-height: 0; flex: 1; }
+.room-layout--lobby .adventure-panel .room-section-heading { margin-bottom: 0; }
+.room-layout--lobby .adventure-grid {
+  flex: 1;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: #806a3e #14161b;
+}
+
+.room-layout--lobby .adventure-grid::-webkit-scrollbar { display: block; width: 8px; }
+.room-layout--lobby .adventure-grid::-webkit-scrollbar-thumb { background: #806a3e; border-radius: 4px; }
+
+.room-layout--lobby .adventure-card {
+  min-width: 0;
+  min-height: 66px;
+  border: 1px solid var(--chronicle-border-soft);
+  border-radius: 2px;
+  background: #12151c;
+  color: #e9dfcb;
+  font: 600 15px/1.35 Georgia, "Times New Roman", serif;
+  overflow-wrap: anywhere;
+}
+
+.room-layout--lobby .adventure-card::before { display: none; }
+.room-layout--lobby .adventure-card:hover,
+.room-layout--lobby .adventure-card:focus-visible {
+  border-color: #c9a24a;
+  background: #25242a;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.24);
+}
+
+.room-layout--lobby .adventure-card.selected {
+  border-color: #d8b76e;
+  background: #342d20;
+  color: #f6e8c6;
+  box-shadow: inset 0 0 0 1px rgba(216, 183, 110, 0.28);
+}
+
+.room-layout--lobby .room-ready { display: flex; flex-direction: column; gap: 12px; }
+.room-layout--lobby .room-ready .room-section-kicker { margin: 0; }
+
+.room-layout--lobby .ui-button,
+.room-layout--lobby .chat-send-button {
+  min-height: 44px;
+  border-radius: 3px;
+  font-family: Georgia, "Times New Roman", serif;
+  overflow-wrap: anywhere;
+}
+
+.room-layout--lobby .ui-button--primary,
+.room-layout--lobby .chat-send-button {
+  border: 1px solid #d7b66c;
+  background: linear-gradient(180deg, #e1c17a, #c9a24a 65%, #ab843c);
+  color: #17140e;
+}
+
+.room-layout--lobby .ui-button--secondary,
+.room-layout--lobby .ui-button--danger {
+  border: 1px solid var(--chronicle-border);
+  background: #25242a;
+  color: #e8d7ae;
+}
+
+.room-layout--lobby .room-sidebar .ui-button--danger { margin-top: auto; }
+.room-layout--lobby .ui-button:focus-visible,
+.room-layout--lobby .chat-send-button:focus-visible,
+.room-layout--lobby .adventure-card:focus-visible {
+  outline: 2px solid #f0d99f;
+  outline-offset: 2px;
+}
+
+.room-layout--lobby .ui-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.room-layout--lobby .room-error {
+  color: #e9b7ae;
+  background: rgba(100, 31, 31, 0.2);
+  border-color: rgba(201, 74, 74, 0.55);
+  overflow-wrap: anywhere;
+}
+
+.room-layout--lobby .room-chat .box-chat-container {
+  flex: 1;
+  height: auto;
+  padding: 0;
+  border: 1px solid var(--chronicle-border-soft);
+  border-radius: 2px;
+  background: #0d0f14;
+  box-shadow: none;
+  backdrop-filter: none;
+  animation: none;
+}
+
+.room-layout--lobby .chat-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--chronicle-border-soft);
+  background: rgba(201, 162, 74, 0.045);
+}
+
+.room-layout--lobby .chat-header h2 {
+  margin: 0;
+  color: #cdb579;
+  font: 600 13px/1.3 Georgia, "Times New Roman", serif;
+  overflow-wrap: anywhere;
+}
+
+.room-layout--lobby .chat-messages {
+  min-height: 0;
+  padding: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: #806a3e #14161b;
+}
+
+.room-layout--lobby .chat-messages::-webkit-scrollbar { display: block; width: 8px; }
+.room-layout--lobby .chat-messages::-webkit-scrollbar-thumb { background: #806a3e; border-radius: 4px; }
+
+.room-layout--lobby .chat-messages .notification {
+  width: fit-content;
+  max-width: 90%;
+  border-radius: 3px;
+  box-shadow: none;
+  animation: none;
+  overflow-wrap: anywhere;
+}
+
+.room-layout--lobby .chat-messages .notification.left {
+  border: 1px solid var(--chronicle-border-soft);
+  background: #25252a;
+  color: #ece6dc;
+}
+
+.room-layout--lobby .chat-messages .notification.right {
+  border: 1px solid rgba(201, 162, 74, 0.36);
+  background: #3a3020;
+  color: #f6e9ca;
+}
+
+.room-layout--lobby .chat-input-row {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border-top: 1px solid var(--chronicle-border-soft);
+  background: #15171c;
+}
+
+.room-layout--lobby .chat-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--chronicle-border-soft);
+  border-radius: 3px;
+  background: #0d0f14;
+  color: #ece6dc;
+}
+
+.room-layout--lobby .chat-send-button { flex: none; padding: 0 12px; }
+
+@media (max-width: 1100px) and (min-width: 721px) {
+  .room-layout--lobby {
+    grid-template-columns: minmax(180px, 0.65fr) minmax(300px, 1.35fr);
+    grid-template-rows: minmax(0, 1fr) minmax(250px, 0.65fr);
+  }
+
+  .room-layout--lobby .room-chat {
+    grid-column: 1 / -1;
+    height: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-layout:has(.room-layout--lobby) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+
+    > .app-sidebar { border-right: 0; border-bottom: 1px solid var(--chronicle-border); }
+    .sidebar { height: auto; }
+    .sidebar-nav { flex-direction: row !important; overflow-x: auto; }
+    .sidebar-btn { flex: none; width: auto; white-space: nowrap; }
+  }
+}
+
+@media (max-width: 720px) {
+  .app-layout:has(.room-layout--lobby) {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+
+    > .app-main {
+      display: block;
+      min-height: 0;
+      overflow: visible;
+    }
+  }
+
+  .room-layout--lobby { grid-template-columns: minmax(0, 1fr); }
+  .room-layout--lobby {
+    height: auto;
+    min-height: 0;
+    align-items: start;
+  }
+
+  .room-layout--lobby .room-story,
+  .room-layout--lobby .adventure-panel { flex: none; }
+  .room-layout--lobby .room-chat { grid-column: auto; height: 420px; min-height: 0; }
+}
+
+@media (max-width: 600px) {
+  .app-layout:has(.room-layout--lobby) > .app-main { padding: 14px; }
+  .room-layout--lobby { gap: 14px; }
+  .room-layout--lobby .room-sidebar,
+  .room-layout--lobby .room-main,
+  .room-layout--lobby .room-chat { padding: 16px; }
+  .room-layout--lobby .room-chat { height: 390px; }
+  .room-layout--lobby .room-lobby-section { padding: 14px; }
+}

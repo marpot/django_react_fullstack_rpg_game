@@ -92,17 +92,22 @@ const RoomPage: React.FC = () => {
     }
   };
 
-  if (!roomId) return <div>Brak pokoju</div>;
-  if (!me) return <div>Ładowanie...</div>;
+  if (!roomId) return <div className="room-page-state" role="alert">Brak pokoju</div>;
+  if (!me) return <div className="room-page-state" role="status">Ładowanie pokoju...</div>;
+
+  const isLobbyView = session.state !== "in-game";
+  const roomName = session.room?.name || `Pokój ${roomId}`;
 
   return (
-    <div className="room-layout">
+    <div className={`room-layout${isLobbyView ? " room-layout--lobby" : ""}`}>
 
       <aside className="room-sidebar">
-        <h2 className="room-title">🧙 Postacie</h2>
+        <h2 className="room-title">{isLobbyView ? "Bohater wyprawy" : "🧙 Postacie"}</h2>
 
         {session.sessionError && (
-          <div style={{ color: "red" }}>{session.sessionError}</div>
+          isLobbyView
+            ? <div className="room-error" role="alert">{session.sessionError}</div>
+            : <div style={{ color: "red" }}>{session.sessionError}</div>
         )}
 
         {session.state === "missing-character" && (
@@ -113,50 +118,79 @@ const RoomPage: React.FC = () => {
 
         {session.activeCharacter && (
           <div className="active-character">
-            <h3>🎮 Aktywna postać</h3>
+            <h3>{isLobbyView ? "Aktywna postać" : "🎮 Aktywna postać"}</h3>
 
             {!session.loading && session.activeCharacter && (
               <>
-                <p><b>{session.activeCharacter.name}</b></p>
-                <p>Lvl: {session.activeCharacter.level}</p>
-                <p>HP: {session.activeCharacter.health}/{session.activeCharacter.max_health}</p>
+                <p className="room-character-name"><b>{session.activeCharacter.name}</b></p>
+                <p>{isLobbyView ? "Poziom" : "Lvl:"} {session.activeCharacter.level}</p>
+                <p>{isLobbyView ? "Życie" : "HP:"} {session.activeCharacter.health}/{session.activeCharacter.max_health}</p>
               </>
             )}
           </div>
         )}
 
         <Button variant="danger" onClick={() => navigate("/dashboard")}>
-          🚪 Opuść pokój
+          {isLobbyView ? "Opuść pokój" : "🚪 Opuść pokój"}
         </Button>
       </aside>
 
       <main className="room-main">
-        <h1 className="room-header">🏰 Pokój: {roomId}</h1>
+        {isLobbyView ? (
+          <header className="room-lobby-header">
+            <p className="room-eyebrow">ELDORIA CHRONICLES · PRZED WYPRAWĄ</p>
+            <h1 className="room-header">{roomName}</h1>
+            <p className="room-intro">Drużyna zbiera się przed rozpoczęciem przygody.</p>
+          </header>
+        ) : (
+          <h1 className="room-header">🏰 Pokój: {roomId}</h1>
+        )}
 
-        {error && <div style={{ color: "red" }}>{error}</div>}
+        {error && (isLobbyView
+          ? <div className="room-error" role="alert">{error}</div>
+          : <div style={{ color: "red" }}>{error}</div>
+        )}
+
+        {isLobbyView && session.state === "loading" && (
+          <div className="room-lobby-notice" role="status">Przygotowywanie pokoju...</div>
+        )}
+
+        {isLobbyView && session.state === "missing-character" && (
+          <div className="room-lobby-notice">Wybierz aktywną postać, aby dołączyć do wyprawy.</div>
+        )}
 
         {session.state === "lobby" && (
           <div className="room-story">
-
-            <h2>⏳ Lobby</h2>
-
-            <div>
-              <h3>Gracze</h3>
-              <ul>
+            <section className="room-lobby-section" aria-labelledby="room-party-heading">
+              <div className="room-section-heading">
+                <div>
+                  <p className="room-section-kicker">Zebrani przy stole</p>
+                  <h2 id="room-party-heading">Drużyna</h2>
+                </div>
+                <span className="room-party-count">{session.room!.participants.length} uczestników</span>
+              </div>
+              {session.room!.participants.length > 0 ? <ul className="room-player-list">
                 {session.room!.participants.map((participant) => (
-                  <li key={participant.participant_id}>{participant.name}</li>
+                  <li key={participant.participant_id}>
+                    <span className="room-player-mark" aria-hidden="true">✦</span>
+                    <span className="room-player-name">{participant.name}</span>
+                  </li>
                 ))}
-              </ul>
-            </div>
+              </ul> : <p className="room-empty">Drużyna jeszcze się zbiera.</p>}
+            </section>
 
             {isOwner && (
-              <div className="adventure-panel">
+              <section className="room-lobby-section adventure-panel" aria-labelledby="room-adventure-heading">
+                <div className="room-section-heading">
+                  <div>
+                    <p className="room-section-kicker">Kronika wypraw</p>
+                    <h2 id="room-adventure-heading">Wybór przygody</h2>
+                  </div>
+                </div>
 
                 <Button variant="secondary" onClick={handleGenerateAdventure}>
-                  🎲 Generuj przygodę
+                  Generuj przygodę
                 </Button>
-
-                <h3>📜 Wybór przygody</h3>
 
                 <div className="adventure-grid">
                   {adventures.map((adv) => (
@@ -165,28 +199,31 @@ const RoomPage: React.FC = () => {
                       className={`adventure-card ${
                         selectedAdventureId === adv.id ? "selected" : ""
                       }`}
+                      aria-pressed={selectedAdventureId === adv.id}
                       onClick={() => handleSelectAdventure(adv.id)}
                     >
                       <span>{adv.title}</span>
                     </button>
                   ))}
                 </div>
-              </div>
+                {adventures.length === 0 && <p className="room-empty">Brak dostępnych przygód. Możesz wygenerować nową.</p>}
+              </section>
             )}
 
-            <div style={{ marginTop: 20 }}>
+            <section className="room-lobby-section room-ready" aria-label="Rozpoczęcie wyprawy">
+              <p className="room-section-kicker">Przed wyruszeniem</p>
               {isOwner ? (
                 <Button
                   variant="primary"
                   onClick={handleStartGame}
                   disabled={!selectedAdventureId}
                 >
-                  🎮 Start gry
+                  Rozpocznij przygodę
                 </Button>
               ) : (
-                <p>Czekasz na hosta...</p>
+                <p className="room-waiting">Czekasz, aż gospodarz rozpocznie przygodę...</p>
               )}
-            </div>
+            </section>
 
           </div>
         )}
@@ -203,7 +240,7 @@ const RoomPage: React.FC = () => {
       </main>
 
       <aside className="room-chat">
-        <h2 className="room-title">💬 Czat</h2>
+        <h2 className="room-title">{isLobbyView ? "Rozmowy drużyny" : "💬 Czat"}</h2>
         <Chat roomId={safeRoomId} />
       </aside>
 
