@@ -695,3 +695,159 @@
   .room-layout--lobby .room-chat { height: 390px; }
   .room-layout--lobby .room-lobby-section { padding: 14px; }
 }
+
+/* Gameplay frame: keep the character card and multiplayer chat in the same visual language as GameWindow. */
+.app-layout:has(.room-layout:not(.room-layout--lobby)) {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  background: #101116;
+
+  > .app-main {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    padding: clamp(14px, 2vw, 26px);
+    overflow: hidden;
+    background: radial-gradient(circle at 72% 0, rgba(201, 162, 74, 0.07), transparent 38%), #101116;
+  }
+
+  > .app-sidebar {
+    min-width: 0;
+    border-color: rgba(201, 162, 74, 0.28);
+    background: linear-gradient(165deg, #191a20, #0d0e13 72%);
+  }
+
+  .sidebar {
+    height: 100%;
+    padding: 24px 14px 18px;
+    border: 0;
+    background: transparent;
+  }
+
+  .sidebar-title {
+    margin: 0 0 26px;
+    padding: 0 6px 20px;
+    border-bottom: 1px solid rgba(201, 162, 74, 0.18);
+    color: #ead29a;
+    font: 600 21px/1.15 Georgia, "Times New Roman", serif;
+    letter-spacing: 0.08em;
+  }
+
+  .sidebar-nav { gap: 6px; }
+  .sidebar-btn {
+    min-height: 43px;
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-left: 2px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: #b8c0ca;
+    font: 500 14px/1.3 Georgia, "Times New Roman", serif;
+  }
+
+  .sidebar-btn:hover,
+  .sidebar-btn:focus-visible {
+    transform: none;
+    border-color: rgba(201, 162, 74, 0.3);
+    border-left-color: #d8b76e;
+    background: rgba(201, 162, 74, 0.1);
+    color: #f0d99f;
+  }
+
+  .sidebar-btn:focus-visible { outline: 2px solid #f0d99f; outline-offset: 2px; }
+  .sidebar-btn.danger { border-top: 1px solid rgba(201, 162, 74, 0.16); color: #c9b6a8; }
+}
+
+.room-layout:not(.room-layout--lobby) {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.72fr) minmax(0, 1.8fr) minmax(260px, 0.92fr);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  gap: clamp(12px, 1.5vw, 22px);
+  overflow: hidden;
+  background: transparent;
+}
+
+.room-layout:not(.room-layout--lobby) > * {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid rgba(201, 162, 74, 0.3);
+  border-radius: 4px;
+  background: linear-gradient(155deg, #17191f, #0e1015 72%);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.32), inset 0 0 0 4px rgba(201, 162, 74, 0.02);
+}
+
+.room-layout:not(.room-layout--lobby) .room-sidebar,
+.room-layout:not(.room-layout--lobby) .room-main,
+.room-layout:not(.room-layout--lobby) .room-chat {
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(14px, 1.8vw, 24px);
+}
+
+.room-layout:not(.room-layout--lobby) .room-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #806a3e #11141a;
+}
+
+.room-layout:not(.room-layout--lobby) .room-sidebar::-webkit-scrollbar { width: 8px; }
+.room-layout:not(.room-layout--lobby) .room-sidebar::-webkit-scrollbar-thumb { border-radius: 4px; background: #806a3e; }
+.room-layout:not(.room-layout--lobby) .room-title { margin: 0; padding-bottom: 13px; border-bottom: 1px solid rgba(201, 162, 74, 0.2); color: #ead29a; font: 600 20px/1.25 Georgia, "Times New Roman", serif; }
+
+.room-layout:not(.room-layout--lobby) .active-character {
+  position: relative;
+  padding: 17px;
+  border: 1px solid rgba(201, 162, 74, 0.27);
+  border-left: 2px solid #c9a24a;
+  background: linear-gradient(145deg, #202128, #11141a);
+}
+
+.room-layout:not(.room-layout--lobby) .active-character::before { position: absolute; top: 9px; right: 9px; color: #806a3e; content: "✦"; font-size: 12px; }
+.room-layout:not(.room-layout--lobby) .active-character h3 { margin: 0 0 14px; color: #bda46c; font: 600 11px/1.3 Georgia, "Times New Roman", serif; letter-spacing: 0.13em; text-transform: uppercase; }
+.room-layout:not(.room-layout--lobby) .active-character p { margin: 8px 0; color: #aeb8c4; font-size: 13px; }
+.room-layout:not(.room-layout--lobby) .active-character .room-character-name { margin-bottom: 15px; color: #f0d99f; font: 600 21px/1.2 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+.room-layout:not(.room-layout--lobby) .room-sidebar .ui-button { width: 100%; min-height: 43px; border-radius: 3px; font-family: Georgia, "Times New Roman", serif; }
+.room-layout:not(.room-layout--lobby) .room-sidebar .ui-button--danger { margin-top: auto; border: 1px solid rgba(201, 74, 74, 0.42); background: #2a1d20; color: #e9b7ae; }
+.room-layout:not(.room-layout--lobby) .room-sidebar .ui-button--danger:hover { border-color: #c94a4a; background: #3a2326; }
+
+.room-layout:not(.room-layout--lobby) .room-main { display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+.room-layout:not(.room-layout--lobby) .room-header { flex: 0 0 auto; margin: 0; color: #ead29a; font: 600 clamp(20px, 2vw, 28px)/1.2 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+.room-layout:not(.room-layout--lobby) .room-main > .gameWindow { flex: 1 1 auto; min-height: 0; }
+
+.room-layout:not(.room-layout--lobby) .room-chat { display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+.room-layout:not(.room-layout--lobby) .room-chat > .room-title { flex: 0 0 auto; margin: 0; padding-bottom: 13px; border-bottom: 1px solid rgba(201, 162, 74, 0.2); color: #ead29a; font: 600 20px/1.25 Georgia, "Times New Roman", serif; }
+.room-layout:not(.room-layout--lobby) .room-chat .box-chat-container { flex: 1 1 auto; min-height: 0; height: auto; padding: 0; border: 1px solid rgba(201, 162, 74, 0.24); border-radius: 3px; background: #0d0f14; box-shadow: none; backdrop-filter: none; animation: none; }
+.room-layout:not(.room-layout--lobby) .chat-header { flex: 0 0 auto; padding: 12px 14px; border-bottom: 1px solid rgba(201, 162, 74, 0.18); background: rgba(201, 162, 74, 0.045); }
+.room-layout:not(.room-layout--lobby) .chat-header h2 { margin: 0; color: #cdb579; font: 600 12px/1.3 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+.room-layout:not(.room-layout--lobby) .chat-messages { min-height: 0; padding: 14px; scrollbar-width: thin; scrollbar-color: #806a3e #14161b; }
+.room-layout:not(.room-layout--lobby) .chat-messages::-webkit-scrollbar { display: block; width: 8px; }
+.room-layout:not(.room-layout--lobby) .chat-messages::-webkit-scrollbar-thumb { border-radius: 4px; background: #806a3e; }
+.room-layout:not(.room-layout--lobby) .chat-messages .notification { width: fit-content; max-width: 90%; border-radius: 3px; box-shadow: none; animation: none; overflow-wrap: anywhere; }
+.room-layout:not(.room-layout--lobby) .chat-messages .notification.left { border: 1px solid rgba(201, 162, 74, 0.16); background: #25252a; color: #ece6dc; }
+.room-layout:not(.room-layout--lobby) .chat-messages .notification.right { border: 1px solid rgba(201, 162, 74, 0.36); background: #3a3020; color: #f6e9ca; }
+.room-layout:not(.room-layout--lobby) .chat-input-row { display: flex; flex: 0 0 auto; gap: 8px; min-width: 0; padding: 10px; border-top: 1px solid rgba(201, 162, 74, 0.18); background: #15171c; }
+.room-layout:not(.room-layout--lobby) .chat-input { flex: 1; min-width: 0; border: 1px solid rgba(201, 162, 74, 0.24); border-radius: 3px; background: #0d0f14; color: #ece6dc; }
+.room-layout:not(.room-layout--lobby) .chat-send-button { flex: none; min-height: 40px; padding: 0 12px; border: 1px solid #d7b66c; border-radius: 3px; background: linear-gradient(180deg, #e1c17a, #c9a24a 65%, #ab843c); color: #17140e; font-family: Georgia, "Times New Roman", serif; }
+.room-layout:not(.room-layout--lobby) .chat-input:focus-visible, .room-layout:not(.room-layout--lobby) .chat-send-button:focus-visible { outline: 2px solid #f0d99f; outline-offset: 2px; }
+
+@media (max-width: 1100px) and (min-width: 721px) {
+  .room-layout:not(.room-layout--lobby) { grid-template-columns: minmax(170px, 0.65fr) minmax(0, 1.7fr); grid-template-rows: minmax(0, 1fr) minmax(240px, 0.7fr); }
+  .room-layout:not(.room-layout--lobby) .room-chat { grid-column: 1 / -1; }
+}
+
+@media (max-width: 720px) {
+  .app-layout:has(.room-layout:not(.room-layout--lobby)) { height: auto; min-height: 100vh; overflow: visible; }
+  .app-layout:has(.room-layout:not(.room-layout--lobby)) > .app-main { display: block; min-height: 0; overflow: visible; }
+  .room-layout:not(.room-layout--lobby) { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 0; overflow: visible; }
+  .room-layout:not(.room-layout--lobby) .room-sidebar, .room-layout:not(.room-layout--lobby) .room-main, .room-layout:not(.room-layout--lobby) .room-chat { min-height: 0; }
+  .room-layout:not(.room-layout--lobby) .room-main { overflow: visible; }
+  .room-layout:not(.room-layout--lobby) .room-main > .gameWindow { min-height: 680px; }
+  .room-layout:not(.room-layout--lobby) .room-chat { height: 420px; }
+}
