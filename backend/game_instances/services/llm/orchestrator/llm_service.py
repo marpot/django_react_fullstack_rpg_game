@@ -1,21 +1,29 @@
-from game_instances.services.llm.intent.intent_parser import IntentParser
+from game_instances.services.llm.orchestrator.ai_game_master import AIGameMaster
 from game_instances.services.llm.narration_service.narration_service import NarrationService
-from game_instances.services.llm.core.llm_client import LLMClient
+
 
 class LLMService:
     """
     Orchestrator LLM system (FACADE)
     """
 
-    def __init__(self):
-        self.parser = IntentParser()
+    def __init__(self, intent_client=None):
         self.narration = NarrationService()
+        self.game_master = AIGameMaster(
+            intent_client=intent_client, narration_service=self.narration,
+        )
 
     # -------------------------
     # INPUT → ACTION
     # -------------------------
-    def parse_player_input(self, player_input: str) -> dict:
-        return self.parser.parse(player_input)
+    def parse_player_input(
+        self, player_input: str | dict, *, state_manager=None,
+        room=None, participant_id=None,
+    ) -> dict:
+        return self.game_master.interpret_player_input(
+            player_input, state_manager=state_manager,
+            room=room, participant_id=participant_id,
+        )
 
     # -------------------------
     # INTRO STORY

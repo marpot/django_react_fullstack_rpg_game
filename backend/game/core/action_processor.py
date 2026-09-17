@@ -1,11 +1,12 @@
 import logging
 
 from game.core.choice_service import AdventureChoiceService
+from game.core.game_command import GameCommand
+from game.core.narration_fallback import narration_fallback
 from game.services.combat_service import CombatService
 from game.services.dice_service import DiceService
 from game.state.resolver.entity_resolver import EntityResolver
 from game.state.runtime.runtime_player_service import RuntimePlayerService
-from game_instances.services.llm.orchestrator.llm_service import LLMService
 from game.npc.npc_service import NPCService
 
 from game.core.actions.action_attack import AttackAction
@@ -13,11 +14,15 @@ from game.core.actions.action_move import MoveAction
 from game.core.actions.action_inspect import InspectAction
 
 logger = logging.getLogger(__name__)
+_UNSET = object()
 
 
 class ActionProcessor:
-    def __init__(self, state_manager, combat_service=None, resolver=None):
+    def __init__(self, state_manager, combat_service=None, resolver=None,
+                 narrate_fn=None, dialogue_fn=None):
         self.state_manager = state_manager
+        self.narrate_fn = narrate_fn
+        self.dialogue_fn = dialogue_fn
         self.combat_service = combat_service or CombatService(DiceService())
         self.resolver = resolver or EntityResolver(state_manager)
 
@@ -62,13 +67,18 @@ class ActionProcessor:
             "turn_state": turn_state or {},
         }
 
-    def _narrate(self, action: str, result: dict, world: dict | None = None):
-        llm = LLMService()
-        return llm.generate_event_narration({
-            "event_type": action,
-            "result": result,
-            "world": world or {}
-        })
+    def _narrate(self, action: str, result: dict, world: dict | None = None,
+                 details: dict | None = None):
+        fallback = {"text": narration_fallback(action, result)}
+        if self.narrate_fn is None:
+            return fallback
+        try:
+            narration = self.narrate_fn(action, result.copy(), world, details)
+            if isinstance(narration, dict) and isinstance(narration.get("text"), str) and narration["text"].strip():
+                return narration
+        except Exception:
+            logger.exception("Event narration failed")
+        return fallback
 
     def _advance_turn(self, room_obj):
         current_index = room_obj.turn_order.index(room_obj.current_player_id)
@@ -98,25 +108,41 @@ class ActionProcessor:
             "history": room_obj.player_histories.get(participant_id, []),
         }
 
-    def process(self, parsed_input):
-        logger.info(f"[ACTION PROCESS] input={parsed_input}")
+    def process(
+        self, parsed_input, *, room=_UNSET, participant_id=_UNSET,
+        adventure=_UNSET, world=_UNSET, player_message=None,
+    ):
+        logger.info("[ACTION PROCESS] input=%s", parsed_input)
 
-        action = parsed_input.get("action")
-        world = parsed_input.get("world")
-
-        if parsed_input.get("error") == "unknown_intent_fallback":
-            action = "inspect"
-            parsed_input = {**parsed_input, "action": action}
-
-        if not action or action == "unknown":
+        try:
+            command = (
+                parsed_input if isinstance(parsed_input, GameCommand)
+                else GameCommand.from_mapping(parsed_input)
+            )
+        except (TypeError, ValueError):
             return self._response(
                 "unknown",
                 "Invalid action",
                 {"error": "invalid_action"}
             )
 
-        room = parsed_input.get("room")
-        participant_id = parsed_input.get("participant_id")
+        # Legacy callers may still pass a combined dict. Explicit server context
+        # takes precedence, and only command fields reach action handlers.
+        legacy = parsed_input if isinstance(parsed_input, dict) else {}
+        room = legacy.get("room") if room is _UNSET else room
+        participant_id = legacy.get("participant_id") if participant_id is _UNSET else participant_id
+        adventure = legacy.get("adventure") if adventure is _UNSET else adventure
+        world = legacy.get("world") if world is _UNSET else world
+        parsed_input = {
+            "action": command.action,
+            "target": command.target,
+            "method": command.method,
+            "room": room,
+            "participant_id": participant_id,
+            "adventure": adventure,
+            "world": world,
+        }
+        action = command.action
 
         if participant_id is None:
             return self._response(
@@ -182,6 +208,26 @@ class ActionProcessor:
                 parsed_input["room"],
                 parsed_input["target"]
             )
+            if "error" not in result and self.dialogue_fn is not None:
+                player = room_obj.players[participant_id]
+                details = {
+                    "actor": player.name,
+                    "location": player.location,
+                    "player_message": player_message,
+                    "recent_actions": [
+                        entry.get("action")
+                        for entry in room_obj.player_histories.get(participant_id, [])[-3:]
+                        if isinstance(entry, dict)
+                    ],
+                }
+                try:
+                    dialogue = self.dialogue_fn(result.copy(), world, details)
+                    if isinstance(dialogue, str) and dialogue.strip():
+                        result["text"] = dialogue.strip()
+                except Exception:
+                    logger.exception("NPC dialogue failed")
+            result.pop("npc_id", None)
+            result.pop("personality", None)
             return self._response("talk", result.get("text", ""), result)
 
         else:

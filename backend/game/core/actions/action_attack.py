@@ -85,38 +85,30 @@ class AttackAction:
 
         attacker.hp = max(0, attacker.hp - result.defender_damage)
 
-        narration = self.narrate_fn(
-            "attack",
-            {
-                "attacker_hit": result.attacker_hit,
-                "defender_hit": result.defender_hit,
-                "attacker_damage": result.attacker_damage,
-                "defender_damage": result.defender_damage,
-                "winner": result.winner,
-            },
-            world,
-        )
+        canonical_result = {
+            "winner": result.winner,
+            "attacker_damage": result.attacker_damage,
+            "defender_damage": result.defender_damage,
+        }
+        narration = self.narrate_fn("attack", canonical_result, world, {
+            "actor": attacker.name,
+            "target": defender.name,
+            "location": attacker.location,
+            "recent_actions": [
+                entry.get("action") for entry in room_obj.player_histories.get(participant_id, [])[-3:]
+                if isinstance(entry, dict)
+            ],
+        })
 
         choices = self.choice_service.build_choices(
-            adventure_id=parsed_input.get("adventure"),
-            room_key=room_key,
-            event_type="attack",
-            result={
-                "winner": result.winner,
-                "attacker_damage": result.attacker_damage,
-                "defender_damage": result.defender_damage,
-            },
-            world=world,
+            enemies=room_obj.enemies,
+            npcs=room_obj.npcs,
         )
 
         return self.response_fn(
             "attack",
             narration.get("text", "Walka zakończona"),
-            {
-                "winner": result.winner,
-                "attacker_damage": result.attacker_damage,
-                "defender_damage": result.defender_damage,
-            },
+            canonical_result,
             world,
             choices,
         )

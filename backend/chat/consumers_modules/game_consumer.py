@@ -6,9 +6,8 @@ from asgiref.sync import sync_to_async
 
 from .base import BaseConsumer
 from chat.models import Room, RoomParticipant
-from game_instances.services.llm.orchestrator.llm_service import LLMService
+from game_instances.services.llm.orchestrator.ai_game_master import AIGameMaster
 from game.core.action_processor import ActionProcessor
-from game.core.events.memory_builder import GameMemoryBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +76,11 @@ class GameConsumer(BaseConsumer):
         logger.info("=== GAME CONSUMER WS CONNECTED===")
 
         self.state_manager = self.scope["state_manager"]
-        self.processor = ActionProcessor(self.state_manager)
+        self.ai_game_master = AIGameMaster()
+        self.processor = ActionProcessor(
+            self.state_manager, narrate_fn=self.ai_game_master.narrate_event,
+            dialogue_fn=self.ai_game_master.dialogue_with_npc,
+        )
 
         self.adventure_id = None
         self.participant_id = None
@@ -185,8 +188,6 @@ class GameConsumer(BaseConsumer):
     async def receive(self, text_data):
         try:
             data = json.loads(text_data)
-            user_input = data.get("message", "")
-
             if data.get("type") == "init":
                 # Frontend może wysłać character_id — NIE traktujemy tego jako
                 # źródła autoryzacji ani identyfikacji tury.
@@ -201,8 +202,11 @@ class GameConsumer(BaseConsumer):
                         )
                 return
 
-            if not isinstance(user_input, str) or not user_input.strip():
-                return
+            has_command = "command" in data
+            if not has_command:
+                user_input = data.get("message", "")
+                if not isinstance(user_input, str) or not user_input.strip():
+                    return
 
             if self.participant_id is None:
                 logger.warning(
@@ -227,29 +231,27 @@ class GameConsumer(BaseConsumer):
                 )
                 return
 
-            memory = await sync_to_async(GameMemoryBuilder().build)(
-                self.adventure_id,
-                self.room_name,
-                20
+            if has_command:
+                parsed = data["command"]
+            else:
+                parsed = await sync_to_async(self.ai_game_master.interpret_player_input)(
+                    {"input": user_input},
+                    state_manager=self.state_manager,
+                    room=self.room_name,
+                    participant_id=self.participant_id,
+                )
+
+                if not isinstance(parsed, dict) or "action" not in parsed:
+                    return
+
+            result = await sync_to_async(self.processor.process)(
+                parsed,
+                room=self.room_name,
+                participant_id=self.participant_id,
+                adventure=self.adventure_id,
+                world=self.world,
+                player_message=None if has_command else user_input,
             )
-
-            llm = LLMService()
-
-            parsed = llm.parse_player_input({
-                "input": user_input,
-                "memory": memory,
-                "world": self.world
-            })
-
-            if not isinstance(parsed, dict) or "action" not in parsed:
-                return
-
-            parsed["room"] = self.room_name
-            parsed["participant_id"] = self.participant_id
-            parsed["adventure"] = self.adventure_id
-            parsed["world"] = self.world  # 🔥 kluczowa zmiana
-
-            result = await sync_to_async(self.processor.process)(parsed)
             cleaned_text = safe_text(result.get("text", ""))
 
             turn_state = result.get("turn_state", {}) or {}

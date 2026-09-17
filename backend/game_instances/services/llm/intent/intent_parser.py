@@ -1,16 +1,14 @@
+import re
+
+from game.core.game_command import ALLOWED_ACTIONS as COMMAND_ACTIONS
+
+
 class IntentParser:
     """
     Zamienia input gracza na akcję gry.
     """
 
-    ALLOWED_ACTIONS = {
-        "attack",
-        "move",
-        "inspect",
-        "talk",
-        "defend",
-        "use_item",
-    }
+    ALLOWED_ACTIONS = COMMAND_ACTIONS
 
     def parse(self, player_input) -> dict:
         text = ""
@@ -31,7 +29,13 @@ class IntentParser:
         text = text.lower().strip()
 
         def has(*keywords: str) -> bool:
-            return any(k in text for k in keywords)
+            return any(
+                re.search(
+                    r"(?<!\w)" + r"\s+".join(map(re.escape, keyword.split())) + r"(?!\w)",
+                    text,
+                )
+                for keyword in keywords
+            )
 
         action = "unknown"
         target = None

@@ -1,33 +1,19 @@
-from openai import OpenAI
-import os
-import re
 import json
+import re
+
+from game.core.game_command import ALLOWED_ACTIONS
+from game_instances.services.llm.core.config import LLMConfig
+from game_instances.services.llm.core.provider import (
+    GroqProvider, LLMProvider, OllamaProvider, OpenRouterProvider,
+)
 
 
-class LLMClient:
-    def __init__(self):
-        self.client = OpenAI(
-            api_key=os.getenv("GROQ_API_KEY"),
-            base_url=os.getenv("GROQ_API_BASE_URL", "https://api.groq.com/openai/v1"),
-        )
-        self.model = "llama-3.3-70b-versatile"
-
-    def generate(self, system_prompt: str, user_prompt: str) -> str:
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        system_prompt
-                        + "\n"
-                        + """
-You are STRICT JSON intent parser.
+INTENT_PROMPT = """You are STRICT JSON intent parser.
 
 Return ONLY this schema:
 
 {
-  "action": "attack|move|inspect|talk|defend|use_item",
+  "action": "__ACTIONS__",
   "target": string or null,
   "method": string or null
 }
@@ -39,18 +25,28 @@ RULES:
 - NO result
 - NO message
 - ONLY JSON
-"""
-                    )
-                },
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.2,
-            max_tokens=200,
-        )
+""".replace("__ACTIONS__", "|".join(sorted(ALLOWED_ACTIONS)))
 
-        raw = response.choices[0].message.content or ""
 
-        # wyciągnij JSON
+def create_provider():
+    config = LLMConfig.from_env()
+    providers = {
+        "groq": GroqProvider,
+        "openrouter": OpenRouterProvider,
+        "ollama": OllamaProvider,
+    }
+    return providers[config.provider](config=config)
+
+
+class LLMClient:
+    def __init__(self, provider: LLMProvider | None = None):
+        self.provider = provider if provider is not None else create_provider()
+
+    def generate(self, system_prompt: str, user_prompt: str) -> str:
+        return self.provider.complete(system_prompt, user_prompt)
+
+    def generate_intent(self, system_prompt: str, user_prompt: str) -> str:
+        raw = self.generate(f"{system_prompt}\n{INTENT_PROMPT}", user_prompt)
         match = re.search(r"\{.*\}", raw, re.DOTALL)
         if not match:
             return "{}"
@@ -60,7 +56,9 @@ RULES:
         except json.JSONDecodeError:
             return "{}"
 
-        # 🔥 HARD FILTER (to jest klucz)
+        if not isinstance(parsed, dict) or set(parsed) - {"action", "target", "method"}:
+            return "{}"
+
         return json.dumps({
             "action": parsed.get("action"),
             "target": parsed.get("target"),

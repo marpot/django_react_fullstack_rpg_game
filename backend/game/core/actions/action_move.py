@@ -38,25 +38,32 @@ class MoveAction:
             )
 
         player.location = target or "unknown"
+        canonical_result = {"location": player.location}
 
         narration = self.narrate_fn(
             "move",
-            {"location": player.location},
+            canonical_result,
             world,
+            {
+                "actor": player.name,
+                "target": target,
+                "location": player.location,
+                "recent_actions": [
+                    entry.get("action") for entry in room_obj.player_histories.get(participant_id, [])[-3:]
+                    if isinstance(entry, dict)
+                ],
+            },
         )
 
         choices = self.choice_service.build_choices(
-            adventure_id=parsed_input.get("adventure"),
-            room_key=room_key,
-            event_type="move",
-            result={"location": player.location},
-            world=world,
+            enemies=room_obj.enemies,
+            npcs=room_obj.npcs,
         )
 
         return self.response_fn(
             "move",
             narration.get("text", f"Przemieszczasz się do: {player.location}"),
-            {"location": player.location},
+            canonical_result,
             world,
             choices,
         )

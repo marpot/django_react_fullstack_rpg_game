@@ -17,7 +17,7 @@ from chat.services.room_participants_service import RoomParticipantsService
 from world.models import Adventure, Enemy as EnemyORM
 
 
-pytestmark = pytest.mark.django_db
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("fake_llm_provider")]
 
 
 def test_attack_action():
@@ -175,3 +175,52 @@ def test_turn_progresses_and_tracks_player_history():
     assert result["action"] == "inspect"
     assert room.current_player_id == participant_two.id
     assert room.player_histories[participant_one.id][-1]["action"] == "inspect"
+
+
+@pytest.mark.parametrize("action", ["attack", "move"])
+def test_narration_provider_failure_preserves_action_and_turn(action, fake_llm_provider):
+    state = GameStateManager()
+    room = state.get_or_create_room("narration-failure")
+    room.players[1] = Player(
+        id=1, name="Hero", hp=100, max_hp=100, attack_bonus=20,
+        damage_die=8, damage_bonus=2, defense=10,
+    )
+    room.players[2] = Player(
+        id=2, name="Next", hp=100, max_hp=100, attack_bonus=1,
+        damage_die=6, damage_bonus=0, defense=10,
+    )
+    room.enemies["goblin"] = Enemy(
+        id="goblin", name="goblin", hp=30, defense=0,
+        attack_bonus=0, damage_die=6, damage_bonus=0,
+    )
+    room.turn_order = [1, 2]
+    room.current_player_id = 1
+    room.player_histories = {1: [], 2: []}
+    def failed_narration(action, result, world, details):
+        raise RuntimeError("provider unavailable")
+
+    processor = ActionProcessor(
+        state_manager=state,
+        combat_service=CombatService(DiceService(seed=1)),
+        narrate_fn=failed_narration,
+    )
+    result = processor.process({
+        "action": action,
+        "target": "goblin" if action == "attack" else "north",
+        "room": room.name,
+        "participant_id": 1,
+    })
+
+    assert result["action"] == result["event_type"] == action
+    if action == "attack":
+        assert str(result["result"]["attacker_damage"]) in result["text"]
+    else:
+        assert result["text"] == "Przemieszczasz się do: north."
+    assert "error" not in result["result"]
+    assert room.player_histories[1][-1]["action"] == action
+    assert result["turn_state"]["current_player_id"] == room.current_player_id == 2
+    if action == "attack":
+        assert room.enemies["goblin"].hp < 30
+        assert result["result"]["attacker_damage"] > 0
+    else:
+        assert room.players[1].location == result["result"]["location"] == "north"
