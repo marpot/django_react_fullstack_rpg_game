@@ -1,3 +1,4 @@
+from django.core.management.base import BaseCommand
 from world.models import Enemy, Adventure
 
 class Command(BaseCommand):
@@ -12,10 +13,7 @@ class Command(BaseCommand):
             adventure=adventure,   # 🔥 DODAJ TO
             defaults={
                 "hp": 20,
-                "attack": 10,
                 "defense": 2,
-                "min_damage": 1,
-                "max_damage": 6,
             }
         )
 
