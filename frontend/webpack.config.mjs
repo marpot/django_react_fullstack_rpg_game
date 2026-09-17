@@ -13,6 +13,7 @@ const __dirname = dirname(__filename);
 const isDev = process.env.NODE_ENV === 'development';
 const isDocker = process.env.DOCKER === 'true';
 const backendHost = isDocker ? 'backend' : 'localhost';
+const backendPort = isDocker ? 8000 : 8001;
 
 export default {
   mode: isDev ? 'development' : 'production',
@@ -108,13 +109,13 @@ export default {
     proxy: [
       {
         context: ['/api'],
-        target: `http://${backendHost}:8001`,
+        target: `http://${backendHost}:${backendPort}`,
         changeOrigin: true,
         secure: false,
       },
       {
         context: ['/ws/chat', '/ws/game'],
-        target: `ws://${backendHost}:8001`,
+        target: `ws://${backendHost}:${backendPort}`,
         ws: true,
         changeOrigin: true,
         secure: false,
