@@ -14,7 +14,7 @@ from accounts.models import PlayerCharacter
 from chat.models import Room
 from chat.services.room_participants_service import RoomParticipantsService
 
-from world.models import Adventure, Enemy as EnemyORM
+from world.models import Adventure, Choice, Location, Enemy as EnemyORM
 
 
 pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("fake_llm_provider")]
@@ -196,6 +196,14 @@ def test_narration_provider_failure_preserves_action_and_turn(action, fake_llm_p
     room.turn_order = [1, 2]
     room.current_player_id = 1
     room.player_histories = {1: [], 2: []}
+    if action == "move":
+        user = get_user_model().objects.create_user(username="failed-move-narration")
+        adventure = Adventure.objects.create(title="Routes", creator=user)
+        start = Location.objects.create(adventure=adventure, title="Start")
+        north = Location.objects.create(adventure=adventure, title="North")
+        Choice.objects.create(location=start, next_location=north, title="North")
+        room.adventure_id = adventure.id
+        room.players[1].location = str(start.id)
     def failed_narration(action, result, world, details):
         raise RuntimeError("provider unavailable")
 
@@ -206,7 +214,7 @@ def test_narration_provider_failure_preserves_action_and_turn(action, fake_llm_p
     )
     result = processor.process({
         "action": action,
-        "target": "goblin" if action == "attack" else "north",
+        "target": "goblin" if action == "attack" else str(north.id),
         "room": room.name,
         "participant_id": 1,
     })
@@ -215,7 +223,7 @@ def test_narration_provider_failure_preserves_action_and_turn(action, fake_llm_p
     if action == "attack":
         assert str(result["result"]["attacker_damage"]) in result["text"]
     else:
-        assert result["text"] == "Przemieszczasz się do: north."
+        assert result["text"] == f"Przemieszczasz się do: {north.id}."
     assert "error" not in result["result"]
     assert room.player_histories[1][-1]["action"] == action
     assert result["turn_state"]["current_player_id"] == room.current_player_id == 2
@@ -223,4 +231,4 @@ def test_narration_provider_failure_preserves_action_and_turn(action, fake_llm_p
         assert room.enemies["goblin"].hp < 30
         assert result["result"]["attacker_damage"] > 0
     else:
-        assert room.players[1].location == result["result"]["location"] == "north"
+        assert room.players[1].location == result["result"]["location"] == str(north.id)

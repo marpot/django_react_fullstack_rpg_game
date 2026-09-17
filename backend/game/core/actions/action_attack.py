@@ -1,5 +1,4 @@
 import logging
-from game.state.runtime.models import Enemy as RuntimeEnemy
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,6 @@ class AttackAction:
         self.response_fn = response_fn
 
     def handle(self, parsed_input, world=None):
-        from world.models import Enemy as EnemyORM
         room = parsed_input.get("room")
         participant_id = parsed_input.get("participant_id")
         enemy_name = parsed_input.get("target")
@@ -47,25 +45,14 @@ class AttackAction:
             )
 
         defender = self.resolver.resolve_enemy(room_key, enemy_name)
+        visible = self.state_manager.visible_enemies(room_obj, attacker)
+        enemy_in_room = next(
+            (enemy for enemy in visible.values()
+             if defender is not None and enemy.name == defender.name),
+            None,
+        )
 
-        if not defender:
-            orm_enemy = EnemyORM.objects.filter(
-                name=enemy_name,
-                adventure_id=parsed_input.get("adventure")
-            ).first()
-
-            if orm_enemy:
-                defender = RuntimeEnemy(
-                    id=orm_enemy.name,
-                    name=orm_enemy.name,
-                    hp=orm_enemy.hp,
-                    defense=orm_enemy.defense,
-                    attack_bonus=orm_enemy.attack_bonus,
-                    damage_die=orm_enemy.damage_die,
-                    damage_bonus=orm_enemy.damage_bonus,
-                )
-
-        if not defender:
+        if enemy_in_room is None:
             logger.warning(f"[ACTION PROCESS] enemy not found: {enemy_name} in room {room_key}")
             return self.response_fn(
                 "attack",
@@ -73,20 +60,18 @@ class AttackAction:
                 {"error": "enemy_not_found", "target": enemy_name},
             )
 
-        if enemy_name not in room_obj.enemies:
-            room_obj.enemies[enemy_name] = defender
-
+        defender = enemy_in_room
         result = self.combat_service.resolve(attacker, defender)
-
-        enemy_in_room = room_obj.enemies.get(enemy_name)
-
-        if enemy_in_room:
-            enemy_in_room.hp = max(0, enemy_in_room.hp - result.attacker_damage)
+        enemy_in_room.hp = max(0, enemy_in_room.hp - result.attacker_damage)
 
         attacker.hp = max(0, attacker.hp - result.defender_damage)
 
         canonical_result = {
-            "winner": result.winner,
+            "winner": (
+                "draw" if attacker.hp == 0 and enemy_in_room.hp == 0 else
+                "defender" if attacker.hp == 0 else
+                "attacker" if enemy_in_room.hp == 0 else None
+            ),
             "attacker_damage": result.attacker_damage,
             "defender_damage": result.defender_damage,
         }
@@ -101,8 +86,9 @@ class AttackAction:
         })
 
         choices = self.choice_service.build_choices(
-            enemies=room_obj.enemies,
-            npcs=room_obj.npcs,
+            enemies=self.state_manager.visible_enemies(room_obj, attacker),
+            npcs=self.state_manager.visible_npcs(room_obj, attacker),
+            exits=self.state_manager.get_exits(room_obj, attacker),
         )
 
         return self.response_fn(

@@ -8,6 +8,8 @@ from game.services.combat_service import CombatService
 from game.services.dice_service import DiceService
 from game.state.game_state_manager import GameStateManager
 from game.state.runtime.models import Enemy, Player
+from django.contrib.auth import get_user_model
+from world.models import Adventure, Choice, Location
 
 
 pytestmark = pytest.mark.usefixtures("fake_llm_provider")
@@ -44,17 +46,25 @@ def test_valid_attack_command():
     assert command == GameCommand(action="attack", target="goblin")
 
 
+@pytest.mark.django_db
 def test_valid_move_command_reaches_action_processor():
     processor, room = _processor()
+    user = get_user_model().objects.create_user(username="command-move")
+    adventure = Adventure.objects.create(title="Routes", creator=user)
+    start = Location.objects.create(adventure=adventure, title="Start")
+    north = Location.objects.create(adventure=adventure, title="North")
+    Choice.objects.create(location=start, next_location=north, title="North")
+    room.adventure_id = adventure.id
+    room.players[1].location = str(start.id)
 
     result = processor.process(
-        GameCommand(action="move", target="north"),
+        GameCommand(action="move", target=str(north.id)),
         room=room.name,
         participant_id=1,
     )
 
     assert result["action"] == "move"
-    assert room.players[1].location == "north"
+    assert room.players[1].location == str(north.id)
     assert room.player_histories[1][-1]["action"] == "move"
 
 

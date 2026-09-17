@@ -9,3 +9,4 @@ class NPC:
     state: str = "idle"
     quest_state: Optional[str] = None
     personality: str = "neutral"
+    location: str = "start"

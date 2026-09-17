@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from world.models import Adventure, Location
+from world.models import Adventure, Choice, Enemy, Location
 
 
 class Command(BaseCommand):
@@ -9,38 +9,50 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write("🌍 Seeding world...")
 
-        if Adventure.objects.exists():
-            self.stdout.write("⚠️ World already seeded. Skipping.")
-            return
-
         User = get_user_model()
         user, _ = User.objects.get_or_create(username="seed_user")
 
-        adventure = Adventure.objects.create(
+        adventure, _ = Adventure.objects.get_or_create(
             title="Przygoda startowa",
-            description="Seeded world adventure",
-            creator=user
+            creator=user,
+            defaults={"description": "Seeded world adventure"},
         )
 
-        village = Location.objects.create(
+        village, _ = Location.objects.get_or_create(
             title="Wioska początkowa",
-            description="Safe starting area",
             adventure=adventure,
-            order=1
+            defaults={"description": "Safe starting area", "order": 1},
         )
 
-        forest = Location.objects.create(
+        forest, _ = Location.objects.get_or_create(
             title="Mroczny las",
-            description="Niebezpieczne miejsce",
             adventure=adventure,
-            order=2
+            defaults={"description": "Niebezpieczne miejsce", "order": 2},
         )
 
-        dungeon = Location.objects.create(
+        dungeon, _ = Location.objects.get_or_create(
             title="Starożytne Ruiny",
-            description="End game test area",
             adventure=adventure,
-            order=3
+            defaults={"description": "End game test area", "order": 3},
+        )
+
+        for source, destination in (
+            (village, forest), (forest, village),
+            (forest, dungeon), (dungeon, forest),
+        ):
+            Choice.objects.get_or_create(
+                location=source,
+                next_location=destination,
+                defaults={
+                    "title": f"Idź do {destination.title}",
+                    "description": f"Przejdź do {destination.title}.",
+                },
+            )
+
+        Enemy.objects.get_or_create(
+            adventure=adventure,
+            name="goblin",
+            defaults={"hp": 20, "defense": 2},
         )
 
         self.stdout.write(

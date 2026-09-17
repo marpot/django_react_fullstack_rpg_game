@@ -20,8 +20,23 @@ class InspectAction:
 
         player = self.runtime_player_service.get_or_create(room_obj, participant_id)
 
-        enemies = list(room_obj.enemies.keys())
-        canonical_result = {"room": room_key, "enemies": enemies}
+        if player is None:
+            return self.response_fn("inspect", "Brak postaci", {"error": "no_player"})
+
+        location = self.state_manager.get_location(room_obj, player)
+        enemies = self.state_manager.visible_enemies(room_obj, player)
+        npcs = self.state_manager.visible_npcs(room_obj, player)
+        exits = self.state_manager.get_exits(room_obj, player)
+        canonical_result = {
+            "room": room_key,
+            "location": player.location,
+            "location_name": location.title if location else player.location,
+            "description": location.description if location else "",
+            "enemies": sorted({enemy.name for enemy in enemies.values()}),
+            "npcs": [{"id": npc.id, "name": npc.name} for npc in npcs.values()],
+            "exits": [{"id": choice.next_location_id,
+                       "title": choice.next_location.title} for choice in exits],
+        }
 
         narration = self.narrate_fn(
             "inspect",
@@ -39,8 +54,9 @@ class InspectAction:
         )
 
         choices = self.choice_service.build_choices(
-            enemies=room_obj.enemies,
-            npcs=room_obj.npcs,
+            enemies=enemies,
+            npcs=npcs,
+            exits=exits,
         )
 
         return self.response_fn(

@@ -11,6 +11,7 @@ class Enemy:
     attack_bonus: int
     damage_die: int
     damage_bonus: int
+    location: str = "start"
 
 @dataclass
 class NPC:
@@ -19,6 +20,7 @@ class NPC:
     dialog: List[str] = field(default_factory=list)
     state: str = "idle"
     quest_state: str | None = None
+    location: str = "start"
 
 @dataclass
 class RoomState:
@@ -58,6 +60,38 @@ class GameStateManager:
             self.rooms[key] = self._create_default_room(key)
 
         return self.rooms[key]
+
+    def get_location(self, room: RoomState, player: Player):
+        if room.adventure_id is None:
+            return None
+        from world.models import Location
+
+        return Location.objects.filter(
+            adventure_id=room.adventure_id, pk=player.location
+        ).first() if str(player.location).isdigit() else None
+
+    def get_exits(self, room: RoomState, player: Player):
+        location = self.get_location(room, player)
+        if location is None:
+            return []
+        return list(
+            location.choices.filter(next_location__adventure_id=room.adventure_id)
+            .select_related("next_location")
+            .order_by("id")
+        )
+
+    def visible_enemies(self, room: RoomState, player: Player):
+        return {
+            key: enemy for key, enemy in room.enemies.items()
+            if getattr(enemy, "location", "start") == player.location
+            and enemy.hp > 0
+        }
+
+    def visible_npcs(self, room: RoomState, player: Player):
+        return {
+            key: npc for key, npc in room.npcs.items()
+            if getattr(npc, "location", "start") == player.location
+        }
 
     def build_turn_state(
         self,
