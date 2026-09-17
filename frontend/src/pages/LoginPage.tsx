@@ -8,17 +8,27 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="login-page">
-      <div className="login-panel">
-        <h1 className="login-title">Login</h1>
-        <p className="login-subtitle">Zaloguj się do gry</p>
+    <div className="login-page login-page--entry">
+      <main className="login-entry">
+        <header className="login-brand">
+          <p className="login-brand__name">ELDORIA CHRONICLES</p>
+          <p className="login-brand__tagline">Twoja historia zaczyna się tutaj</p>
+        </header>
 
-        <AuthForm mode="login" onSuccess={() => navigate('/dashboard')} />
+        <section className="login-panel login-panel--entry" aria-labelledby="login-heading">
+          <h1 className="login-title" id="login-heading">Witaj, Wędrowcze</h1>
+          <p className="login-subtitle">
+            Zaloguj się, aby kontynuować swoją podróż w świecie pełnym przygód.
+          </p>
 
-        <div className="login-footer">
-          <Link to="/register">Nie masz konta? Zarejestruj się</Link>
-        </div>
-      </div>
+          <AuthForm mode="login" onSuccess={() => navigate('/dashboard')} />
+
+          <div className="login-footer">
+            <span>Nie masz jeszcze konta?</span>
+            <Link to="/register">Stwórz swoją postać</Link>
+          </div>
+        </section>
+      </main>
     </div>
   );
 };
