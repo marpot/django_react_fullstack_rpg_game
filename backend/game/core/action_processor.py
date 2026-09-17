@@ -109,6 +109,55 @@ class ActionProcessor:
             "history": room_obj.player_histories.get(participant_id, []),
         }
 
+    def _advance_reference_adventure(self, room_obj, participant_id, action, result):
+        """Apply the small deterministic Cienie Eldorii progression slice."""
+        if not room_obj.adventure_id:
+            return
+        try:
+            from world.models import Adventure
+            if not Adventure.objects.filter(
+                pk=room_obj.adventure_id, title="Cienie Eldorii"
+            ).exists():
+                return
+        except Exception:
+            return
+
+        if room_obj.quest.completed or room_obj.adventure_completed:
+            return
+
+        player = room_obj.players.get(participant_id)
+        if player is None:
+            return
+        location = self.state_manager.get_location(room_obj, player)
+        title = location.title.casefold() if location else ""
+        quest = room_obj.quest
+
+        npc_id = result.get("npc_id") or result.get("_npc_id")
+        if action == "talk" and npc_id == "guard" and "village" in title:
+            quest.status = "active"
+            quest.stage = "forest"
+            quest.objective = "Pokonaj przeciwnika w lesie"
+            quest.flags["guard_spoken"] = True
+        elif action == "attack" and result.get("winner") == "attacker":
+            if any(enemy.hp > 0 for enemy in self.state_manager.visible_enemies(room_obj, player)):
+                return
+            quest.flags["enemy_defeated"] = True
+            if quest.status == "active":
+                quest.stage = "merchant"
+                quest.objective = "Odnajdź kupca w lesie"
+        elif action == "talk" and npc_id == "merchant":
+            if quest.flags.get("enemy_defeated") and "forest" in title:
+                quest.flags["merchant_found"] = True
+                quest.stage = "return"
+                quest.objective = "Wróć do wioski"
+        elif action == "move" and "village" in title:
+            if quest.flags.get("merchant_found"):
+                quest.status = "completed"
+                quest.stage = "completed"
+                quest.objective = None
+                quest.completed = True
+                room_obj.adventure_completed = True
+
     def process(
         self, parsed_input, *, room=_UNSET, participant_id=_UNSET,
         adventure=_UNSET, world=_UNSET, player_message=None,
@@ -206,12 +255,12 @@ class ActionProcessor:
 
         elif action == "talk":
             player = room_obj.players[participant_id]
-            result = NPCService(self.state_manager).talk(
+            talk_result = NPCService(self.state_manager).talk(
                 parsed_input["room"],
                 parsed_input["target"],
                 location=player.location,
             )
-            if "error" not in result and self.dialogue_fn is not None:
+            if "error" not in talk_result and self.dialogue_fn is not None:
                 details = {
                     "actor": player.name,
                     "location": player.location,
@@ -223,20 +272,33 @@ class ActionProcessor:
                     ],
                 }
                 try:
-                    dialogue = self.dialogue_fn(result.copy(), world, details)
+                    dialogue = self.dialogue_fn(talk_result.copy(), world, details)
                     if isinstance(dialogue, str) and dialogue.strip():
-                        result["text"] = dialogue.strip()
+                        talk_result["text"] = dialogue.strip()
                 except Exception:
                     logger.exception("NPC dialogue failed")
-            result.pop("npc_id", None)
-            result.pop("personality", None)
-            return self._response("talk", result.get("text", ""), result)
+            resolved_npc_id = talk_result.get("npc_id")
+            talk_result.pop("npc_id", None)
+            talk_result.pop("personality", None)
+            result = self._response("talk", talk_result.get("text", ""), talk_result)
+            # Keep the public response shape unchanged while allowing the
+            # deterministic progression hook to use the resolved NPC id.
+            if resolved_npc_id is not None:
+                result["_progression_npc_id"] = resolved_npc_id
 
         else:
             return self._response(action, "Unhandled action", {"error": "unhandled_action"})
 
         if result.get("result", {}).get("error"):
             return result
+
+        self._advance_reference_adventure(
+            room_obj,
+            participant_id,
+            action,
+            {**result.get("result", {}), "_npc_id": result.get("_progression_npc_id")},
+        )
+        result.pop("_progression_npc_id", None)
 
         # wspólna część (turn + history)
         self._record_history(room_obj, participant_id, action, result.get("result", {}))

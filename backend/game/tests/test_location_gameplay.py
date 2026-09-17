@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
@@ -196,7 +197,7 @@ def test_canonical_start_inspect_talk_move_inspect_attack_loop(location_game):
     assert "ranger" in {npc["id"] for npc in second["result"]["npcs"]}
     assert act("attack", "wolf")["result"]["attacker_damage"] > 0
     assert [entry["action"] for entry in room.player_histories[participant_id]] == [
-        "inspect", "move", "inspect", "attack"
+        "inspect", "talk", "move", "inspect", "attack"
     ]
     assert room.current_player_id == participant_id
 
@@ -284,3 +285,149 @@ def test_seeded_entities_fall_back_to_start_for_small_adventures(location_count)
     assert runtime.players[participant.id].location == expected
     assert runtime.enemies["goblin"].location == expected
     assert {npc.location for npc in runtime.npcs.values()} == {expected}
+
+
+@pytest.mark.django_db
+def test_cienie_eldorii_reference_adventure_completes_deterministically():
+    user = get_user_model().objects.create_user(username="shadows-hero")
+    character = PlayerCharacter.objects.create(user=user, name="Shadow hero")
+    adventure = Adventure.objects.create(title="Cienie Eldorii", creator=user)
+    village = Location.objects.create(
+        adventure=adventure, title="Village", description="Village", order=1
+    )
+    forest = Location.objects.create(
+        adventure=adventure, title="Forest", description="Forest", order=2
+    )
+    Choice.objects.create(location=village, next_location=forest, title="Forest")
+    Choice.objects.create(location=forest, next_location=village, title="Village")
+    Enemy.objects.create(adventure=adventure, name="goblin", hp=20, defense=0)
+    room_record = Room.objects.create(name="shadows-room", owner=user, adventure=adventure)
+    participant = RoomParticipantsService.add_human(room_record, user, character)
+    state = GameStateManager()
+    llm = Mock(generate_world=Mock(return_value={}), generate_intro=Mock(return_value={"text": ""}))
+    GameStartService(WorldSeeder(state), llm, Mock(), state).start_game(
+        adventure.id, room_record.id, adventure=adventure
+    )
+    room = state.get_room(room_record.id)
+    processor = ActionProcessor(
+        state,
+        combat_service=SimpleNamespace(
+            resolve=lambda attacker, defender: SimpleNamespace(
+                attacker_damage=20, defender_damage=0
+            )
+        ),
+    )
+
+    def act(action, target=None):
+        return processor.process(
+            GameCommand(action=action, target=target),
+            room=room_record.id, participant_id=participant.id,
+        )
+
+    assert room.quest.status == "not_started"
+    failed = act("talk", "missing")
+    assert failed["result"]["error"] == "npc_not_found"
+    assert room.quest.status == "not_started"
+    assert room.player_histories[participant.id] == []
+    assert act("talk", "guard")["result"]["npc"] == "Guard"
+    assert room.quest.status == "active"
+    assert room.quest.flags["guard_spoken"] is True
+    act("move", str(forest.id))
+    act("attack", "goblin")
+    assert room.quest.flags["enemy_defeated"] is True
+    act("talk", "merchant")
+    assert room.quest.flags["merchant_found"] is True
+    act("move", str(village.id))
+
+    snapshot = state.build_game_state(room)
+    assert snapshot["quest"]["status"] == "completed"
+    assert snapshot["quest"]["completed"] is True
+    assert snapshot["adventure_completed"] is True
+    assert snapshot["npcs"]["guard"]["location"] == str(village.id)
+    assert snapshot["enemies"]["goblin"]["hp"] == 0
+
+
+@pytest.mark.django_db
+def test_cienie_eldorii_cannot_skip_required_progression_order():
+    user = get_user_model().objects.create_user(username="shadows-order-hero")
+    character = PlayerCharacter.objects.create(user=user, name="Order hero")
+    call_command("seed_world", verbosity=0)
+    adventure = Adventure.objects.get(title="Cienie Eldorii")
+    village = adventure.locations.get(title="Village")
+    forest = adventure.locations.get(title="Forest")
+    room_record = Room.objects.create(name="shadows-order-room", owner=user, adventure=adventure)
+    participant = RoomParticipantsService.add_human(room_record, user, character)
+    state = GameStateManager()
+    llm = Mock(generate_world=Mock(return_value={}), generate_intro=Mock(return_value={"text": ""}))
+    GameStartService(WorldSeeder(state), llm, Mock(), state).start_game(
+        adventure.id, room_record.id, adventure=adventure
+    )
+    room = state.get_room(room_record.id)
+    processor = ActionProcessor(state)
+
+    def act(action, target=None):
+        return processor.process(
+            GameCommand(action=action, target=target),
+            room=room_record.id, participant_id=participant.id,
+        )
+
+    act("talk", "guard")
+    act("move", str(forest.id))
+    act("move", str(village.id))
+    assert room.quest.completed is False
+    assert room.adventure_completed is False
+
+    act("move", str(forest.id))
+    act("talk", "merchant")
+    assert room.quest.flags.get("merchant_found") is not True
+    act("move", str(village.id))
+    assert room.quest.completed is False
+    assert room.adventure_completed is False
+
+
+@pytest.mark.django_db
+def test_completed_cienie_eldorii_quest_is_terminal():
+    user = get_user_model().objects.create_user(username="shadows-terminal-hero")
+    character = PlayerCharacter.objects.create(user=user, name="Terminal hero")
+    call_command("seed_world", verbosity=0)
+    adventure = Adventure.objects.get(title="Cienie Eldorii")
+    village = adventure.locations.get(title="Village")
+    forest = adventure.locations.get(title="Forest")
+    room_record = Room.objects.create(name="shadows-terminal-room", owner=user, adventure=adventure)
+    participant = RoomParticipantsService.add_human(room_record, user, character)
+    state = GameStateManager()
+    llm = Mock(generate_world=Mock(return_value={}), generate_intro=Mock(return_value={"text": ""}))
+    GameStartService(WorldSeeder(state), llm, Mock(), state).start_game(
+        adventure.id, room_record.id, adventure=adventure
+    )
+    room = state.get_room(room_record.id)
+    processor = ActionProcessor(
+        state,
+        combat_service=SimpleNamespace(
+            resolve=lambda attacker, defender: SimpleNamespace(
+                attacker_damage=20, defender_damage=0
+            )
+        ),
+    )
+
+    def act(action, target=None):
+        return processor.process(
+            GameCommand(action=action, target=target),
+            room=room_record.id, participant_id=participant.id,
+        )
+
+    act("talk", "guard")
+    act("move", str(forest.id))
+    act("attack", "goblin")
+    act("talk", "merchant")
+    act("move", str(village.id))
+    assert room.quest.status == "completed"
+    assert room.quest.completed is True
+    assert room.adventure_completed is True
+    completed_stage = room.quest.stage
+
+    act("talk", "guard")
+    assert room.quest.status == "completed"
+    assert room.quest.completed is True
+    assert room.quest.stage == completed_stage
+    assert room.adventure_completed is True

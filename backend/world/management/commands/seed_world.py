@@ -55,6 +55,30 @@ class Command(BaseCommand):
             defaults={"hp": 20, "defense": 2},
         )
 
+        shadows, _ = Adventure.objects.get_or_create(
+            title="Cienie Eldorii", creator=user,
+            defaults={"description": "Referencyjna wyprawa przez wioskę i las."},
+        )
+        shadows_village, _ = Location.objects.get_or_create(
+            adventure=shadows, title="Village",
+            defaults={"description": "Warowna wioska na skraju puszczy.", "order": 1},
+        )
+        shadows_forest, _ = Location.objects.get_or_create(
+            adventure=shadows, title="Forest",
+            defaults={"description": "Mroczny las pełen cieni.", "order": 2},
+        )
+        for source, destination in (
+            (shadows_village, shadows_forest), (shadows_forest, shadows_village),
+        ):
+            Choice.objects.get_or_create(
+                location=source, next_location=destination,
+                defaults={"title": f"Idź do {destination.title}", "description": ""},
+            )
+        Enemy.objects.get_or_create(
+            adventure=shadows, name="goblin",
+            defaults={"hp": 20, "defense": 2},
+        )
+
         self.stdout.write(
             self.style.SUCCESS(
                 f"""

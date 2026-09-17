@@ -84,7 +84,9 @@ def test_processor_does_not_construct_ai_services():
 
     assert result["action"] == "inspect"
     assert talk["action"] == "talk"
-    assert room.current_player_id == 1
+    assert room.current_player_id == 2
+    assert talk["turn_state"]["current_player_id"] == 2
+    assert room.player_histories[1][-1]["action"] == "talk"
 
 
 def test_narration_receives_resolved_result_and_cannot_change_mechanics():
@@ -160,7 +162,7 @@ def test_explicit_missing_identity_does_not_fall_back_to_command():
     assert room.player_histories == {1: [], 2: []}
 
 
-def test_talk_uses_existing_npc_dialogue_without_changing_game_state():
+def test_talk_uses_existing_npc_dialogue_and_advances_common_lifecycle():
     processor, room = _processor()
     room.npcs["guide"] = NPC(id="guide", name="Guide", dialog=["Witaj, wędrowcze."])
     hp_before = {player_id: player.hp for player_id, player in room.players.items()}
@@ -177,9 +179,10 @@ def test_talk_uses_existing_npc_dialogue_without_changing_game_state():
     assert result["result"]["npc"] == "Guide"
     assert {player_id: player.hp for player_id, player in room.players.items()} == hp_before
     assert room.enemies["goblin"].hp == enemy_hp_before
-    assert room.current_player_id == 1
-    assert room.current_turn_index == 0
-    assert room.player_histories == {1: [], 2: []}
+    assert room.current_player_id == 2
+    assert room.current_turn_index == 1
+    assert room.player_histories[1][-1]["action"] == "talk"
+    assert result["turn_state"]["current_player_id"] == 2
 
 
 def test_talk_resolves_npc_before_dialogue_and_ignores_dialogue_state_claims():
@@ -214,8 +217,10 @@ def test_talk_resolves_npc_before_dialogue_and_ignores_dialogue_state_claims():
     assert result["result"]["npc"] == "Guide"
     assert result["text"] == "Daję ci miecz i odbieram 99 HP."
     assert room.players[1].hp == before_hp
-    assert room.player_histories[1] == before_history
-    assert room.current_player_id == 1
+    assert room.player_histories[1][:-1] == before_history
+    assert room.player_histories[1][-1]["action"] == "talk"
+    assert room.current_player_id == 2
+    assert result["turn_state"]["current_player_id"] == 2
 
 
 def test_missing_npc_skips_dialogue():
@@ -241,8 +246,9 @@ def test_dialogue_callback_failure_keeps_deterministic_talk_result():
 
     assert result["action"] == "talk"
     assert result["text"] == "Witaj."
-    assert room.current_player_id == 1
-    assert room.player_histories == {1: [], 2: []}
+    assert room.current_player_id == 2
+    assert room.player_histories[1][-1]["action"] == "talk"
+    assert result["turn_state"]["current_player_id"] == 2
 
 
 @pytest.mark.parametrize("target", ["unknown", None])

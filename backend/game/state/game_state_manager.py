@@ -1,6 +1,6 @@
 from dataclasses import asdict, dataclass, field
 from threading import RLock
-from typing import List, Optional
+from typing import List, Optional, Literal
 from game.state.runtime.models import Player
 
 @dataclass
@@ -22,6 +22,17 @@ class NPC:
     quest_state: str | None = None
     location: str = "start"
 
+
+@dataclass
+class QuestState:
+    """Minimalny, deterministyczny stan postępu questa w runtime pokoju."""
+
+    status: Literal["not_started", "active", "completed"] = "not_started"
+    stage: str | None = None
+    objective: str | None = None
+    flags: dict[str, bool] = field(default_factory=dict)
+    completed: bool = False
+
 @dataclass
 class RoomState:
     name: str
@@ -34,6 +45,8 @@ class RoomState:
     player_histories: dict[int, list[dict]] = field(default_factory=dict)
     world: dict | None = None
     adventure_id: int | None = None
+    quest: QuestState = field(default_factory=QuestState)
+    adventure_completed: bool = False
     started: bool = False
 
 
@@ -124,6 +137,12 @@ class GameStateManager:
                 enemy_id: asdict(enemy)
                 for enemy_id, enemy in room.enemies.items()
             },
+            "npcs": {
+                npc_id: asdict(npc)
+                for npc_id, npc in room.npcs.items()
+            },
+            "quest": asdict(room.quest),
+            "adventure_completed": room.adventure_completed,
             "player_histories": {
                 str(participant_id): history
                 for participant_id, history in room.player_histories.items()
