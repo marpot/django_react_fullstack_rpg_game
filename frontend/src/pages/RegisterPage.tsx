@@ -10,7 +10,7 @@ const RegisterPage: React.FC = () => {
     <div className="login-page login-page--entry">
       <main className="login-entry">
         <header className="login-brand">
-          <p className="login-brand__name">ELDORIA</p>
+          <p className="login-brand__name">ELDORIA CHRONICLES</p>
           <p className="login-brand__tagline">Twoja historia zaczyna się tutaj</p>
         </header>
 
