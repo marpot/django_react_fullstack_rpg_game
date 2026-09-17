@@ -196,7 +196,7 @@ def test_canonical_start_inspect_talk_move_inspect_attack_loop(location_game):
     assert "ranger" in {npc["id"] for npc in second["result"]["npcs"]}
     assert act("attack", "wolf")["result"]["attacker_damage"] > 0
     assert [entry["action"] for entry in room.player_histories[participant_id]] == [
-        "inspect", "move", "inspect", "attack"
+        "inspect", "talk", "move", "inspect", "attack"
     ]
     assert room.current_player_id == participant_id
 

@@ -206,12 +206,12 @@ class ActionProcessor:
 
         elif action == "talk":
             player = room_obj.players[participant_id]
-            result = NPCService(self.state_manager).talk(
+            talk_result = NPCService(self.state_manager).talk(
                 parsed_input["room"],
                 parsed_input["target"],
                 location=player.location,
             )
-            if "error" not in result and self.dialogue_fn is not None:
+            if "error" not in talk_result and self.dialogue_fn is not None:
                 details = {
                     "actor": player.name,
                     "location": player.location,
@@ -223,14 +223,14 @@ class ActionProcessor:
                     ],
                 }
                 try:
-                    dialogue = self.dialogue_fn(result.copy(), world, details)
+                    dialogue = self.dialogue_fn(talk_result.copy(), world, details)
                     if isinstance(dialogue, str) and dialogue.strip():
-                        result["text"] = dialogue.strip()
+                        talk_result["text"] = dialogue.strip()
                 except Exception:
                     logger.exception("NPC dialogue failed")
-            result.pop("npc_id", None)
-            result.pop("personality", None)
-            return self._response("talk", result.get("text", ""), result)
+            talk_result.pop("npc_id", None)
+            talk_result.pop("personality", None)
+            result = self._response("talk", talk_result.get("text", ""), talk_result)
 
         else:
             return self._response(action, "Unhandled action", {"error": "unhandled_action"})
