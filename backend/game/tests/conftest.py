@@ -18,7 +18,7 @@ class FakeLLMProvider:
 @pytest.fixture
 def fake_llm_provider(monkeypatch):
     provider = FakeLLMProvider()
-    monkeypatch.setattr(llm_client, "GroqProvider", lambda: provider)
+    monkeypatch.setattr(llm_client, "GroqProvider", lambda config=None: provider)
     return provider
 
 @pytest.fixture

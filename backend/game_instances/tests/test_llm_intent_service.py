@@ -33,7 +33,7 @@ class FakeProvider:
 def isolate_default_provider(monkeypatch):
     monkeypatch.setattr(
         "game_instances.services.llm.core.llm_client.GroqProvider",
-        lambda: FakeProvider(response="Narracja testowa."),
+        lambda config=None: FakeProvider(response="Narracja testowa."),
     )
 
 

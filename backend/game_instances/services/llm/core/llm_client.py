@@ -2,7 +2,10 @@ import json
 import re
 
 from game.core.game_command import ALLOWED_ACTIONS
-from game_instances.services.llm.core.provider import GroqProvider, LLMProvider
+from game_instances.services.llm.core.config import LLMConfig
+from game_instances.services.llm.core.provider import (
+    GroqProvider, LLMProvider, OllamaProvider, OpenRouterProvider,
+)
 
 
 INTENT_PROMPT = """You are STRICT JSON intent parser.
@@ -25,9 +28,19 @@ RULES:
 """.replace("__ACTIONS__", "|".join(sorted(ALLOWED_ACTIONS)))
 
 
+def create_provider():
+    config = LLMConfig.from_env()
+    providers = {
+        "groq": GroqProvider,
+        "openrouter": OpenRouterProvider,
+        "ollama": OllamaProvider,
+    }
+    return providers[config.provider](config=config)
+
+
 class LLMClient:
     def __init__(self, provider: LLMProvider | None = None):
-        self.provider = provider if provider is not None else GroqProvider()
+        self.provider = provider if provider is not None else create_provider()
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         return self.provider.complete(system_prompt, user_prompt)
