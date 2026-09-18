@@ -281,11 +281,20 @@ class GameConsumer(BaseConsumer):
             cleaned_text = safe_text(result.get("text", ""))
 
             turn_state = result.get("turn_state", {}) or {}
+
+            room_state = self.state_manager.get_room(self.room_name)
+            game_state = (
+                self.state_manager.build_game_state(room_state)
+                if room_state is not None
+                else {}
+            )
+
             payload = {
                 "data": result,
                 "user": self.scope["user"].username,
                 "text": cleaned_text,
                 "turn_state": turn_state,
+                "game_state": game_state,
                 "choices": result.get("choices", []),
             }
 
