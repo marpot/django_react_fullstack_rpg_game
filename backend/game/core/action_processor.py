@@ -7,6 +7,7 @@ from game.core.narration_fallback import narration_fallback
 from game.domain.adventure_definition import build_definition_for_adventure
 from game.services.combat_service import CombatService
 from game.services.dice_service import DiceService
+from game.services.game_turn_service import GameTurnService
 from game.state.resolver.entity_resolver import EntityResolver
 from game.state.runtime.runtime_player_service import RuntimePlayerService
 from game.npc.npc_service import NPCService
@@ -114,13 +115,7 @@ class ActionProcessor:
         return fallback
 
     def _advance_turn(self, room_obj):
-        current_index = room_obj.turn_order.index(room_obj.current_player_id)
-        next_index = (current_index + 1) % len(room_obj.turn_order)
-
-        room_obj.current_player_id = room_obj.turn_order[next_index]
-        room_obj.current_turn_index = next_index
-
-        return room_obj.current_player_id
+        return GameTurnService(self.state_manager).advance_turn(room_obj)
 
     def _record_history(
         self,

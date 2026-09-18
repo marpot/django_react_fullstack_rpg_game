@@ -12,6 +12,9 @@ from accounts.models import PlayerCharacter
 from chat.models import Room, RoomParticipant
 from game.middleware.state_middleware import STATE_MANAGER
 from game.npc.npc_models import NPC
+from game.services.game_turn_service import GameTurnService
+from game.state.game_state_manager import GameStateManager
+from game.state.runtime.models import Player
 from game_instances.services.llm.orchestrator.ai_game_master import AIGameMaster
 from game_instances.services.llm.orchestrator.llm_service import LLMService
 from game_instances.services.llm.core.llm_client import LLMClient
@@ -363,3 +366,74 @@ async def test_in_game_db_without_runtime_reports_unavailable(two_joined_players
     finally:
         await socket_b.disconnect()
         STATE_MANAGER.rooms.clear()
+
+
+def _turn_room(turn_order=(1, 2), connected=(1, 2)):
+    state = GameStateManager()
+    room = state.get_or_create_room("presence-room")
+    room.turn_order = list(turn_order)
+    room.current_player_id = room.turn_order[0]
+    room.current_turn_index = 0
+    room.connected_participants = set(connected)
+    room.players = {
+        participant_id: Player(
+            id=participant_id,
+            name=f"Player {participant_id}",
+            hp=100,
+            max_hp=100,
+            attack_bonus=1,
+            damage_die=6,
+            damage_bonus=0,
+            defense=10,
+        )
+        for participant_id in turn_order
+    }
+    return state, room
+
+
+def test_active_players_keep_normal_turn_order():
+    state, room = _turn_room()
+    service = GameTurnService(state)
+
+    assert service.advance_turn(room) == 2
+    assert service.advance_turn(room) == 1
+
+
+def test_disconnect_current_player_passes_turn_to_active_player():
+    state, room = _turn_room()
+
+    assert GameTurnService(state).mark_disconnected(room, 1) == 2
+    assert room.current_player_id == 2
+    assert room.connected_participants == {2}
+
+
+def test_disconnect_non_current_player_keeps_current_turn():
+    state, room = _turn_room()
+
+    assert GameTurnService(state).mark_disconnected(room, 2) == 1
+    assert room.current_player_id == 1
+
+
+def test_advance_turn_skips_disconnected_human_participant():
+    state, room = _turn_room(turn_order=(1, 2, 3), connected=(1, 3))
+
+    assert GameTurnService(state).advance_turn(room) == 3
+
+
+def test_reconnect_restores_presence_without_duplicate_turn_entry():
+    state, room = _turn_room()
+    service = GameTurnService(state)
+
+    service.mark_disconnected(room, 2)
+    state.set_participant_presence(room.name, 2, True)
+    service.register_player(room, 2)
+
+    assert room.turn_order == [1, 2]
+    assert room.connected_participants == {1, 2}
+    assert service.is_participant_active(room, 2)
+
+
+def test_active_player_is_not_blocked_by_offline_participant():
+    state, room = _turn_room(turn_order=(1, 2), connected=(1,))
+
+    assert GameTurnService(state).advance_turn(room) == 1

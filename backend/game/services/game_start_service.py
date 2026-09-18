@@ -105,6 +105,9 @@ class GameStartService:
             )
 
             room_state.players = {}
+            room_state.ai_participants = {
+                participant.id for participant in participants if participant.is_ai
+            }
 
             runtime_player_service = RuntimePlayerService(self.state_manager)
 
