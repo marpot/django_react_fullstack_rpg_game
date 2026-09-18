@@ -154,10 +154,23 @@ def build_cienie_eldorii_definition(adventure) -> AdventureDefinition:
     village_id = location_by_title.get("village")
     forest_id = location_by_title.get("forest")
 
-    npcs = tuple(
-        replace(npc, location_id={"guard": village_id, "merchant": forest_id}.get(npc.id))
-        for npc in definition.npcs
+    npcs = (
+        NPCDefinition(
+            id="guard",
+            name="Guard",
+            dialog=("Strażnik wskazuje ścieżkę do mrocznego lasu.",),
+            personality="vigilant",
+            location_id=village_id,
+        ),
+        NPCDefinition(
+            id="merchant",
+            name="Merchant",
+            dialog=("Kupiec czekał na kogoś, kto pokonał bestię.",),
+            personality="relieved",
+            location_id=forest_id,
+        ),
     )
+
     enemies = tuple(replace(enemy, location_id=forest_id) for enemy in definition.enemies)
 
     progression = ProgressionDefinition(
