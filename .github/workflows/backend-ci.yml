@@ -66,10 +66,13 @@ jobs:
       - name: Django system check
         run: python manage.py check
 
-      - name: Verify Django commands
+      - name: Diagnose Django commands
         run: |
-          python manage.py help seed_world
           python manage.py shell -c "from django.conf import settings; print(settings.INSTALLED_APPS)"
+          python manage.py shell -c "from django.apps import apps; c=apps.get_app_config('world'); print(c.name, c.path)"
+          python manage.py shell -c "from django.core.management import get_commands; print('seed_world:', get_commands().get('seed_world')); print('seed_enemies:', get_commands().get('seed_enemies'))"
+          find world/management -maxdepth 3 -type f -print
+          python manage.py help
 
       - name: Run backend tests
         run: pytest -q
