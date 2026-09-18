@@ -7,6 +7,7 @@ from .models import Adventure, Location, Choice
 from .serializers import AdventureSerializer, LocationSerializer, ChoiceSerializer
 
 from world.factories.adventure_factory import AdventureFactory
+from game_instances.services.llm.adventure_generator import GeneratedAdventureGenerator
 
 
 # PRZYGODY (Adventure)
@@ -43,9 +44,12 @@ class AdventureDetailView(generics.RetrieveUpdateDestroyAPIView):
 @api_view(["POST"])
 @permission_classes([permissions.IsAuthenticated])
 def generate_adventure(request):
-    adventure = AdventureFactory.generate(
-        creator=request.user
-    )
+    try:
+        prompt = request.data.get("prompt", "")
+        spec = GeneratedAdventureGenerator().generate(prompt)
+        adventure = AdventureFactory.create_from_spec(request.user, spec)
+    except Exception:
+        adventure = AdventureFactory.generate(creator=request.user)
 
     serializer = AdventureSerializer(adventure)
 
