@@ -9,6 +9,7 @@ from chat.models import Room, RoomParticipant
 from game_instances.services.llm.orchestrator.ai_game_master import AIGameMaster
 from game.core.action_processor import ActionProcessor
 from game.services.game_turn_service import GameTurnService
+from game.services.bot_player_service import BotPlayerService
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,7 @@ class GameConsumer(BaseConsumer):
             self.state_manager, narrate_fn=self.ai_game_master.narrate_event,
             dialogue_fn=self.ai_game_master.dialogue_with_npc,
         )
+        self.bot_player_service = BotPlayerService(self.state_manager)
 
         self.adventure_id = None
         self.participant_id = None
@@ -210,6 +212,59 @@ class GameConsumer(BaseConsumer):
             },
             "text": room_state.world.get("intro", "The adventure continues."),
         }))
+        await self._run_bot_turn_if_needed()
+
+    async def _run_bot_turn_if_needed(self):
+        results = await sync_to_async(self._execute_bot_turns)()
+        for result in results:
+            await self._broadcast_action_result(result)
+
+    def _execute_bot_turns(self):
+        results = []
+        room_state = self.state_manager.get_room(self.room_name)
+        if room_state is None:
+            return results
+
+        with self.state_manager.start_lock:
+            for _ in range(len(room_state.turn_order)):
+                participant_id = room_state.current_player_id
+                if participant_id not in room_state.ai_participants:
+                    break
+
+                command = self.bot_player_service.choose_command(
+                    room_state,
+                    participant_id,
+                )
+                result = self.processor.process(
+                    command,
+                    room=self.room_name,
+                    participant_id=participant_id,
+                    adventure=self.adventure_id,
+                    world=self.world,
+                )
+                results.append(result)
+
+        return results
+
+    async def _broadcast_action_result(self, result):
+        cleaned_text = safe_text(result.get("text", ""))
+        room_state = self.state_manager.get_room(self.room_name)
+        await self._send_game_event(
+            "action_result",
+            {
+                "data": result,
+                "user": "bot",
+                "text": cleaned_text,
+                "turn_state": result.get("turn_state", {}) or {},
+                "game_state": (
+                    self.state_manager.build_game_state(room_state)
+                    if room_state is not None
+                    else {}
+                ),
+                "choices": result.get("choices", []),
+            },
+            text=cleaned_text,
+        )
 
     async def receive(self, text_data):
         try:
@@ -303,6 +358,7 @@ class GameConsumer(BaseConsumer):
                 payload,
                 text=cleaned_text
             )
+            await self._run_bot_turn_if_needed()
 
         except Exception as e:
             logger.error(f"GAME ERROR: {repr(e)}", exc_info=True)
@@ -325,6 +381,7 @@ class GameConsumer(BaseConsumer):
             adventure_id = payload.get("adventure_id")
             if adventure_id:
                 self.adventure_id = adventure_id
+            await self._run_bot_turn_if_needed()
 
         await super().game_event(event)
 
