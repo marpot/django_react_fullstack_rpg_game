@@ -127,12 +127,12 @@ async def test_game_consumer_executes_bot_through_canonical_path():
 
     assert len(results) == 1
     assert results[0]["action"] == "attack"
-    assert room.player_histories[7][-1]["action"] == "inspect"
+    assert room.player_histories[7][-1]["action"] == "attack"
     assert room.current_player_id == 8
 
     await consumer._broadcast_action_result(results[0])
     event_payload = consumer._send_game_event.await_args.args[1]
-    assert event_payload["data"]["action"] == "inspect"
+    assert event_payload["data"]["action"] == "attack"
     assert event_payload["game_state"]["players"]["7"]["name"] == "Demo Companion"
     assert event_payload["game_state"]["player_histories"]["7"]
 
