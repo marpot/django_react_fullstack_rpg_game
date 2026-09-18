@@ -92,6 +92,10 @@ export const useRoomSession = (roomId: string) => {
     return res.data;
   };
 
+  const refreshRoom = async () => {
+    await fetchRoom();
+  };
+
   useEffect(() => {
     if (!roomId) return;
 
@@ -259,5 +263,6 @@ export const useRoomSession = (roomId: string) => {
     world,
     gameEvents,
     sendGame: send,
+    refreshRoom,
   };
 };

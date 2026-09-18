@@ -92,6 +92,28 @@ const RoomPage: React.FC = () => {
     }
   };
 
+  const aiParticipant = session.room?.participants.find((participant) => participant.is_ai);
+
+  const handleAddAi = async () => {
+    try {
+      await api.post(`/chat/rooms/${safeRoomId}/add_ai/`);
+      await session.refreshRoom();
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Nie udało się dodać towarzysza AI");
+    }
+  };
+
+  const handleRemoveAi = async () => {
+    try {
+      await api.post(`/chat/rooms/${safeRoomId}/remove_ai/`);
+      await session.refreshRoom();
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Nie udało się usunąć towarzysza AI");
+    }
+  };
+
   if (!roomId) return <div className="room-page-state" role="alert">Brak pokoju</div>;
   if (!me) return <div className="room-page-state" role="status">Ładowanie pokoju...</div>;
 
@@ -169,11 +191,21 @@ const RoomPage: React.FC = () => {
                 </div>
                 <span className="room-party-count">{session.room!.participants.length} uczestników</span>
               </div>
+              {isOwner && !aiParticipant && (
+                <Button variant="secondary" onClick={handleAddAi}>
+                  Dodaj towarzysza AI
+                </Button>
+              )}
+              {isOwner && aiParticipant && (
+                <Button variant="secondary" onClick={handleRemoveAi}>
+                  Usuń towarzysza AI
+                </Button>
+              )}
               {session.room!.participants.length > 0 ? <ul className="room-player-list">
                 {session.room!.participants.map((participant) => (
                   <li key={participant.participant_id}>
                     <span className="room-player-mark" aria-hidden="true">✦</span>
-                    <span className="room-player-name">{participant.name}</span>
+                    <span className="room-player-name">{participant.name}{participant.is_ai ? " (AI)" : ""}</span>
                   </li>
                 ))}
               </ul> : <p className="room-empty">Drużyna jeszcze się zbiera.</p>}

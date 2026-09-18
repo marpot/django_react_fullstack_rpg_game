@@ -83,6 +83,45 @@ class RoomViewSet(viewsets.ModelViewSet):
             ).data
         )
 
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def add_ai(self, request, pk=None):
+        room = self.get_object()
+        if room.owner != request.user:
+            raise PermissionDenied("Only the room owner can manage the AI companion.")
+        if room.state != "lobby":
+            return Response(
+                {"code": "ROOM_NOT_IN_LOBBY", "error": "AI can only be changed in lobby."},
+                status=400,
+            )
+
+        participant = room.participants.filter(is_ai=True).first()
+        if participant is None:
+            participant = RoomParticipantsService.add_ai(room, "Eldrin")
+
+        return Response(
+            RoomParticipantSerializer(
+                participant,
+                context={"request": request},
+            ).data
+        )
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def remove_ai(self, request, pk=None):
+        room = self.get_object()
+        if room.owner != request.user:
+            raise PermissionDenied("Only the room owner can manage the AI companion.")
+        if room.state != "lobby":
+            return Response(
+                {"code": "ROOM_NOT_IN_LOBBY", "error": "AI can only be changed in lobby."},
+                status=400,
+            )
+
+        participant = room.participants.filter(is_ai=True).first()
+        if participant is not None:
+            participant.delete()
+
+        return Response({"removed": participant is not None})
+
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def set_adventure(self, request, pk=None):
         room = self.get_object()
