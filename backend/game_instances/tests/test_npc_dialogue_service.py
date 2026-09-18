@@ -116,4 +116,8 @@ def test_free_text_talk_uses_same_canonical_processor_path_without_intent_provid
     assert provider.calls == []
     assert room.players[1].hp == 80
     assert room.current_player_id == 1
-    assert room.player_histories == {1: []}
+    history = room.player_histories[1]
+    assert len(history) == 1
+    assert history[0]["action"] == "talk"
+    assert history[0]["result"]["action"] == "talk"
+    assert history[0]["result"]["npc"] == npc_name
