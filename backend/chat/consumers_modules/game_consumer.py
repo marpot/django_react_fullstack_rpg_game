@@ -8,6 +8,7 @@ from .base import BaseConsumer
 from chat.models import Room, RoomParticipant
 from game_instances.services.llm.orchestrator.ai_game_master import AIGameMaster
 from game.core.action_processor import ActionProcessor
+from game.services.game_turn_service import GameTurnService
 
 logger = logging.getLogger(__name__)
 
@@ -98,10 +99,35 @@ class GameConsumer(BaseConsumer):
             await self._resolve_participant()
 
             if room.state == "in_game":
+                if self.state_manager.get_room(self.room_name) is not None:
+                    await self._mark_connected()
                 await self._send_existing_game_state()
+            elif self.participant_id is not None:
+                await self._mark_connected()
 
         except Room.DoesNotExist:
             logger.warning(f"[GAME CONSUMER] room not found: {self.room_name}")
+
+    async def _mark_connected(self):
+        await sync_to_async(
+            self.state_manager.set_participant_presence
+        )(self.room_name, self.participant_id, True)
+        room_state = self.state_manager.get_room(self.room_name)
+        if room_state is not None and room_state.current_player_id is None:
+            GameTurnService(self.state_manager).advance_turn(room_state)
+
+    async def disconnect(self, close_code):
+        if (
+            getattr(self, "state_manager", None) is not None
+            and getattr(self, "participant_id", None) is not None
+        ):
+            room_state = self.state_manager.get_room(self.room_name)
+            if room_state is not None:
+                await sync_to_async(
+                    GameTurnService(self.state_manager).mark_disconnected
+                )(room_state, self.participant_id)
+
+        await super().disconnect(close_code)
 
     async def _resolve_participant(self):
         """

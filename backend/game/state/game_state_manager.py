@@ -48,6 +48,8 @@ class RoomState:
     quest: QuestState = field(default_factory=QuestState)
     adventure_completed: bool = False
     started: bool = False
+    connected_participants: set[int] | None = None
+    ai_participants: set[int] = field(default_factory=set)
 
 
 class GameStateManager:
@@ -187,3 +189,12 @@ class GameStateManager:
     def add_npc(self, room_name: str, npc: NPC):
         room = self.get_or_create_room(self.normalize_room_id(room_name))
         room.npcs[npc.id] = npc
+
+    def set_participant_presence(self, room_name, participant_id, connected):
+        room = self.get_or_create_room(room_name)
+        if room.connected_participants is None:
+            room.connected_participants = set()
+        if connected:
+            room.connected_participants.add(participant_id)
+        else:
+            room.connected_participants.discard(participant_id)
