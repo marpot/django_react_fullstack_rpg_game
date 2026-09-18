@@ -10,7 +10,7 @@ class RuntimePlayerService:
     def __init__(self, state_manager):
         self.state_manager = state_manager
 
-    def get_or_create(self, room_obj, participant_id: int) -> Player | None:
+    def get_or_create(self, room_obj, participant_id: int, participant=None) -> Player | None:
         if participant_id is None:
             return None
 
@@ -21,18 +21,19 @@ class RuntimePlayerService:
         if player is not None:
             return player
 
-        try:
-            participant = (
-                RoomParticipant.objects
-                .select_related("user", "character")
-                .get(id=participant_id, room_id=room_obj.name)
-            )
-        except RoomParticipant.DoesNotExist:
-            logger.warning(
-                "[RUNTIME_PLAYER] participant not found: %s",
-                participant_id,
-            )
-            return None
+        if participant is None:
+            try:
+                participant = (
+                    RoomParticipant.objects
+                    .select_related("user", "character")
+                    .get(id=participant_id, room_id=room_obj.name)
+                )
+            except RoomParticipant.DoesNotExist:
+                logger.warning(
+                    "[RUNTIME_PLAYER] participant not found: %s",
+                    participant_id,
+                )
+                return None
 
         if participant.is_ai:
             runtime_player = Player(

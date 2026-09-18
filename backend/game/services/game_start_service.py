@@ -115,6 +115,7 @@ class GameStartService:
                 player = runtime_player_service.get_or_create(
                     room_state,
                     participant.id,
+                    participant=participant,
                 )
 
                 if player is not None:

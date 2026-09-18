@@ -111,6 +111,49 @@ def test_game_start_registers_ai_participant_in_runtime():
     assert GameTurnService(state).is_participant_active(room, bot.id)
 
 
+@pytest.mark.django_db
+def test_started_game_can_execute_ai_from_real_participant_flow():
+    user = get_user_model().objects.create_user(username="bot-flow-user")
+    character = PlayerCharacter.objects.create(user=user, name="Hero")
+    adventure = Adventure.objects.create(title="Bot flow adventure", creator=user)
+    room_record = Room.objects.create(
+        name="bot-flow-room", owner=user, adventure=adventure
+    )
+    human = RoomParticipantsService.add_human(room_record, user, character)
+    bot = RoomParticipantsService.add_ai(room_record, "Eldrin")
+    state = GameStateManager()
+    llm = Mock()
+    llm.generate_world.return_value = {}
+    llm.generate_intro.return_value = {}
+
+    GameStartService(
+        seeder=Mock(), llm=llm, notifier=Mock(), state_manager=state
+    ).start_game(adventure.id, room_record.id, adventure=adventure)
+
+    room = state.get_room(room_record.id)
+    assert room.current_player_id == human.id
+    assert GameTurnService(state).advance_turn(room) == bot.id
+    assert room.current_player_id == bot.id
+
+    consumer = object.__new__(GameConsumer)
+    consumer.state_manager = state
+    consumer.room_name = str(room_record.id)
+    consumer.adventure_id = adventure.id
+    consumer.world = room.world
+    consumer.processor = ActionProcessor(state)
+    consumer.bot_player_service = BotPlayerService(state)
+
+    results = consumer._execute_bot_turns()
+
+    assert bot.id in room.players
+    assert bot.id in room.ai_participants
+    assert bot.id in room.turn_order
+    assert str(bot.id) in state.build_game_state(room)["players"]
+    assert results and results[0]["action"] == "attack"
+    assert room.player_histories[bot.id][-1]["action"] == "attack"
+    assert room.current_player_id == human.id
+
+
 @pytest.mark.asyncio
 async def test_game_consumer_executes_bot_through_canonical_path():
     state, room = bot_room()
