@@ -66,5 +66,10 @@ jobs:
       - name: Django system check
         run: python manage.py check
 
+      - name: Verify Django commands
+        run: |
+          python manage.py help seed_world
+          python manage.py shell -c "from django.conf import settings; print(settings.INSTALLED_APPS)"
+
       - name: Run backend tests
         run: pytest -q
