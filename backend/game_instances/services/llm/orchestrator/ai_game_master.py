@@ -31,7 +31,11 @@ class AIGameMaster:
         self, player_input: str | dict, *, state_manager=None,
         room=None, participant_id=None,
     ) -> dict:
-        parsed = self.parser.parse(player_input)
+        context = None
+        if state_manager is not None and room is not None and participant_id is not None:
+            context = self.context_builder.build(state_manager, room, participant_id)
+
+        parsed = self.parser.parse(player_input, context=context)
         if parsed.get("action") != "unknown":
             try:
                 command = GameCommand.from_mapping(parsed)
@@ -43,7 +47,6 @@ class AIGameMaster:
         if state_manager is None or room is None or participant_id is None:
             return unknown
 
-        context = self.context_builder.build(state_manager, room, participant_id)
         if context is None:
             return unknown
 
