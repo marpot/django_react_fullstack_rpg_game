@@ -140,6 +140,12 @@ async def test_two_players_share_rest_websocket_turns_and_reconnect(two_joined_p
             assert action_a["data"]["result"]["room"] == str(room.id)
             assert action_a["turn_state"]["current_player_id"] == participant_b
             assert action_a["turn_state"]["turn_order"] == [participant_a, participant_b]
+            assert action_a["game_state"] == STATE_MANAGER.build_game_state(
+                STATE_MANAGER.get_room(room.id)
+            )
+            assert action_a["game_state"]["players"].keys() == {
+                str(participant_a), str(participant_b)
+            }
 
             room_state = STATE_MANAGER.get_room(room.id)
             world = room_state.world
@@ -161,6 +167,9 @@ async def test_two_players_share_rest_websocket_turns_and_reconnect(two_joined_p
             assert action_b["data"]["action"] == "inspect"
             assert action_b["turn_state"]["current_player_id"] == participant_a
             assert action_b["turn_state"]["turn_order"] == [participant_a, participant_b]
+            assert action_b["game_state"] == STATE_MANAGER.build_game_state(
+                STATE_MANAGER.get_room(room.id)
+            )
 
             history = {pid: list(events) for pid, events in room_state.player_histories.items()}
             assert len(history[participant_a]) == len(history[participant_b]) == 1
