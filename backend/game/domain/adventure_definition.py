@@ -174,3 +174,14 @@ def build_cienie_eldorii_definition(adventure) -> AdventureDefinition:
         npcs=npcs,
         progression=progression,
     )
+
+
+def build_definition_for_adventure(adventure) -> AdventureDefinition:
+    """Build the configured definition for a persisted adventure."""
+    if isinstance(adventure, (int, str)):
+        from world.models import Adventure
+        adventure = Adventure.objects.get(pk=adventure)
+
+    if adventure.title == "Cienie Eldorii":
+        return build_cienie_eldorii_definition(adventure)
+    return build_adventure_definition(adventure)
