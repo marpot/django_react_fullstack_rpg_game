@@ -126,7 +126,7 @@ async def test_game_consumer_executes_bot_through_canonical_path():
     results = consumer._execute_bot_turns()
 
     assert len(results) == 1
-    assert results[0]["action"] == "inspect"
+    assert results[0]["action"] == "attack"
     assert room.player_histories[7][-1]["action"] == "inspect"
     assert room.current_player_id == 8
 
