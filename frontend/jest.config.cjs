@@ -7,6 +7,7 @@ const config = {
     '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
   },
   testEnvironment: 'jsdom',
+  testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
   transformIgnorePatterns: [
     '/node_modules/',
   ],

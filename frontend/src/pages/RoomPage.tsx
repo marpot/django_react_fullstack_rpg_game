@@ -11,6 +11,7 @@ import Button from "@/components/ui/Button/Button";
 
 import { useRoomSession } from "@/features/room/hooks/useRoomSession";
 import { useRoomAdventure } from "@/features/room/hooks/useRoomAdventure";
+import { getVisibleEnemies } from "@/features/game/gameplayUi";
 
 const RoomPage: React.FC = () => {
   const params = useParams<{ roomId: string }>();
@@ -92,7 +93,9 @@ const RoomPage: React.FC = () => {
     }
   };
 
-  const aiParticipant = session.room?.participants.find((participant) => participant.is_ai);
+  const aiParticipant = session.room?.participants.find(
+    (participant) => participant.is_ai,
+  );
 
   const handleAddAi = async () => {
     try {
@@ -100,7 +103,9 @@ const RoomPage: React.FC = () => {
       await session.refreshRoom();
       setError(null);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Nie udało się dodać towarzysza AI");
+      setError(
+        err.response?.data?.error || "Nie udało się dodać towarzysza AI",
+      );
     }
   };
 
@@ -110,26 +115,54 @@ const RoomPage: React.FC = () => {
       await session.refreshRoom();
       setError(null);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Nie udało się usunąć towarzysza AI");
+      setError(
+        err.response?.data?.error || "Nie udało się usunąć towarzysza AI",
+      );
     }
   };
 
-  if (!roomId) return <div className="room-page-state" role="alert">Brak pokoju</div>;
-  if (!me) return <div className="room-page-state" role="status">Ładowanie pokoju...</div>;
+  if (!roomId) {
+    return (
+      <div className="room-page-state" role="alert">
+        Brak pokoju
+      </div>
+    );
+  }
+
+  if (!me) {
+    return (
+      <div className="room-page-state" role="status">
+        Ładowanie pokoju...
+      </div>
+    );
+  }
 
   const isLobbyView = session.state !== "in-game";
   const roomName = session.room?.name || `Pokój ${roomId}`;
 
+  const runtimePlayers = Object.values(
+    session.gameState?.players || {},
+  ) as any[];
+
+  const currentLocationName = runtimePlayers[0]?.location_name;
+
+  const visibleEnemies = getVisibleEnemies(session.gameState) as any[];
+
   return (
     <div className={`room-layout${isLobbyView ? " room-layout--lobby" : ""}`}>
-
       <aside className="room-sidebar">
-        <h2 className="room-title">{isLobbyView ? "Bohater wyprawy" : "🧙 Postacie"}</h2>
+        <h2 className="room-title">
+          {isLobbyView ? "Bohater wyprawy" : "🧙 Postacie"}
+        </h2>
 
         {session.sessionError && (
-          isLobbyView
-            ? <div className="room-error" role="alert">{session.sessionError}</div>
-            : <div style={{ color: "red" }}>{session.sessionError}</div>
+          isLobbyView ? (
+            <div className="room-error" role="alert">
+              {session.sessionError}
+            </div>
+          ) : (
+            <div style={{ color: "red" }}>{session.sessionError}</div>
+          )
         )}
 
         {session.state === "missing-character" && (
@@ -140,13 +173,18 @@ const RoomPage: React.FC = () => {
 
         {isLobbyView && session.activeCharacter && (
           <div className="active-character">
-            <h3>{isLobbyView ? "Aktywna postać" : "🎮 Aktywna postać"}</h3>
+            <h3>Aktywna postać</h3>
 
             {!session.loading && session.activeCharacter && (
               <>
-                <p className="room-character-name"><b>{session.activeCharacter.name}</b></p>
-                <p>{isLobbyView ? "Poziom" : "Lvl:"} {session.activeCharacter.level}</p>
-                <p>{isLobbyView ? "Życie" : "HP:"} {session.activeCharacter.health}/{session.activeCharacter.max_health}</p>
+                <p className="room-character-name">
+                  <b>{session.activeCharacter.name}</b>
+                </p>
+                <p>Poziom {session.activeCharacter.level}</p>
+                <p>
+                  Życie {session.activeCharacter.health}/
+                  {session.activeCharacter.max_health}
+                </p>
               </>
             )}
           </div>
@@ -155,21 +193,71 @@ const RoomPage: React.FC = () => {
         {!isLobbyView && (
           <div className="active-character">
             <h3>🎮 Drużyna</h3>
+
             {Object.entries(session.gameState?.players || {}).map(
               ([participantId, player]: [string, any]) => {
                 const participant = session.room?.participants.find(
                   (candidate) =>
-                    String(candidate.participant_id) === String(participantId),
+                    String(candidate.participant_id) ===
+                    String(participantId),
                 );
+
                 return (
                   <div key={participantId}>
                     <p className="room-character-name">
-                      <b>{player.name}{participant?.is_ai ? " (AI)" : ""}</b>
+                      <b>
+                        {player.name}
+                        {participant?.is_ai ? " (AI)" : ""}
+                      </b>
                     </p>
-                    <p>HP: {player.hp}/{player.max_hp}</p>
+                    <p>
+                      HP: {player.hp}/{player.max_hp}
+                    </p>
                   </div>
                 );
               },
+            )}
+
+            <hr />
+
+            <h3>📜 Przygoda</h3>
+
+            {session.gameState?.adventure_completed ? (
+              <p>
+                <b>Przygoda ukończona</b>
+              </p>
+            ) : (
+              <>
+                {session.gameState?.quest?.objective && (
+                  <p>
+                    <b>Cel:</b> {session.gameState.quest.objective}
+                  </p>
+                )}
+
+                {session.gameState?.quest?.stage && (
+                  <p>
+                    <b>Etap:</b> {session.gameState.quest.stage}
+                  </p>
+                )}
+
+                {currentLocationName && (
+                  <p>
+                    <b>Lokacja:</b> {currentLocationName}
+                  </p>
+                )}
+
+                {visibleEnemies.length > 0 && (
+                  <p>
+                    <b>Przeciwnicy:</b>{" "}
+                    {visibleEnemies
+                      .map(
+                        (enemy) =>
+                          `${enemy.name} (${enemy.hp} HP)`,
+                      )
+                      .join(", ")}
+                  </p>
+                )}
+              </>
             )}
           </div>
         )}
@@ -182,67 +270,116 @@ const RoomPage: React.FC = () => {
       <main className="room-main">
         {isLobbyView ? (
           <header className="room-lobby-header">
-            <p className="room-eyebrow">ELDORIA CHRONICLES · PRZED WYPRAWĄ</p>
+            <p className="room-eyebrow">
+              ELDORIA CHRONICLES · PRZED WYPRAWĄ
+            </p>
             <h1 className="room-header">{roomName}</h1>
-            <p className="room-intro">Drużyna zbiera się przed rozpoczęciem przygody.</p>
+            <p className="room-intro">
+              Drużyna zbiera się przed rozpoczęciem przygody.
+            </p>
           </header>
         ) : (
           <h1 className="room-header">🏰 Pokój: {roomId}</h1>
         )}
 
-        {error && (isLobbyView
-          ? <div className="room-error" role="alert">{error}</div>
-          : <div style={{ color: "red" }}>{error}</div>
+        {error && (
+          isLobbyView ? (
+            <div className="room-error" role="alert">
+              {error}
+            </div>
+          ) : (
+            <div style={{ color: "red" }}>{error}</div>
+          )
         )}
 
         {isLobbyView && session.state === "loading" && (
-          <div className="room-lobby-notice" role="status">Przygotowywanie pokoju...</div>
+          <div className="room-lobby-notice" role="status">
+            Przygotowywanie pokoju...
+          </div>
         )}
 
         {isLobbyView && session.state === "missing-character" && (
-          <div className="room-lobby-notice">Wybierz aktywną postać, aby dołączyć do wyprawy.</div>
+          <div className="room-lobby-notice">
+            Wybierz aktywną postać, aby dołączyć do wyprawy.
+          </div>
         )}
 
         {session.state === "lobby" && (
           <div className="room-story">
-            <section className="room-lobby-section" aria-labelledby="room-party-heading">
+            <section
+              className="room-lobby-section"
+              aria-labelledby="room-party-heading"
+            >
               <div className="room-section-heading">
                 <div>
-                  <p className="room-section-kicker">Zebrani przy stole</p>
+                  <p className="room-section-kicker">
+                    Zebrani przy stole
+                  </p>
                   <h2 id="room-party-heading">Drużyna</h2>
                 </div>
-                <span className="room-party-count">{session.room!.participants.length} uczestników</span>
+
+                <span className="room-party-count">
+                  {session.room!.participants.length} uczestników
+                </span>
               </div>
+
               {isOwner && !aiParticipant && (
                 <Button variant="secondary" onClick={handleAddAi}>
                   Dodaj towarzysza AI
                 </Button>
               )}
+
               {isOwner && aiParticipant && (
                 <Button variant="secondary" onClick={handleRemoveAi}>
                   Usuń towarzysza AI
                 </Button>
               )}
-              {session.room!.participants.length > 0 ? <ul className="room-player-list">
-                {session.room!.participants.map((participant) => (
-                  <li key={participant.participant_id}>
-                    <span className="room-player-mark" aria-hidden="true">✦</span>
-                    <span className="room-player-name">{participant.name}{participant.is_ai ? " (AI)" : ""}</span>
-                  </li>
-                ))}
-              </ul> : <p className="room-empty">Drużyna jeszcze się zbiera.</p>}
+
+              {session.room!.participants.length > 0 ? (
+                <ul className="room-player-list">
+                  {session.room!.participants.map((participant) => (
+                    <li key={participant.participant_id}>
+                      <span
+                        className="room-player-mark"
+                        aria-hidden="true"
+                      >
+                        ✦
+                      </span>
+
+                      <span className="room-player-name">
+                        {participant.name}
+                        {participant.is_ai ? " (AI)" : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="room-empty">
+                  Drużyna jeszcze się zbiera.
+                </p>
+              )}
             </section>
 
             {isOwner && (
-              <section className="room-lobby-section adventure-panel" aria-labelledby="room-adventure-heading">
+              <section
+                className="room-lobby-section adventure-panel"
+                aria-labelledby="room-adventure-heading"
+              >
                 <div className="room-section-heading">
                   <div>
-                    <p className="room-section-kicker">Kronika wypraw</p>
-                    <h2 id="room-adventure-heading">Wybór przygody</h2>
+                    <p className="room-section-kicker">
+                      Kronika wypraw
+                    </p>
+                    <h2 id="room-adventure-heading">
+                      Wybór przygody
+                    </h2>
                   </div>
                 </div>
 
-                <Button variant="secondary" onClick={handleGenerateAdventure}>
+                <Button
+                  variant="secondary"
+                  onClick={handleGenerateAdventure}
+                >
                   Generuj przygodę
                 </Button>
 
@@ -251,21 +388,38 @@ const RoomPage: React.FC = () => {
                     <button
                       key={adv.id}
                       className={`adventure-card ${
-                        selectedAdventureId === adv.id ? "selected" : ""
+                        selectedAdventureId === adv.id
+                          ? "selected"
+                          : ""
                       }`}
-                      aria-pressed={selectedAdventureId === adv.id}
-                      onClick={() => handleSelectAdventure(adv.id)}
+                      aria-pressed={
+                        selectedAdventureId === adv.id
+                      }
+                      onClick={() =>
+                        handleSelectAdventure(adv.id)
+                      }
                     >
                       <span>{adv.title}</span>
                     </button>
                   ))}
                 </div>
-                {adventures.length === 0 && <p className="room-empty">Brak dostępnych przygód. Możesz wygenerować nową.</p>}
+
+                {adventures.length === 0 && (
+                  <p className="room-empty">
+                    Brak dostępnych przygód. Możesz wygenerować nową.
+                  </p>
+                )}
               </section>
             )}
 
-            <section className="room-lobby-section room-ready" aria-label="Rozpoczęcie wyprawy">
-              <p className="room-section-kicker">Przed wyruszeniem</p>
+            <section
+              className="room-lobby-section room-ready"
+              aria-label="Rozpoczęcie wyprawy"
+            >
+              <p className="room-section-kicker">
+                Przed wyruszeniem
+              </p>
+
               {isOwner ? (
                 <Button
                   variant="primary"
@@ -275,10 +429,11 @@ const RoomPage: React.FC = () => {
                   Rozpocznij przygodę
                 </Button>
               ) : (
-                <p className="room-waiting">Czekasz, aż gospodarz rozpocznie przygodę...</p>
+                <p className="room-waiting">
+                  Czekasz, aż gospodarz rozpocznie przygodę...
+                </p>
               )}
             </section>
-
           </div>
         )}
 
@@ -296,10 +451,11 @@ const RoomPage: React.FC = () => {
       </main>
 
       <aside className="room-chat">
-        <h2 className="room-title">{isLobbyView ? "Rozmowy drużyny" : "💬 Czat"}</h2>
+        <h2 className="room-title">
+          {isLobbyView ? "Rozmowy drużyny" : "💬 Czat"}
+        </h2>
         <Chat roomId={safeRoomId} />
       </aside>
-
     </div>
   );
 };

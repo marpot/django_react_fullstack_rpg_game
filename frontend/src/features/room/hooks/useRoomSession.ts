@@ -10,6 +10,7 @@ import {
   extractTurnState,
   normalizeParticipantId,
 } from "@/features/game/turnState";
+import { normalizeRoomEvent } from "@/features/room/sessionEvent";
 import type { Character } from "@/features/room/room.types";
 
 export type RoomState =
@@ -37,62 +38,6 @@ export const useRoomSession = (roomId: string) => {
   const [gameEvents, setGameEvents] = useState<any[]>([]);
   const [gameState, setGameState] = useState<any | null>(null);
   const [turnState, setTurnState] = useState<any | null>(null);
-
-  const normalizeEvent = (data: any) => {
-    const payload = data?.payload ?? {};
-
-    const event =
-      payload?.event ||
-      data?.event ||
-      data?.subtype ||
-      data?.type ||
-      "unknown";
-
-    const text =
-      typeof payload?.text === "string"
-        ? payload.text
-        : typeof data?.text === "string"
-        ? data.text
-        : typeof payload?.data?.text === "string"
-        ? payload.data.text
-        : typeof payload?.result?.text === "string"
-        ? payload.result.text
-        : typeof data?.message === "string"
-        ? data.message
-        : "";
-
-    const actor =
-      payload?.actor ??
-      (
-        payload?.data?.actor &&
-        typeof payload.data.actor === "object"
-          ? payload.data.actor
-          : null
-      ) ??
-      data?.actor ??
-      null;
-
-    const normalized: any = {
-      event,
-      type: event,
-      text,
-      payload: actor ? { ...payload, actor } : payload,
-    };
-
-    if (payload?.world) {
-      normalized.world = payload.world;
-    }
-
-    if (payload?.room_id) {
-      normalized.room_id = payload.room_id;
-    }
-
-    if (payload?.adventure_id) {
-      normalized.adventure_id = payload.adventure_id;
-    }
-
-    return normalized;
-  };
 
   const fetchMe = async () => {
     const res = await api.get<MeResponse>("/accounts/me/");
@@ -234,7 +179,7 @@ export const useRoomSession = (roomId: string) => {
         text,
         payload: normalizedPayload,
         world: normalizedWorld,
-      } = normalizeEvent(data);
+      } = normalizeRoomEvent(data);
 
       const world =
         normalizedWorld ??
