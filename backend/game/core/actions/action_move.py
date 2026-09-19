@@ -52,7 +52,9 @@ class MoveAction:
                 "move", "Nie ma takiego przejścia", {"error": "invalid_exit"},
             )
 
-        player.location = str(destination.id)
+        destination_id = str(destination.id)
+        for room_player in room_obj.players.values():
+            room_player.location = destination_id
         canonical_result = {"location": player.location, "location_name": destination.title}
 
         narration = self.narrate_fn(

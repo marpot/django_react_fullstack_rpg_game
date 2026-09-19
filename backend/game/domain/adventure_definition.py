@@ -106,7 +106,12 @@ def build_adventure_definition(adventure) -> AdventureDefinition:
         )
         for location in adventure.locations.order_by("order", "id")
     )
-    start_location_id = locations[0].id if locations else None
+    generated_scenario = adventure.generated_scenario or {}
+    start_location_id = generated_scenario.get("start_location_id")
+    if start_location_id not in {location.id for location in locations}:
+        start_location_id = locations[0].id if locations else None
+
+    enemy_locations = generated_scenario.get("enemy_locations", {})
 
     enemies = tuple(
         EnemyDefinition(
@@ -117,20 +122,45 @@ def build_adventure_definition(adventure) -> AdventureDefinition:
             attack_bonus=enemy.attack_bonus,
             damage_die=getattr(enemy, "damage_die", 6),
             damage_bonus=getattr(enemy, "damage_bonus", 0),
-            location_id=None,
+            location_id=enemy_locations.get(str(enemy.id)),
         )
         for enemy in adventure.enemies.order_by("id")
     )
 
-    npc_definitions = tuple(
-        NPCDefinition(
-            id=npc.id,
-            name=npc.name,
-            dialog=tuple(npc.dialog),
-            personality=npc.personality,
-            location_id=None,
+    generated_npcs = generated_scenario.get("npcs")
+    if generated_npcs is not None:
+        npc_definitions = tuple(
+            NPCDefinition(
+                id=npc["id"],
+                name=npc["name"],
+                dialog=(),
+                personality=npc["role"],
+                location_id=npc["location_id"],
+            )
+            for npc in generated_npcs
         )
-        for npc in NPCRegistry.get_npcs_for_adventure(adventure.id)
+    else:
+        npc_definitions = tuple(
+            NPCDefinition(
+                id=npc.id,
+                name=npc.name,
+                dialog=tuple(npc.dialog),
+                personality=npc.personality,
+                location_id=None,
+            )
+            for npc in NPCRegistry.get_npcs_for_adventure(adventure.id)
+        )
+
+    progression = ProgressionDefinition(
+        steps=tuple(
+            ProgressionStep(
+                stage=step["stage"],
+                trigger=step["trigger"],
+                objective=step["objective"],
+                next_stage=step["next_stage"],
+            )
+            for step in generated_scenario.get("progression", ())
+        )
     )
 
     return AdventureDefinition(
@@ -141,7 +171,7 @@ def build_adventure_definition(adventure) -> AdventureDefinition:
         locations=locations,
         enemies=enemies,
         npcs=npc_definitions,
-        progression=ProgressionDefinition(steps=()),
+        progression=progression,
     )
 
 

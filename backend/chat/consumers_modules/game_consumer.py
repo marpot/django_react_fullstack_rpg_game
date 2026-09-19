@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import asyncio
 
 from asgiref.sync import sync_to_async
 
@@ -227,6 +228,9 @@ class GameConsumer(BaseConsumer):
 
         with self.state_manager.start_lock:
             for _ in range(len(room_state.turn_order)):
+                if room_state.adventure_completed or room_state.quest.completed:
+                    break
+
                 participant_id = room_state.current_player_id
                 if participant_id not in room_state.ai_participants:
                     break
@@ -242,6 +246,7 @@ class GameConsumer(BaseConsumer):
                     adventure=self.adventure_id,
                     world=self.world,
                 )
+                result["_actor_id"] = participant_id
                 results.append(result)
 
         return results
@@ -249,11 +254,20 @@ class GameConsumer(BaseConsumer):
     async def _broadcast_action_result(self, result):
         cleaned_text = safe_text(result.get("text", ""))
         room_state = self.state_manager.get_room(self.room_name)
+        actor_id = result.pop("_actor_id", getattr(self, "participant_id", None))
+        actor = room_state.players.get(actor_id) if room_state is not None else None
         await self._send_game_event(
             "action_result",
             {
                 "data": result,
                 "user": "bot",
+                "actor": {
+                    "participant_id": actor_id,
+                    "name": actor.name if actor is not None else "",
+                    "is_ai": actor_id in room_state.ai_participants
+                    if room_state is not None
+                    else False,
+                },
                 "text": cleaned_text,
                 "turn_state": result.get("turn_state", {}) or {},
                 "game_state": (
@@ -347,6 +361,11 @@ class GameConsumer(BaseConsumer):
             payload = {
                 "data": result,
                 "user": self.scope["user"].username,
+                "actor": {
+                    "participant_id": self.participant_id,
+                    "name": room_state.players[self.participant_id].name,
+                    "is_ai": self.participant_id in room_state.ai_participants,
+                },
                 "text": cleaned_text,
                 "turn_state": turn_state,
                 "game_state": game_state,
@@ -358,6 +377,8 @@ class GameConsumer(BaseConsumer):
                 payload,
                 text=cleaned_text
             )
+            if room_state.current_player_id in room_state.ai_participants:
+                await asyncio.sleep(3)
             await self._run_bot_turn_if_needed()
 
         except Exception as e:

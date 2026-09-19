@@ -92,6 +92,28 @@ const RoomPage: React.FC = () => {
     }
   };
 
+  const aiParticipant = session.room?.participants.find((participant) => participant.is_ai);
+
+  const handleAddAi = async () => {
+    try {
+      await api.post(`/chat/rooms/${safeRoomId}/add_ai/`);
+      await session.refreshRoom();
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Nie udało się dodać towarzysza AI");
+    }
+  };
+
+  const handleRemoveAi = async () => {
+    try {
+      await api.post(`/chat/rooms/${safeRoomId}/remove_ai/`);
+      await session.refreshRoom();
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Nie udało się usunąć towarzysza AI");
+    }
+  };
+
   if (!roomId) return <div className="room-page-state" role="alert">Brak pokoju</div>;
   if (!me) return <div className="room-page-state" role="status">Ładowanie pokoju...</div>;
 
@@ -116,7 +138,7 @@ const RoomPage: React.FC = () => {
           </Button>
         )}
 
-        {session.activeCharacter && (
+        {isLobbyView && session.activeCharacter && (
           <div className="active-character">
             <h3>{isLobbyView ? "Aktywna postać" : "🎮 Aktywna postać"}</h3>
 
@@ -126,6 +148,28 @@ const RoomPage: React.FC = () => {
                 <p>{isLobbyView ? "Poziom" : "Lvl:"} {session.activeCharacter.level}</p>
                 <p>{isLobbyView ? "Życie" : "HP:"} {session.activeCharacter.health}/{session.activeCharacter.max_health}</p>
               </>
+            )}
+          </div>
+        )}
+
+        {!isLobbyView && (
+          <div className="active-character">
+            <h3>🎮 Drużyna</h3>
+            {Object.entries(session.gameState?.players || {}).map(
+              ([participantId, player]: [string, any]) => {
+                const participant = session.room?.participants.find(
+                  (candidate) =>
+                    String(candidate.participant_id) === String(participantId),
+                );
+                return (
+                  <div key={participantId}>
+                    <p className="room-character-name">
+                      <b>{player.name}{participant?.is_ai ? " (AI)" : ""}</b>
+                    </p>
+                    <p>HP: {player.hp}/{player.max_hp}</p>
+                  </div>
+                );
+              },
             )}
           </div>
         )}
@@ -169,11 +213,21 @@ const RoomPage: React.FC = () => {
                 </div>
                 <span className="room-party-count">{session.room!.participants.length} uczestników</span>
               </div>
+              {isOwner && !aiParticipant && (
+                <Button variant="secondary" onClick={handleAddAi}>
+                  Dodaj towarzysza AI
+                </Button>
+              )}
+              {isOwner && aiParticipant && (
+                <Button variant="secondary" onClick={handleRemoveAi}>
+                  Usuń towarzysza AI
+                </Button>
+              )}
               {session.room!.participants.length > 0 ? <ul className="room-player-list">
                 {session.room!.participants.map((participant) => (
                   <li key={participant.participant_id}>
                     <span className="room-player-mark" aria-hidden="true">✦</span>
-                    <span className="room-player-name">{participant.name}</span>
+                    <span className="room-player-name">{participant.name}{participant.is_ai ? " (AI)" : ""}</span>
                   </li>
                 ))}
               </ul> : <p className="room-empty">Drużyna jeszcze się zbiera.</p>}
@@ -235,6 +289,8 @@ const RoomPage: React.FC = () => {
             sendGame={session.sendGame}
             currentParticipantId={session.currentParticipantId}
             turnState={session.turnState}
+            gameState={session.gameState}
+            participants={session.room?.participants || []}
           />
         )}
       </main>
