@@ -1,135 +1,172 @@
-# RPG Game Platform 🎮
+# Eldoria Chronicles
 
-**Full-stack real-time RPG platform built with Django, React, WebSockets and a modular runtime game engine.**
+### Full-stack, real-time multiplayer RPG platform
 
-This project explores the architecture behind a multiplayer RPG rather than only implementing a game UI. It combines persistent Django models with per-room runtime state, real-time WebSocket communication, turn-based actions, NPC interactions and LLM-assisted gameplay.
+[![Backend CI](https://github.com/marpot/django_react_fullstack_rpg_game/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/marpot/django_react_fullstack_rpg_game/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/marpot/django_react_fullstack_rpg_game/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/marpot/django_react_fullstack_rpg_game/actions/workflows/frontend-ci.yml)
+![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)
+![Django](https://img.shields.io/badge/Django-5.1-092E20?logo=django&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=111)
+![TypeScript](https://img.shields.io/badge/TypeScript-4.9-3178C6?logo=typescript&logoColor=white)
 
-## ✨ Key Features
+Eldoria Chronicles is a portfolio project focused on the engineering behind an online RPG: authenticated game rooms, synchronized multiplayer state, turn-based gameplay, WebSocket communication and AI-assisted adventures. The application combines a polished dark-fantasy React interface with a modular Django game engine.
 
-- JWT-based registration and authentication
-- Game rooms and multiplayer sessions
-- Real-time chat and gameplay over WebSockets
-- Turn-based combat with attack resolution, damage and winner logic
-- In-memory runtime state for players, enemies and NPCs
-- Modular action system for gameplay commands
-- NPC registry, spawning and dialogue flow
-- LLM-assisted natural-language action parsing and NPC dialogue
-- Runtime ↔ ORM synchronization
-- Persisted gameplay/event history
-- Automatic entity seeding for adventures
-- Automated backend test suite
+![Eldoria Chronicles gameplay](docs/screenshots/game_window.png)
 
-## 🧠 Architecture
+## What the project demonstrates
 
-```text
-React frontend
-      │
-      ├── REST API + JWT
-      │
-      └── WebSockets + JWT
-              │
-              ▼
-Django + DRF + Channels
-      │
-      ├── PostgreSQL
-      ├── Redis / Channels
-      │
-      ▼
-Runtime Game Engine
-      │
-      ├── RoomState
-      ├── StateManager
-      ├── EntityResolver
-      └── ActionProcessor
-```
+- A complete flow from registration and character selection to creating a room, assembling a party and playing an adventure.
+- Real-time room chat and gameplay events delivered through Django Channels and Redis.
+- A server-authoritative, turn-based game loop with reconnect handling, player presence and deterministic AI companion turns.
+- A modular action pipeline for movement, inspection, combat and NPC interaction.
+- Runtime room state separated from Django ORM persistence, with explicit entity resolution and state synchronization.
+- LLM integrations for validated adventure generation, natural-language intent parsing, narration and NPC dialogue.
+- Provider abstraction for Groq, OpenRouter and local Ollama models, plus deterministic fallbacks for core gameplay.
+- Automated backend and frontend coverage, an end-to-end gameplay smoke test and GitHub Actions CI.
+- Separate development and production Docker Compose configurations, health checks and production security settings.
 
-### Runtime State Layer
+## Product walkthrough
 
-Core gameplay does not operate directly on database models. Each game room maintains runtime state containing active players, enemies and NPCs.
+| Sign in | Adventure dashboard |
+| --- | --- |
+| ![Dark-fantasy sign-in screen](docs/screenshots/Eldoria_logowanie.png) | ![Dashboard with game rooms and lobby chat](docs/screenshots/Dashboard.png) |
 
-- `RoomState` stores entities participating in a room
-- `StateManager` manages runtime room state
-- `EntityResolver` connects runtime entities with persistent models
-- `ActionProcessor` orchestrates gameplay actions
+| Create an expedition | Prepare the party |
+| --- | --- |
+| ![Create a new expedition](docs/screenshots/nowa_wyprawa.png) | ![Room lobby with AI companion and adventure selection](docs/screenshots/room_lobby.png) |
 
-The action layer is modular: individual actions such as attack, move and inspect are separated from the processor, keeping the main gameplay flow easier to extend and test.
+| Character sheet | Live gameplay |
+| --- | --- |
+| ![Character profile and active hero](docs/screenshots/karta_bohatera.png) | ![Turn-based multiplayer adventure](docs/screenshots/game_window.png) |
 
-## ⚔️ Gameplay Flow
+The interface is currently localized in Polish.
 
-1. A player authenticates and joins a room.
-2. The frontend sends an action through the game WebSocket.
-3. Natural-language input can be converted into a structured action by the LLM layer.
-4. `ActionProcessor` dispatches the action to the appropriate gameplay logic.
-5. Runtime entities are resolved from the room state.
-6. Combat, movement, inspection or NPC interaction is processed.
-7. Runtime and persistent state are synchronized where required.
-8. A gameplay event is emitted and broadcast to connected clients.
-
-## 🤖 NPC & LLM Layer
-
-NPCs are runtime entities created for individual game rooms. They are defined through `NPCRegistry`, spawned by the game services and stored in `RoomState` rather than persisted as normal database entities.
+## Architecture
 
 ```text
-Adventure → NPCRegistry → NPCService → RoomState
+React + TypeScript client
+        │
+        ├── REST API + JWT ───────────────┐
+        │                                  │
+        └── WebSockets + JWT               ▼
+                                  Django + DRF + Channels
+                                           │
+                      ┌────────────────────┼────────────────────┐
+                      ▼                    ▼                    ▼
+                 PostgreSQL          Redis channel layer   Runtime game engine
+                                                                  │
+                                             ┌────────────────────┼──────────────┐
+                                             ▼                    ▼              ▼
+                                       State manager       Action processor   AI game master
+                                             │                    │              │
+                                             └──── entity resolution ─── LLM providers
 ```
 
-The LLM integration is used for natural-language command interpretation and dynamic NPC dialogue. The broader narrative/story generation layer remains an area for future development rather than part of the completed MVP.
+### Runtime game engine
 
-## 📡 Communication
+Gameplay is processed against isolated, in-memory state for each active room instead of mutating database models directly. `GameStateManager` owns the room state, `EntityResolver` maps runtime objects to persistent entities, and `ActionProcessor` dispatches typed commands to focused action handlers. This keeps combat rules, turn progression and persistence boundaries testable.
 
-**REST API** handles authentication and persistent application data.  
-**WebSockets** handle the real-time game loop, chat, NPC interactions and gameplay events.  
-**JWT** provides the authentication layer for both HTTP and WebSocket connections.
+The server owns turn order and canonical state. It tracks connected participants, skips disconnected players, advances deterministic bot turns and sends a complete state snapshot when a player reconnects.
 
-Development WebSocket endpoints:
+### AI layer
 
-```text
-ws://localhost:8001/ws/chat/<room_id>/?token=<JWT>
-ws://localhost:8001/ws/game/<room_id>/?token=<JWT>
-```
+The LLM layer is deliberately kept outside the source of truth for game rules. It can:
 
-## 🛠 Tech Stack
+- turn free-form player text into a constrained `GameCommand`;
+- generate narration from an already resolved result;
+- create NPC dialogue from game context;
+- generate an adventure that is parsed into a typed schema and validated before persistence.
 
-**Backend:** Python · Django · Django REST Framework · Django Channels  
-**Frontend:** React · JavaScript · Axios · Webpack  
-**Data / Real-time:** PostgreSQL · Redis · WebSockets  
-**Testing:** Pytest · pytest-django · pytest-asyncio  
-**Infrastructure:** Docker · Docker Compose
+Core actions still have deterministic behavior and narration fallbacks, so game mechanics remain controlled by the backend rather than by model output.
 
-## 🧪 Testing
+## Core gameplay flow
 
-The backend includes automated tests covering core application and gameplay behavior, including authentication, models, serializers, NPC systems, entity resolution, room actions and WebSocket consumers.
+1. The player authenticates with JWT and selects an active character.
+2. The host creates a room, chooses or generates an adventure and can add an AI companion.
+3. Django creates the runtime room state and broadcasts the canonical game snapshot.
+4. The active participant submits a structured choice or a natural-language action over WebSocket.
+5. The action processor resolves entities, applies game rules and produces an event.
+6. Updated game and turn state is broadcast to every connected client.
+7. The next human or AI turn begins; reconnecting players receive the current state.
 
-Run the backend test suite through the project Makefile:
+## Tech stack
+
+| Area | Technology |
+| --- | --- |
+| Backend | Python, Django 5, Django REST Framework, Django Channels, Daphne |
+| Frontend | React 18, TypeScript, Webpack, Sass, Axios |
+| Data and realtime | PostgreSQL, Redis, WebSockets |
+| Authentication | Simple JWT for REST and WebSocket connections |
+| AI | Groq, OpenRouter or Ollama through a shared provider interface |
+| Background work | Celery and Celery Beat (optional `full` profile) |
+| Testing | Pytest, pytest-django, pytest-asyncio, Jest, Playwright |
+| Delivery | Docker, Docker Compose, Nginx, GitHub Actions |
+
+## Local setup
+
+### Prerequisites
+
+- Docker with Docker Compose
+- Node.js and npm
+- An optional LLM provider key, or a local Ollama-compatible endpoint
+
+### 1. Configure and start the backend stack
 
 ```bash
-make test-backend
+cp .env.example .env.docker
+make bootstrap
 ```
 
-The latest action-system refactor was merged with **43/43 tests passing**.
+This builds and starts PostgreSQL, Redis and the Django/Daphne backend. Migrations and static-file collection run automatically. The API is available at `http://localhost:8001`.
 
-## 🚀 Running the Project
-
-The application is containerized with Docker Compose. With Docker and Docker Compose installed, start the project from the repository root:
+### 2. Start the frontend
 
 ```bash
-docker compose up --build
+make frontend-install
+make frontend
 ```
 
-The stack starts the application services required by the Django/React development environment, including PostgreSQL and Redis.
+Open `http://localhost:3000` in a browser.
 
-## 📌 Project Status
+For development without an external AI API, set `LLM_PROVIDER=ollama` and provide a local model through `LLM_MODEL`. The supported environment variables are documented in `.env.example`.
 
-**MVP complete.**
+### Useful commands
 
-Implemented systems include authentication, real-time chat, runtime game state, modular gameplay actions, combat, NPC interactions, LLM-assisted commands/dialogue, automatic entity seeding, event processing, persistence synchronization and the WebSocket game loop.
+```bash
+make up                 # start the existing backend development stack
+make up-full            # include Celery worker and scheduler
+make test               # backend and frontend test suites
+make test-backend       # backend tests only
+make test-frontend      # frontend tests only
+make logs-backend       # follow Django/Daphne logs
+make down               # stop development services
+```
 
-Future work could include a richer combat UI, skills, persistent world simulation, matchmaking, advanced NPC memory, narrative generation and observability.
+## Testing and quality
 
-## 📸 Screenshots
+The backend suite covers the action processor contract, combat, multiplayer synchronization, reconnect identity, turn handling, NPCs, adventure validation and a complete gameplay vertical slice. Frontend tests cover turn-state and gameplay UI behavior, while Playwright provides an end-to-end gameplay smoke test.
 
-Screenshots and a gameplay walkthrough will be added as a final portfolio-polish step.
+GitHub Actions runs Django checks and Pytest for the backend, plus Jest and a production Webpack build for the frontend on pushes and pull requests to `main`.
 
-## 👨‍💻 Author
+> This README was prepared from the repository state without executing the application or test suites.
 
-**Marcin Potoczny**
+## Production configuration
+
+`docker-compose.prod.yml` builds the React application, serves it through Nginx and runs Django, PostgreSQL and Redis with health checks and restart policies. Copy `.env.prod.example` to `.env.prod`, replace every placeholder and then use:
+
+```bash
+make prod-build
+make prod-up
+```
+
+Production configuration includes explicit allowed hosts/origins, HTTPS redirect support, secure headers and required secret/database credentials. Infrastructure manifests should still be reviewed for the target hosting platform before deployment.
+
+## Project status
+
+The playable MVP is complete. It includes authentication, character profiles, room creation, lobby and room chat, multiplayer presence, reconnect-safe state, turn-based combat and exploration, NPC interaction, deterministic AI companions, generated adventures and a polished responsive UI.
+
+Possible next steps include durable runtime-state recovery across backend restarts, richer character progression and inventory, matchmaking, observability and a hosted demo environment.
+
+## Author
+
+**Marcin Potoczny** — [GitHub](https://github.com/marpot)
