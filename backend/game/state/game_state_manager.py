@@ -130,11 +130,20 @@ class GameStateManager:
         }
 
     def build_game_state(self, room: RoomState) -> dict:
+        players = {}
+
+        for participant_id, player in room.players.items():
+            player_data = asdict(player)
+            location = self.get_location(room, player)
+
+            player_data["location_name"] = (
+                location.title if location is not None else None
+            )
+
+            players[str(participant_id)] = player_data
+
         return {
-            "players": {
-                str(participant_id): asdict(player)
-                for participant_id, player in room.players.items()
-            },
+            "players": players,
             "enemies": {
                 enemy_id: asdict(enemy)
                 for enemy_id, enemy in room.enemies.items()

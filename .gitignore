@@ -54,3 +54,6 @@ Thumbs.db
 .repomixignore
 planAdventureUi.prompt.md
 repomix-output.xml
+
+# Runtime logs
+backend/logs/
