@@ -19,7 +19,7 @@ from game_instances.services.llm.orchestrator.ai_game_master import AIGameMaster
 from game_instances.services.llm.orchestrator.llm_service import LLMService
 from game_instances.services.llm.core.llm_client import LLMClient
 from rpg_project.asgi import application
-from world.models import Adventure
+from world.models import Adventure, Location
 
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -197,6 +197,59 @@ async def test_two_players_share_rest_websocket_turns_and_reconnect(two_joined_p
         finally:
             for socket in sockets:
                 await socket.disconnect()
+            STATE_MANAGER.rooms.clear()
+
+
+@pytest.mark.asyncio
+async def test_reconnect_builds_game_state_with_location_name(two_joined_players):
+    room, (user_a, _), (client_a, _), (participant_a, participant_b) = (
+        two_joined_players
+    )
+    STATE_MANAGER.rooms.clear()
+    socket = _socket(room, user_a)
+
+    with (
+        patch.object(LLMService, "generate_world", return_value={
+            "name": "Reconnect World", "description": "Reconnect test world."
+        }),
+        patch.object(LLMService, "generate_intro", return_value={
+            "text": "Reconnect intro"
+        }),
+    ):
+        try:
+            assert (await socket.connect())[0]
+            assert await socket.receive_nothing(timeout=0.2)
+
+            start = await sync_to_async(client_a.post)(
+                f"/api/chat/rooms/{room.id}/start_game/"
+            )
+            assert start.status_code == 200, start.data
+            await socket.receive_json_from(timeout=2)
+
+            location = await sync_to_async(Location.objects.create)(
+                adventure=room.adventure,
+                title="Reconnect Village",
+            )
+            room_state = STATE_MANAGER.get_room(room.id)
+            room_state.players[participant_a].location = str(location.id)
+            room_state.players[participant_b].location = str(location.id)
+
+            await socket.disconnect()
+            socket = _socket(room, user_a)
+            assert (await socket.connect())[0]
+
+            snapshot = await socket.receive_json_from(timeout=2)
+            assert snapshot["event"] == "game_started"
+            assert snapshot["payload"]["reconnect"] is True
+            assert snapshot["payload"]["game_state"]
+            assert snapshot["payload"]["turn_state"]
+            assert (
+                snapshot["payload"]["game_state"]["players"][str(participant_a)][
+                    "location_name"
+                ] == "Reconnect Village"
+            )
+        finally:
+            await socket.disconnect()
             STATE_MANAGER.rooms.clear()
 
 

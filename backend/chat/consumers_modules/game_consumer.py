@@ -182,6 +182,9 @@ class GameConsumer(BaseConsumer):
             self.participant_id,
         )
 
+    async def _build_game_state(self, room_state):
+        return await sync_to_async(self.state_manager.build_game_state)(room_state)
+
     async def _send_existing_game_state(self):
         room_state = self.state_manager.get_room(self.room_name)
 
@@ -199,6 +202,7 @@ class GameConsumer(BaseConsumer):
 
         self.world = room_state.world
         self.adventure_id = room_state.adventure_id or self.adventure_id
+        game_state = await self._build_game_state(room_state)
 
         await self.send(text_data=json.dumps({
             "type": "game_event",
@@ -208,7 +212,7 @@ class GameConsumer(BaseConsumer):
                 "room_id": self.room_name,
                 "adventure_id": self.adventure_id,
                 "turn_state": self._build_turn_state(room_state),
-                "game_state": self.state_manager.build_game_state(room_state),
+                "game_state": game_state,
                 "reconnect": True,
             },
             "text": room_state.world.get("intro", "The adventure continues."),
@@ -270,11 +274,9 @@ class GameConsumer(BaseConsumer):
                 },
                 "text": cleaned_text,
                 "turn_state": result.get("turn_state", {}) or {},
-                "game_state": (
-                    self.state_manager.build_game_state(room_state)
-                    if room_state is not None
-                    else {}
-                ),
+                "game_state": await self._build_game_state(room_state)
+                if room_state is not None
+                else {},
                 "choices": result.get("choices", []),
             },
             text=cleaned_text,
@@ -352,11 +354,7 @@ class GameConsumer(BaseConsumer):
             turn_state = result.get("turn_state", {}) or {}
 
             room_state = self.state_manager.get_room(self.room_name)
-            game_state = (
-                self.state_manager.build_game_state(room_state)
-                if room_state is not None
-                else {}
-            )
+            game_state = await self._build_game_state(room_state) if room_state is not None else {}
 
             payload = {
                 "data": result,

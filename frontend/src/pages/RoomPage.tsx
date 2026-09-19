@@ -89,7 +89,7 @@ const RoomPage: React.FC = () => {
         return;
       }
 
-      setError(data?.message || "Błąd startu gry");
+      setError(data?.error || data?.message || "Błąd startu gry");
     }
   };
 

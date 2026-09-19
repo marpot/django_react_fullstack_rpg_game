@@ -43,3 +43,14 @@ export function normalizeRoomEvent(data) {
 
   return normalized;
 }
+
+export function isTransientGameStateUnavailableEvent(event) {
+  return (
+    event?.event === "error" &&
+    event?.payload?.reason === "game_state_unavailable"
+  );
+}
+
+export function shouldDisplayRoomEvent(event) {
+  return !isTransientGameStateUnavailableEvent(event);
+}
