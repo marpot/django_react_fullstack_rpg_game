@@ -4,6 +4,13 @@ import {
   choiceActionPayload,
   type StructuredChoice,
 } from "@/features/game/choiceActionPayload";
+import {
+  getEventLabel,
+  getTurnLabel,
+  getVisibleChoices,
+  isAdventureCompleted,
+  canActInGame,
+} from "@/features/game/gameplayUi";
 import "@/styles/features/game/GameWindow.scss";
 
 type Props = {
@@ -33,33 +40,6 @@ function getEventClass(event: string) {
   }
 }
 
-function getEventLabel(
-  event: string,
-  actor: { participant_id?: number; name?: string; is_ai?: boolean } | null,
-  currentParticipantId: number | null,
-) {
-  switch (event) {
-    case "game_started":
-    case "system":
-      return "System";
-    case "action_result":
-      if (
-        actor?.participant_id !== undefined &&
-        currentParticipantId !== null &&
-        String(actor.participant_id) === String(currentParticipantId)
-      ) {
-        return "Ty";
-      }
-      if (actor?.is_ai) return `${actor.name || "AI"} (AI)`;
-      return actor?.name || "Ty";
-    case "error":
-    case "unknown":
-      return "Błąd";
-    default:
-      return "Mistrz Gry";
-  }
-}
-
 function renderText(text: any): string {
   if (!text) return "";
 
@@ -82,33 +62,6 @@ function renderText(text: any): string {
   return String(text);
 }
 
-function getTurnLabel(
-  turnState: any | null,
-  currentParticipantId: number | null,
-  gameState: any | null,
-  participants: any[],
-) {
-  const participantId = turnState?.current_player_id;
-  if (participantId === undefined || participantId === null) {
-    return "Tura: —";
-  }
-
-  if (
-    currentParticipantId !== null
-    && String(participantId) === String(currentParticipantId)
-  ) {
-    return "Tura: Ty";
-  }
-
-  const participant = participants.find(
-    (candidate) => String(candidate.participant_id) === String(participantId),
-  );
-  const runtimePlayer = gameState?.players?.[String(participantId)];
-  const name = runtimePlayer?.name || participant?.name || "Gracz";
-
-  return `Tura: ${name}${participant?.is_ai ? " (AI)" : ""}`;
-}
-
 export default function GameWindow({
   world,
   gameEvents,
@@ -124,7 +77,7 @@ export default function GameWindow({
   const lastEvent = gameEvents[gameEvents.length - 1];
   const lastChoices: StructuredChoice[] = lastEvent?.payload?.choices || [];
   const isMyTurn = isParticipantTurn(turnState, currentParticipantId);
-  const adventureCompleted = gameState?.adventure_completed === true;
+  const adventureCompleted = isAdventureCompleted(gameState);
   const turnLabel = getTurnLabel(
     turnState,
     currentParticipantId,
@@ -147,12 +100,12 @@ export default function GameWindow({
       action: "move",
     },
   ];
-  const visibleChoices = adventureCompleted
-    ? []
-    : lastChoices.length > 0
-    ? lastChoices
-    : fallbackChoices;
-  const canAct = isMyTurn && !adventureCompleted;
+  const visibleChoices = getVisibleChoices(
+    lastChoices,
+    fallbackChoices,
+    adventureCompleted,
+  );
+  const canAct = canActInGame(isMyTurn, adventureCompleted);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });

@@ -11,6 +11,7 @@ import Button from "@/components/ui/Button/Button";
 
 import { useRoomSession } from "@/features/room/hooks/useRoomSession";
 import { useRoomAdventure } from "@/features/room/hooks/useRoomAdventure";
+import { getVisibleEnemies } from "@/features/game/gameplayUi";
 
 const RoomPage: React.FC = () => {
   const params = useParams<{ roomId: string }>();
@@ -143,16 +144,9 @@ const RoomPage: React.FC = () => {
     session.gameState?.players || {},
   ) as any[];
 
-  const currentLocation = runtimePlayers[0]?.location;
   const currentLocationName = runtimePlayers[0]?.location_name;
 
-  const visibleEnemies = (
-    Object.values(session.gameState?.enemies || {}) as any[]
-  ).filter(
-    (enemy) =>
-      enemy.hp > 0 &&
-      String(enemy.location) === String(currentLocation),
-  );
+  const visibleEnemies = getVisibleEnemies(session.gameState) as any[];
 
   return (
     <div className={`room-layout${isLobbyView ? " room-layout--lobby" : ""}`}>
