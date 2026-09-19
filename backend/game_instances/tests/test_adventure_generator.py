@@ -44,7 +44,20 @@ def valid_payload():
             },
         ],
         "npcs": [],
-        "progression": [],
+        "progression": [
+            {
+                "stage": "forest",
+                "trigger": "move:Forest",
+                "objective": "Defeat the wolf.",
+                "next_stage": "completed",
+            },
+            {
+                "stage": "completed",
+                "trigger": "defeat:enemy@Forest",
+                "objective": "",
+                "next_stage": None,
+            },
+        ],
     }
 
 

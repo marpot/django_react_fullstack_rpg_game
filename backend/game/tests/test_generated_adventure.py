@@ -55,13 +55,13 @@ def build_valid_spec() -> GeneratedAdventureSpec:
         progression=(
             GeneratedProgressionStep(
                 stage="forest",
-                trigger="talk:guard@village",
+                trigger="talk:guard@Wioska",
                 objective="Idź do lasu.",
                 next_stage="completed",
             ),
             GeneratedProgressionStep(
                 stage="completed",
-                trigger="defeat:enemy@forest",
+                trigger="defeat:enemy@Las",
                 objective="",
                 next_stage=None,
             ),
@@ -168,7 +168,7 @@ def test_progression_with_unknown_next_stage_is_rejected():
 
     invalid_step = GeneratedProgressionStep(
         stage="forest",
-        trigger="talk:guard@village",
+        trigger="talk:guard@Wioska",
         objective="Idź do lasu.",
         next_stage="missing",
     )
@@ -183,5 +183,65 @@ def test_progression_with_unknown_next_stage_is_rejected():
     with pytest.raises(
         GeneratedAdventureValidationError,
         match="unknown next stage",
+    ):
+        validate_generated_adventure(invalid)
+
+
+def test_unsupported_progression_trigger_is_rejected():
+    spec = build_valid_spec()
+    invalid_step = GeneratedProgressionStep(
+        stage="forest",
+        trigger="collect:amulet@Wioska",
+        objective="Znajdź amulet.",
+        next_stage=None,
+    )
+    invalid = GeneratedAdventureSpec(
+        **{**spec.__dict__, "progression": (invalid_step,)}
+    )
+
+    with pytest.raises(
+        GeneratedAdventureValidationError,
+        match="Unsupported progression trigger",
+    ):
+        validate_generated_adventure(invalid)
+
+
+def test_progression_trigger_with_unknown_npc_is_rejected():
+    spec = build_valid_spec()
+    invalid_step = GeneratedProgressionStep(
+        stage="completed",
+        trigger="talk:missing@Wioska",
+        objective="",
+        next_stage=None,
+    )
+    invalid = GeneratedAdventureSpec(
+        **{**spec.__dict__, "progression": (invalid_step,)}
+    )
+
+    with pytest.raises(
+        GeneratedAdventureValidationError,
+        match="unknown NPC",
+    ):
+        validate_generated_adventure(invalid)
+
+
+def test_progression_without_ordered_terminal_path_is_rejected():
+    spec = build_valid_spec()
+    broken_first_step = GeneratedProgressionStep(
+        stage="forest",
+        trigger="talk:guard@Wioska",
+        objective="Idź do lasu.",
+        next_stage=None,
+    )
+    invalid = GeneratedAdventureSpec(
+        **{
+            **spec.__dict__,
+            "progression": (broken_first_step, spec.progression[1]),
+        }
+    )
+
+    with pytest.raises(
+        GeneratedAdventureValidationError,
+        match="one ordered path",
     ):
         validate_generated_adventure(invalid)

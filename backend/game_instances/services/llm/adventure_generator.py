@@ -16,10 +16,25 @@ class GeneratedAdventureGenerationError(ValueError):
     """The provider response is not a generated adventure JSON document."""
 
 
-SYSTEM_PROMPT = """Return ONLY JSON for a generated adventure.
+SYSTEM_PROMPT = """Return ONLY JSON for a PLAYABLE generated adventure.
 Use exactly these top-level fields: title, description, start_location,
 locations, choices, enemies, npcs, progression.
 Do not include database IDs, runtime state, HP changes, turns, or commands.
+
+Create choices that let the player reach every location used by progression,
+in progression order, starting from start_location. Location fields on choices,
+enemies, and npcs must use location keys.
+
+Progression is a non-empty linear sequence. Each non-final step's next_stage
+must equal the following step's stage. The final step must use next_stage null.
+Use ONLY these trigger forms supported by the runtime:
+- move:<location title>
+- talk:<npc key>@<location title>
+- defeat:enemy@<location title>
+The location title must exactly match an existing location title
+(case-insensitive). A talk target must be an NPC located there. A defeat
+trigger requires at least one enemy located there. The ordered sequence must
+be achievable and must end at the terminal step so the adventure can finish.
 """
 
 

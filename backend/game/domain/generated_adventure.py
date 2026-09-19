@@ -60,6 +60,46 @@ class GeneratedAdventureValidationError(ValueError):
     pass
 
 
+def _parse_progression_trigger(trigger: str) -> tuple[str, str | None, str]:
+    if ":" not in trigger:
+        raise GeneratedAdventureValidationError(
+            f"Unsupported progression trigger: {trigger}"
+        )
+
+    action, payload = trigger.split(":", 1)
+    if action == "move" and payload and "@" not in payload:
+        return action, None, payload
+
+    if action in {"talk", "defeat"} and payload.count("@") == 1:
+        target, location = payload.split("@", 1)
+        if target and location:
+            return action, target, location
+
+    raise GeneratedAdventureValidationError(
+        f"Unsupported progression trigger: {trigger}"
+    )
+
+
+def _location_is_reachable(
+    start: str,
+    destination: str,
+    exits: dict[str, set[str]],
+) -> bool:
+    pending = [start]
+    visited: set[str] = set()
+
+    while pending:
+        location = pending.pop()
+        if location == destination:
+            return True
+        if location in visited:
+            continue
+        visited.add(location)
+        pending.extend(exits.get(location, set()) - visited)
+
+    return False
+
+
 def validate_generated_adventure(
     spec: GeneratedAdventureSpec,
 ) -> GeneratedAdventureSpec:
@@ -84,6 +124,15 @@ def validate_generated_adventure(
         )
 
     known_locations = set(location_keys)
+    location_by_title = {
+        location.title.casefold(): location.key
+        for location in spec.locations
+    }
+
+    if len(location_by_title) != len(spec.locations):
+        raise GeneratedAdventureValidationError(
+            "Location titles must be unique."
+        )
 
     if spec.start_location not in known_locations:
         raise GeneratedAdventureValidationError(
@@ -134,6 +183,7 @@ def validate_generated_adventure(
             )
 
     npc_keys: set[str] = set()
+    npc_locations: dict[str, str] = {}
 
     for npc in spec.npcs:
         if not npc.key.strip():
@@ -147,11 +197,17 @@ def validate_generated_adventure(
             )
 
         npc_keys.add(npc.key)
+        npc_locations[npc.key] = npc.location
 
         if npc.location not in known_locations:
             raise GeneratedAdventureValidationError(
                 f"NPC references unknown location: {npc.location}"
             )
+
+    if not spec.progression:
+        raise GeneratedAdventureValidationError(
+            "Progression must contain at least one terminal path."
+        )
 
     stages = [step.stage for step in spec.progression]
 
@@ -162,7 +218,14 @@ def validate_generated_adventure(
 
     known_stages = set(stages)
 
-    for step in spec.progression:
+    exits = {key: set() for key in known_locations}
+    for choice in spec.choices:
+        exits[choice.from_location].add(choice.to_location)
+
+    current_location = spec.start_location
+    defeated_locations: set[str] = set()
+
+    for index, step in enumerate(spec.progression):
         if not step.stage.strip():
             raise GeneratedAdventureValidationError(
                 "Progression stage cannot be empty."
@@ -181,5 +244,67 @@ def validate_generated_adventure(
                 f"Progression step references unknown next stage: "
                 f"{step.next_stage}"
             )
+
+        expected_next_stage = (
+            spec.progression[index + 1].stage
+            if index + 1 < len(spec.progression)
+            else None
+        )
+        if step.next_stage != expected_next_stage:
+            raise GeneratedAdventureValidationError(
+                "Progression must form one ordered path ending in a "
+                "terminal step."
+            )
+
+        action, target, location_title = _parse_progression_trigger(
+            step.trigger
+        )
+        location_key = location_by_title.get(
+            location_title.casefold()
+        )
+        if location_key is None:
+            raise GeneratedAdventureValidationError(
+                f"Progression trigger references unknown location: "
+                f"{location_title}"
+            )
+
+        if action == "talk":
+            if target not in npc_locations:
+                raise GeneratedAdventureValidationError(
+                    f"Progression trigger references unknown NPC: {target}"
+                )
+            if npc_locations[target] != location_key:
+                raise GeneratedAdventureValidationError(
+                    f"Progression trigger references NPC at wrong location: "
+                    f"{target}"
+                )
+        elif action == "defeat":
+            if target != "enemy":
+                raise GeneratedAdventureValidationError(
+                    "Defeat progression trigger must target 'enemy'."
+                )
+            if location_key not in {
+                enemy.location for enemy in spec.enemies
+            }:
+                raise GeneratedAdventureValidationError(
+                    "Progression trigger references a location without "
+                    "enemies."
+                )
+            if location_key in defeated_locations:
+                raise GeneratedAdventureValidationError(
+                    "Progression cannot defeat the same location twice."
+                )
+            defeated_locations.add(location_key)
+
+        if not _location_is_reachable(
+            current_location,
+            location_key,
+            exits,
+        ):
+            raise GeneratedAdventureValidationError(
+                "Progression trigger location is not reachable in order: "
+                f"{location_title}"
+            )
+        current_location = location_key
 
     return spec

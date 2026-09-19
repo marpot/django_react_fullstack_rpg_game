@@ -65,8 +65,9 @@ class AdventureFactory:
                     description=choice_spec.description,
                 )
 
+            enemy_locations = {}
             for enemy_spec in spec.enemies:
-                Enemy.objects.create(
+                enemy = Enemy.objects.create(
                     name=enemy_spec.name,
                     hp=enemy_spec.hp,
                     defense=enemy_spec.defense,
@@ -75,6 +76,33 @@ class AdventureFactory:
                     damage_bonus=enemy_spec.damage_bonus,
                     adventure=adventure,
                 )
+                enemy_locations[str(enemy.id)] = locations[
+                    enemy_spec.location
+                ].id
+
+            adventure.generated_scenario = {
+                "start_location_id": locations[spec.start_location].id,
+                "enemy_locations": enemy_locations,
+                "npcs": [
+                    {
+                        "id": npc.key,
+                        "name": npc.name,
+                        "role": npc.role,
+                        "location_id": locations[npc.location].id,
+                    }
+                    for npc in spec.npcs
+                ],
+                "progression": [
+                    {
+                        "stage": step.stage,
+                        "trigger": step.trigger,
+                        "objective": step.objective,
+                        "next_stage": step.next_stage,
+                    }
+                    for step in spec.progression
+                ],
+            }
+            adventure.save(update_fields=["generated_scenario"])
 
         return adventure
 
