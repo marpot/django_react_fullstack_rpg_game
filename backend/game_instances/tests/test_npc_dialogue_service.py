@@ -83,7 +83,7 @@ def test_dialogue_failure_uses_named_fallback(answer, error):
 
 @pytest.mark.parametrize("message,npc_id,npc_name", [
     ("talk guide", "guide", "Guide"),
-    ("Porozmawiaj ze strażnikiem", "strażnik", "Strażnik"),
+    ("Porozmawiaj ze strażnikiem", "guard", "Strażnik"),
 ])
 def test_free_text_talk_uses_same_canonical_processor_path_without_intent_provider(
     message, npc_id, npc_name,

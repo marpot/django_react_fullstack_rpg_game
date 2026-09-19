@@ -34,15 +34,22 @@ class IntentParser:
         "goblina": "goblin",
         "goblinem": "goblin",
         "goblinowi": "goblin",
-        "kupca": "kupiec",
-        "kupcem": "kupiec",
-        "kupcowi": "kupiec",
-        "lasu": "las",
-        "lesie": "las",
-        "strażnika": "strażnik",
-        "strażnikiem": "strażnik",
-        "straznika": "straznik",
-        "straznikiem": "straznik",
+
+        "kupiec": "merchant",
+        "kupca": "merchant",
+        "kupcem": "merchant",
+        "kupcowi": "merchant",
+
+        "las": "forest",
+        "lasu": "forest",
+        "lesie": "forest",
+
+        "strażnik": "guard",
+        "strażnika": "guard",
+        "strażnikiem": "guard",
+        "straznik": "guard",
+        "straznika": "guard",
+        "straznikiem": "guard",
     }
 
     @staticmethod
@@ -106,6 +113,13 @@ class IntentParser:
         return max(matches, default=(0, None))[1]
 
     @classmethod
+    def _known_target(cls, text):
+        for form, target in cls._TARGET_FORMS.items():
+            if re.search(r"(?<!\w)" + re.escape(form) + r"(?!\w)", text):
+                return target
+        return None
+
+    @classmethod
     def _fallback_target(cls, text, action, action_match):
         remainder = text[action_match.end():]
         words = [word for word in re.findall(r"[\wąćęłńóśźż-]+", remainder) if word]
@@ -118,12 +132,17 @@ class IntentParser:
     def parse(self, player_input, context=None) -> dict:
         text = self._normalise(self._value(player_input))
         action, action_match = self._find_action(text)
+
         if action not in self.ALLOWED_ACTIONS:
             return {"action": "unknown", "target": None, "method": None}
 
         target = None
         if action != "inspect":
             target = self._context_target(text, context, action)
+
+            if target is None:
+                target = self._known_target(text)
+
             if target is None and action_match is not None:
                 target = self._fallback_target(text, action, action_match)
 

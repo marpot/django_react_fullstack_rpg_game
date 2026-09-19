@@ -12,6 +12,8 @@ type Props = {
   sendGame: (data: any) => void;
   currentParticipantId: number | null;
   turnState: any | null;
+  gameState: any | null;
+  participants: any[];
 };
 
 function getEventClass(event: string) {
@@ -31,13 +33,25 @@ function getEventClass(event: string) {
   }
 }
 
-function getEventLabel(event: string) {
+function getEventLabel(
+  event: string,
+  actor: { participant_id?: number; name?: string; is_ai?: boolean } | null,
+  currentParticipantId: number | null,
+) {
   switch (event) {
     case "game_started":
     case "system":
       return "System";
     case "action_result":
-      return "Ty";
+      if (
+        actor?.participant_id !== undefined &&
+        currentParticipantId !== null &&
+        String(actor.participant_id) === String(currentParticipantId)
+      ) {
+        return "Ty";
+      }
+      if (actor?.is_ai) return `${actor.name || "AI"} (AI)`;
+      return actor?.name || "Ty";
     case "error":
     case "unknown":
       return "Błąd";
@@ -68,12 +82,41 @@ function renderText(text: any): string {
   return String(text);
 }
 
+function getTurnLabel(
+  turnState: any | null,
+  currentParticipantId: number | null,
+  gameState: any | null,
+  participants: any[],
+) {
+  const participantId = turnState?.current_player_id;
+  if (participantId === undefined || participantId === null) {
+    return "Tura: —";
+  }
+
+  if (
+    currentParticipantId !== null
+    && String(participantId) === String(currentParticipantId)
+  ) {
+    return "Tura: Ty";
+  }
+
+  const participant = participants.find(
+    (candidate) => String(candidate.participant_id) === String(participantId),
+  );
+  const runtimePlayer = gameState?.players?.[String(participantId)];
+  const name = runtimePlayer?.name || participant?.name || "Gracz";
+
+  return `Tura: ${name}${participant?.is_ai ? " (AI)" : ""}`;
+}
+
 export default function GameWindow({
   world,
   gameEvents,
   sendGame,
   currentParticipantId,
   turnState,
+  gameState,
+  participants,
 }: Props) {
   const [input, setInput] = useState("");
   const logEndRef = useRef<HTMLDivElement | null>(null);
@@ -81,6 +124,13 @@ export default function GameWindow({
   const lastEvent = gameEvents[gameEvents.length - 1];
   const lastChoices: StructuredChoice[] = lastEvent?.payload?.choices || [];
   const isMyTurn = isParticipantTurn(turnState, currentParticipantId);
+  const adventureCompleted = gameState?.adventure_completed === true;
+  const turnLabel = getTurnLabel(
+    turnState,
+    currentParticipantId,
+    gameState,
+    participants,
+  );
   const fallbackChoices: StructuredChoice[] = [
     {
       id: "inspect",
@@ -97,7 +147,12 @@ export default function GameWindow({
       action: "move",
     },
   ];
-  const visibleChoices = lastChoices.length > 0 ? lastChoices : fallbackChoices;
+  const visibleChoices = adventureCompleted
+    ? []
+    : lastChoices.length > 0
+    ? lastChoices
+    : fallbackChoices;
+  const canAct = isMyTurn && !adventureCompleted;
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -150,7 +205,11 @@ export default function GameWindow({
         {gameEvents.map((e, i) => {
           const eventType = e.event || e.type || "narration";
           const eventClass = getEventClass(eventType);
-          const label = getEventLabel(eventType);
+          const label = getEventLabel(
+            eventType,
+            e.payload?.actor || null,
+            currentParticipantId,
+          );
 
           return (
             <div key={i} className={`log-line ${eventClass}`}>
@@ -166,7 +225,7 @@ export default function GameWindow({
       </div>
 
       <div className={`turnHint ${isMyTurn ? "is-ready" : "is-waiting"}`} aria-live="polite">
-        {isMyTurn ? "Twoja tura — wybierz akcję." : "Czekasz na swoją turę."}
+        {adventureCompleted ? "Przygoda ukończona." : turnLabel}
       </div>
 
       {visibleChoices.length > 0 && (
@@ -176,8 +235,8 @@ export default function GameWindow({
             <button
               key={choice.id || `${choice.label}-${index}`}
               className="choiceButton"
-              onClick={() => isMyTurn && handleChoice(choice)}
-              disabled={!isMyTurn}
+              onClick={() => canAct && handleChoice(choice)}
+              disabled={!canAct}
             >
               {choice.label || choice.title || choice.message || "Dalej"}
             </button>
@@ -188,12 +247,12 @@ export default function GameWindow({
       <div className="inputBar">
         <input
           value={input}
-          disabled={!isMyTurn}
+          disabled={!canAct}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           placeholder="Opisz swoją akcję..."
         />
-        <button onClick={handleSend} disabled={!isMyTurn}>Wykonaj</button>
+        <button onClick={handleSend} disabled={!canAct}>Wykonaj</button>
       </div>
     </div>
   );

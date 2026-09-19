@@ -43,7 +43,7 @@ class _OpenAICompatibleProvider:
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.2,
-            max_tokens=200,
+            max_tokens=500,
         )
         return response.choices[0].message.content or ""
 

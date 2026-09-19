@@ -138,7 +138,7 @@ const RoomPage: React.FC = () => {
           </Button>
         )}
 
-        {session.activeCharacter && (
+        {isLobbyView && session.activeCharacter && (
           <div className="active-character">
             <h3>{isLobbyView ? "Aktywna postać" : "🎮 Aktywna postać"}</h3>
 
@@ -148,6 +148,28 @@ const RoomPage: React.FC = () => {
                 <p>{isLobbyView ? "Poziom" : "Lvl:"} {session.activeCharacter.level}</p>
                 <p>{isLobbyView ? "Życie" : "HP:"} {session.activeCharacter.health}/{session.activeCharacter.max_health}</p>
               </>
+            )}
+          </div>
+        )}
+
+        {!isLobbyView && (
+          <div className="active-character">
+            <h3>🎮 Drużyna</h3>
+            {Object.entries(session.gameState?.players || {}).map(
+              ([participantId, player]: [string, any]) => {
+                const participant = session.room?.participants.find(
+                  (candidate) =>
+                    String(candidate.participant_id) === String(participantId),
+                );
+                return (
+                  <div key={participantId}>
+                    <p className="room-character-name">
+                      <b>{player.name}{participant?.is_ai ? " (AI)" : ""}</b>
+                    </p>
+                    <p>HP: {player.hp}/{player.max_hp}</p>
+                  </div>
+                );
+              },
             )}
           </div>
         )}
@@ -267,6 +289,8 @@ const RoomPage: React.FC = () => {
             sendGame={session.sendGame}
             currentParticipantId={session.currentParticipantId}
             turnState={session.turnState}
+            gameState={session.gameState}
+            participants={session.room?.participants || []}
           />
         )}
       </main>

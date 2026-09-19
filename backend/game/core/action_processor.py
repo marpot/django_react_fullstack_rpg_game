@@ -91,7 +91,7 @@ class ActionProcessor:
         world: dict | None = None,
         details: dict | None = None,
     ):
-        fallback = {"text": narration_fallback(action, result)}
+        fallback = {"text": narration_fallback(action, result, details)}
 
         if self.narrate_fn is None:
             return fallback

@@ -35,10 +35,12 @@ export const useRoomSession = (roomId: string) => {
 
   const [world, setWorld] = useState<any | null>(null);
   const [gameEvents, setGameEvents] = useState<any[]>([]);
+  const [gameState, setGameState] = useState<any | null>(null);
   const [turnState, setTurnState] = useState<any | null>(null);
 
   const normalizeEvent = (data: any) => {
     const payload = data?.payload ?? {};
+
     const event =
       payload?.event ||
       data?.event ||
@@ -59,11 +61,22 @@ export const useRoomSession = (roomId: string) => {
         ? data.message
         : "";
 
+    const actor =
+      payload?.actor ??
+      (
+        payload?.data?.actor &&
+        typeof payload.data.actor === "object"
+          ? payload.data.actor
+          : null
+      ) ??
+      data?.actor ??
+      null;
+
     const normalized: any = {
       event,
       type: event,
       text,
-      payload,
+      payload: actor ? { ...payload, actor } : payload,
     };
 
     if (payload?.world) {
@@ -106,6 +119,7 @@ export const useRoomSession = (roomId: string) => {
       setJoined(false);
       setSessionError(null);
       setState("loading");
+
       try {
         const meData = await fetchMe();
         const activeCharacter = meData.character ?? null;
@@ -135,6 +149,7 @@ export const useRoomSession = (roomId: string) => {
         const participantId = normalizeParticipantId(
           joinResponse.data.participant_id
         );
+
         if (participantId === null) {
           throw new Error(
             "Room join contract violation: participant_id must be numeric"
@@ -147,9 +162,9 @@ export const useRoomSession = (roomId: string) => {
         );
 
         const joinedWithActiveCharacter = Boolean(
-          currentParticipant
-          && currentParticipant.character_id === activeCharacter.id
-          && joinResponse.data.character_id === activeCharacter.id
+          currentParticipant &&
+          currentParticipant.character_id === activeCharacter.id &&
+          joinResponse.data.character_id === activeCharacter.id
         );
 
         if (!joinedWithActiveCharacter) {
@@ -164,7 +179,11 @@ export const useRoomSession = (roomId: string) => {
           setCurrentParticipantId(participantId);
           setState("lobby");
           setJoined(true);
-          localStorage.setItem("character_id", String(activeCharacter.id));
+
+          localStorage.setItem(
+            "character_id",
+            String(activeCharacter.id)
+          );
         }
       } catch (error: any) {
         console.error("[ROOM SESSION ERROR]", {
@@ -176,6 +195,7 @@ export const useRoomSession = (roomId: string) => {
         if (mounted) {
           setJoined(false);
           setCurrentParticipantId(null);
+
           if (error?.response?.data?.code === "NO_ACTIVE_CHARACTER") {
             setState("missing-character");
             setSessionError(
@@ -184,14 +204,16 @@ export const useRoomSession = (roomId: string) => {
           } else {
             setState("error");
             setSessionError(
-              error?.response?.data?.error
-              ?? error?.message
-              ?? "Nie udało się dołączyć do pokoju."
+              error?.response?.data?.error ??
+              error?.message ??
+              "Nie udało się dołączyć do pokoju."
             );
           }
         }
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -220,10 +242,15 @@ export const useRoomSession = (roomId: string) => {
         data?.payload?.world ??
         data?.world ??
         null;
+
       const nextTurnState = extractTurnState(data);
 
       if (nextTurnState !== null) {
         setTurnState(nextTurnState);
+      }
+
+      if (normalizedPayload?.game_state) {
+        setGameState(normalizedPayload.game_state);
       }
 
       let eventText = text;
@@ -262,6 +289,7 @@ export const useRoomSession = (roomId: string) => {
     turnState,
     world,
     gameEvents,
+    gameState,
     sendGame: send,
     refreshRoom,
   };

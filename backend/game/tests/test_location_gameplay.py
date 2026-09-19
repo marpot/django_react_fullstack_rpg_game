@@ -13,7 +13,7 @@ from game.core.game_command import GameCommand
 from game.npc.npc_models import NPC
 from game.services.game_start_service import GameStartService
 from game.state.game_state_manager import GameStateManager
-from game.state.runtime.models import Enemy as RuntimeEnemy
+from game.state.runtime.models import Enemy as RuntimeEnemy, Player
 from world.models import Adventure, Choice, Enemy, Location
 from world.seeders.world_seeder import WorldSeeder
 
@@ -145,6 +145,33 @@ def test_move_validates_exit_then_changes_state_before_narration(location_game):
         (choice["action"], choice["target"]) for choice in moved["choices"]
     }
     assert not any(choice["target"] == "goblin" for choice in moved["choices"])
+
+
+@pytest.mark.django_db
+def test_move_keeps_all_runtime_players_in_same_location(location_game):
+    state, room, participant_id, village, forest, _, _ = location_game
+    room.ai_participants.add(900)
+    room.players[900] = Player(
+        id=900,
+        name="Eldrin",
+        hp=100,
+        max_hp=100,
+        attack_bonus=2,
+        damage_die=6,
+        damage_bonus=1,
+        defense=10,
+        location=str(village.id),
+    )
+
+    result = ActionProcessor(state).process(
+        GameCommand(action="move", target=str(forest.id)),
+        room=room.name,
+        participant_id=participant_id,
+    )
+
+    assert result["result"]["location"] == str(forest.id)
+    assert room.players[participant_id].location == str(forest.id)
+    assert room.players[900].location == str(forest.id)
 
 
 @pytest.mark.django_db

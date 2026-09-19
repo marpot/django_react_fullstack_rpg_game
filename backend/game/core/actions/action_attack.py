@@ -77,6 +77,7 @@ class AttackAction:
         }
         narration = self.narrate_fn("attack", canonical_result, world, {
             "actor": attacker.name,
+            "actor_is_ai": participant_id in room_obj.ai_participants,
             "target": defender.name,
             "location": attacker.location,
             "recent_actions": [

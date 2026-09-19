@@ -2,6 +2,7 @@ import pytest
 from django.contrib.auth import get_user_model
 
 from game.core.action_processor import ActionProcessor
+from game.core.narration_fallback import narration_fallback
 
 from game.state.game_state_manager import GameStateManager
 from game.state.runtime.models import Player, Enemy
@@ -18,6 +19,14 @@ from world.models import Adventure, Choice, Location, Enemy as EnemyORM
 
 
 pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("fake_llm_provider")]
+
+
+def test_ai_attack_fallback_names_the_ai_actor():
+    assert narration_fallback(
+        "attack",
+        {"attacker_damage": 2, "defender_damage": 3},
+        {"actor": "Eldrin", "actor_is_ai": True},
+    ) == "Eldrin zadaje 2 obrażeń przeciwnikowi. Eldrin otrzymuje 3 obrażeń."
 
 
 def test_attack_action():
@@ -223,7 +232,7 @@ def test_narration_provider_failure_preserves_action_and_turn(action, fake_llm_p
     if action == "attack":
         assert str(result["result"]["attacker_damage"]) in result["text"]
     else:
-        assert result["text"] == f"Przemieszczasz się do: {north.id}."
+        assert result["text"] == "Przemieszczasz się do: North."
     assert "error" not in result["result"]
     assert room.player_histories[1][-1]["action"] == action
     assert result["turn_state"]["current_player_id"] == room.current_player_id == 2

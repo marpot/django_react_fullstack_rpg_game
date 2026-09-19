@@ -13,9 +13,9 @@ def test_polish_move_phrase_is_parsed_as_move():
 
 
 @pytest.mark.parametrize(("message", "action", "target"), [
-    ("Idę do lasu", "move", "las"),
-    ("Rozmawiam ze strażnikiem", "talk", "strażnik"),
-    ("Pytam kupca, co wie o goblinach", "talk", "kupiec"),
+    ("Idę do lasu", "move", "forest"),
+    ("Rozmawiam ze strażnikiem", "talk", "guard"),
+    ("Pytam kupca, co wie o goblinach", "talk", "merchant"),
     ("Atakuję goblina mieczem", "attack", "goblin"),
 ])
 def test_natural_polish_sentences_select_the_first_relevant_target(message, action, target):
@@ -47,6 +47,15 @@ def test_parser_prefers_visible_context_entities_over_later_words():
     assert IntentParser().parse("Atakuję goblina mieczem", context=context)["target"] == "goblin"
     assert IntentParser().parse("Pytam kupca, co wie o goblinach", context=context)["target"] == "kupiec"
     assert IntentParser().parse("Idę do lasu", context=context)["target"] == "las"
+
+
+def test_known_target_is_found_in_full_talk_sentence():
+    result = IntentParser().parse(
+        "Podchodzę do strażnika i pytam, co się wydarzyło."
+    )
+
+    assert result["action"] == "talk"
+    assert result["target"] == "guard"
 
 
 @pytest.mark.parametrize(("message", "action"), [
