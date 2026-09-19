@@ -10,7 +10,10 @@ import {
   extractTurnState,
   normalizeParticipantId,
 } from "@/features/game/turnState";
-import { normalizeRoomEvent } from "@/features/room/sessionEvent";
+import {
+  normalizeRoomEvent,
+  shouldDisplayRoomEvent,
+} from "@/features/room/sessionEvent";
 import type { Character } from "@/features/room/room.types";
 
 export type RoomState =
@@ -174,12 +177,18 @@ export const useRoomSession = (roomId: string) => {
     (data) => {
       if (!data?.type) return;
 
+      const normalizedEvent = normalizeRoomEvent(data);
+
+      if (!shouldDisplayRoomEvent(normalizedEvent)) {
+        return;
+      }
+
       const {
         type: event,
         text,
         payload: normalizedPayload,
         world: normalizedWorld,
-      } = normalizeRoomEvent(data);
+      } = normalizedEvent;
 
       const world =
         normalizedWorld ??
