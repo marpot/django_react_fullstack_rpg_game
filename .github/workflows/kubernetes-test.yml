@@ -1,0 +1,30 @@
+name: Kubernetes Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-kubernetes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show runner resources
+        run: |
+          echo "CPU:"
+          nproc
+          echo "Memory:"
+          free -h
+          echo "Disk:"
+          df -h /
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+
+      - name: Check Kubernetes cluster
+        run: |
+          kubectl version
+          kubectl get nodes -o wide
+          kubectl get pods -A
