@@ -11,8 +11,9 @@ from chat.models import Room
 from chat.services.room_participants_service import RoomParticipantsService
 from game.core.action_processor import ActionProcessor
 from game.domain.adventure_definition import ProgressionStep
-from game.services.bot_player_service import BotPlayerService
 from game.services.game_action_service import GameActionService
+from game.services.bot_player_service import BotPlayerService
+from game.services.bot_turn_service import BotTurnService
 from game.services.game_start_service import GameStartService
 from game.services.game_turn_service import GameTurnService
 from game.state.game_state_manager import GameStateManager
@@ -263,15 +264,19 @@ def test_started_game_can_execute_ai_from_real_participant_flow():
     assert GameTurnService(state).advance_turn(room) == bot.id
     assert room.current_player_id == bot.id
 
-    consumer = object.__new__(GameConsumer)
-    consumer.state_manager = state
-    consumer.room_name = str(room_record.id)
-    consumer.adventure_id = adventure.id
-    consumer.world = room.world
-    consumer.processor = ActionProcessor(state)
-    consumer.bot_player_service = BotPlayerService(state)
+    processor = ActionProcessor(state)
+    bot_player_service = BotPlayerService(state)
+    bot_turn_service = BotTurnService(
+        state,
+        bot_player_service,
+        processor,
+    )
 
-    results = consumer._execute_bot_turns()
+    results = bot_turn_service.execute(
+        str(room_record.id),
+        adventure=adventure.id,
+        world=room.world,
+    )
 
     assert bot.id in room.players
     assert bot.id in room.ai_participants
@@ -292,17 +297,19 @@ async def test_game_consumer_executes_bot_through_canonical_path():
     consumer.world = {}
     consumer.processor = ActionProcessor(state)
     consumer.bot_player_service = BotPlayerService(state)
+    consumer.bot_turn_service = BotTurnService(
+        state,
+        consumer.bot_player_service,
+        consumer.processor,
+    )
     consumer.channel_layer = RecordingChannelLayer()
     consumer.room_group_name = "game_bot-room"
 
-    results = consumer._execute_bot_turns()
+    await consumer._run_bot_turn_if_needed()
 
-    assert len(results) == 1
-    assert results[0]["action"] == "attack"
     assert room.player_histories[7][-1]["action"] == "attack"
     assert room.current_player_id == 8
 
-    await consumer._broadcast_action_result(results[0])
     event = consumer.channel_layer.events[0]
     event_payload = event["payload"]
     assert event_payload["data"]["action"] == "attack"
@@ -334,6 +341,11 @@ async def test_human_action_and_following_bot_action_have_actor_metadata():
     consumer.scope = {"user": Mock(username="Hero")}
     consumer.processor = ActionProcessor(state)
     consumer.bot_player_service = BotPlayerService(state)
+    consumer.bot_turn_service = BotTurnService(
+        state,
+        consumer.bot_player_service,
+        consumer.processor,
+    )
     consumer.ai_game_master = Mock()
     consumer.game_action_service = GameActionService(
         consumer.processor,
@@ -377,15 +389,19 @@ def test_several_ai_turns_have_a_bounded_execution():
     room.current_player_id = 7
     room.connected_participants = set()
     room.players[8].name = "Second Companion"
-    consumer = object.__new__(GameConsumer)
-    consumer.state_manager = state
-    consumer.room_name = room.name
-    consumer.adventure_id = None
-    consumer.world = {}
-    consumer.processor = ActionProcessor(state)
-    consumer.bot_player_service = BotPlayerService(state)
+    processor = ActionProcessor(state)
+    bot_player_service = BotPlayerService(state)
+    bot_turn_service = BotTurnService(
+        state,
+        bot_player_service,
+        processor,
+    )
 
-    results = consumer._execute_bot_turns()
+    results = bot_turn_service.execute(
+        room.name,
+        adventure=None,
+        world={},
+    )
 
     assert len(results) == len(room.turn_order)
     assert len(room.player_histories[7]) == 1

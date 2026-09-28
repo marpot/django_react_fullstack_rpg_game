@@ -12,6 +12,7 @@ from game.core.action_processor import ActionProcessor
 from game.services.game_action_service import GameActionService, NO_ACTION
 from game.services.game_turn_service import GameTurnService
 from game.services.bot_player_service import BotPlayerService
+from game.services.bot_turn_service import BotTurnService
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +91,11 @@ class GameConsumer(BaseConsumer):
             self.ai_game_master,
         )
         self.bot_player_service = BotPlayerService(self.state_manager)
+        self.bot_turn_service = BotTurnService(
+            self.state_manager,
+            self.bot_player_service,
+            self.processor,
+        )
 
         self.adventure_id = None
         self.participant_id = None
@@ -225,40 +231,13 @@ class GameConsumer(BaseConsumer):
         await self._run_bot_turn_if_needed()
 
     async def _run_bot_turn_if_needed(self):
-        results = await sync_to_async(self._execute_bot_turns)()
+        results = await sync_to_async(self.bot_turn_service.execute)(
+            self.room_name,
+            adventure=self.adventure_id,
+            world=self.world,
+        )
         for result in results:
             await self._broadcast_action_result(result)
-
-    def _execute_bot_turns(self):
-        results = []
-        room_state = self.state_manager.get_room(self.room_name)
-        if room_state is None:
-            return results
-
-        with self.state_manager.start_lock:
-            for _ in range(len(room_state.turn_order)):
-                if room_state.adventure_completed or room_state.quest.completed:
-                    break
-
-                participant_id = room_state.current_player_id
-                if participant_id not in room_state.ai_participants:
-                    break
-
-                command = self.bot_player_service.choose_command(
-                    room_state,
-                    participant_id,
-                )
-                result = self.processor.process(
-                    command,
-                    room=self.room_name,
-                    participant_id=participant_id,
-                    adventure=self.adventure_id,
-                    world=self.world,
-                )
-                result["_actor_id"] = participant_id
-                results.append(result)
-
-        return results
 
     async def _broadcast_action_result(self, result):
         cleaned_text = safe_text(result.get("text", ""))
