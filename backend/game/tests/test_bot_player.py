@@ -12,6 +12,7 @@ from chat.services.room_participants_service import RoomParticipantsService
 from game.core.action_processor import ActionProcessor
 from game.domain.adventure_definition import ProgressionStep
 from game.services.bot_player_service import BotPlayerService
+from game.services.game_action_service import GameActionService
 from game.services.game_start_service import GameStartService
 from game.services.game_turn_service import GameTurnService
 from game.state.game_state_manager import GameStateManager
@@ -334,6 +335,10 @@ async def test_human_action_and_following_bot_action_have_actor_metadata():
     consumer.processor = ActionProcessor(state)
     consumer.bot_player_service = BotPlayerService(state)
     consumer.ai_game_master = Mock()
+    consumer.game_action_service = GameActionService(
+        consumer.processor,
+        consumer.ai_game_master,
+    )
     consumer.channel_layer = RecordingChannelLayer()
     consumer.room_group_name = "game_bot-room"
 

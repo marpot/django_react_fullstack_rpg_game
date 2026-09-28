@@ -9,6 +9,7 @@ from .base import BaseConsumer
 from chat.models import Room, RoomParticipant
 from game_instances.services.llm.orchestrator.ai_game_master import AIGameMaster
 from game.core.action_processor import ActionProcessor
+from game.services.game_action_service import GameActionService, NO_ACTION
 from game.services.game_turn_service import GameTurnService
 from game.services.bot_player_service import BotPlayerService
 
@@ -83,6 +84,10 @@ class GameConsumer(BaseConsumer):
         self.processor = ActionProcessor(
             self.state_manager, narrate_fn=self.ai_game_master.narrate_event,
             dialogue_fn=self.ai_game_master.dialogue_with_npc,
+        )
+        self.game_action_service = GameActionService(
+            self.processor,
+            self.ai_game_master,
         )
         self.bot_player_service = BotPlayerService(self.state_manager)
 
@@ -328,27 +333,17 @@ class GameConsumer(BaseConsumer):
                 )
                 return
 
-            if has_command:
-                parsed = data["command"]
-            else:
-                parsed = await sync_to_async(self.ai_game_master.interpret_player_input)(
-                    {"input": user_input},
-                    state_manager=self.state_manager,
-                    room=self.room_name,
-                    participant_id=self.participant_id,
-                )
-
-                if not isinstance(parsed, dict) or "action" not in parsed:
-                    return
-
-            result = await sync_to_async(self.processor.process)(
-                parsed,
+            result = await sync_to_async(self.game_action_service.execute)(
+                data,
+                state_manager=self.state_manager,
                 room=self.room_name,
                 participant_id=self.participant_id,
                 adventure=self.adventure_id,
                 world=self.world,
-                player_message=None if has_command else user_input,
             )
+            if result is NO_ACTION:
+                return
+
             cleaned_text = safe_text(result.get("text", ""))
 
             turn_state = result.get("turn_state", {}) or {}

@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from chat.consumers_modules.game_consumer import GameConsumer
+from game.services.game_action_service import GameActionService
 
 
 def _consumer(*, participant_id=17, character_id=23):
@@ -16,6 +17,10 @@ def _consumer(*, participant_id=17, character_id=23):
     consumer.state_manager = Mock()
     consumer.ai_game_master = Mock()
     consumer.processor = Mock()
+    consumer.game_action_service = GameActionService(
+        consumer.processor,
+        consumer.ai_game_master,
+    )
     consumer._send_game_event = AsyncMock()
     return consumer
 
