@@ -10,11 +10,11 @@ from game.services.dice_service import DiceService
 from game.services.game_turn_service import GameTurnService
 from game.state.resolver.entity_resolver import EntityResolver
 from game.state.runtime.runtime_player_service import RuntimePlayerService
-from game.npc.npc_service import NPCService
 
 from game.core.actions.action_attack import AttackAction
 from game.core.actions.action_move import MoveAction
 from game.core.actions.action_inspect import InspectAction
+from game.core.actions.action_talk import TalkAction
 
 logger = logging.getLogger(__name__)
 _UNSET = object()
@@ -62,6 +62,12 @@ class ActionProcessor:
             runtime_player_service=self.runtime_player_service,
             choice_service=self.choice_service,
             narrate_fn=self._narrate,
+            response_fn=self._response,
+        )
+
+        self.talk_action = TalkAction(
+            state_manager=self.state_manager,
+            dialogue_fn=self.dialogue_fn,
             response_fn=self._response,
         )
 
@@ -471,69 +477,11 @@ class ActionProcessor:
             )
 
         elif action == "talk":
-            player = room_obj.players[participant_id]
-
-            talk_result = NPCService(
-                self.state_manager
-            ).talk(
-                parsed_input["room"],
-                parsed_input["target"],
-                location=player.location,
+            result = self.talk_action.handle(
+                parsed_input,
+                world,
+                player_message=player_message,
             )
-
-            if (
-                "error" not in talk_result
-                and self.dialogue_fn is not None
-            ):
-                details = {
-                    "actor": player.name,
-                    "location": player.location,
-                    "player_message": player_message,
-                    "recent_actions": [
-                        entry.get("action")
-                        for entry in room_obj.player_histories.get(
-                            participant_id,
-                            [],
-                        )[-3:]
-                        if isinstance(entry, dict)
-                    ],
-                }
-
-                try:
-                    dialogue = self.dialogue_fn(
-                        talk_result.copy(),
-                        world,
-                        details,
-                    )
-
-                    if (
-                        isinstance(dialogue, str)
-                        and dialogue.strip()
-                    ):
-                        talk_result["text"] = dialogue.strip()
-
-                except Exception:
-                    logger.exception(
-                        "NPC dialogue failed"
-                    )
-
-            resolved_npc_id = talk_result.get("npc_id")
-            talk_result.pop("npc_id", None)
-            talk_result.pop("personality", None)
-
-            result = self._response(
-                "talk",
-                talk_result.get("text", ""),
-                talk_result,
-            )
-
-            # Keep the public response shape unchanged while
-            # allowing the deterministic progression hook to
-            # use the resolved NPC id.
-            if resolved_npc_id is not None:
-                result["_progression_npc_id"] = (
-                    resolved_npc_id
-                )
 
         else:
             return self._response(
