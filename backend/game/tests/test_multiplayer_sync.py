@@ -46,6 +46,27 @@ def two_joined_players():
     )
     room = Room.objects.create(name="sync-room", owner=user_a, adventure=adventure)
 
+    # Advance the independent participant sequence beyond every identity that
+    # could be confused with the canonical RoomParticipant IDs below.
+    highest_non_participant_id = max(
+        user_a.id, user_b.id, character_a.id, character_b.id
+    )
+    padding_room = Room.objects.create(
+        name="identity-padding-room", owner=user_a, adventure=adventure
+    )
+    padding_participant = None
+    padding_index = 0
+    while (
+        padding_participant is None
+        or padding_participant.id <= highest_non_participant_id
+    ):
+        padding_participant = RoomParticipant.objects.create(
+            room=padding_room,
+            name=f"Identity padding {padding_index}",
+            is_ai=True,
+        )
+        padding_index += 1
+
     clients = []
     participants = []
     for user, character in ((user_a, character_a), (user_b, character_b)):
