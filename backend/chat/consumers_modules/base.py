@@ -13,14 +13,8 @@ class BaseConsumer(AsyncWebsocketConsumer):
 
         user = self.scope.get("user")
 
-        print("=== WS CONNECT ===")
-        print("PATH:", self.scope["path"])
-        print("ROOM:", self.room_name)
-        print("GROUP:", self.room_group_name)
-        print("USER:", user)
-
         if not user or not user.is_authenticated:
-            print("WS REJECTED: unauthenticated")
+            logger.info("Rejected unauthenticated WebSocket connection")
             await self.close(code=4003)
             return
 
@@ -65,7 +59,6 @@ class BaseConsumer(AsyncWebsocketConsumer):
             }
         )
 
-    # ✅ MUSI ISTNIEĆ (inaczej frontend NIC nie dostanie)
     async def game_event(self, event):
         await self.send(text_data=json.dumps(event))
 
