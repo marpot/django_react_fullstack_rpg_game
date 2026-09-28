@@ -55,18 +55,23 @@ React + TypeScript client
                       ▼                    ▼                    ▼
                  PostgreSQL          Redis channel layer   Runtime game engine
                                                                   │
-                                             ┌────────────────────┼──────────────┐
-                                             ▼                    ▼              ▼
-                                       State manager       Action processor   AI game master
-                                             │                    │              │
-                                             └──── entity resolution ─── LLM providers
+                                             ┌────────────────────┼────────────────────┐
+                                             ▼                    ▼                    ▼
+                                       State manager       Game action service    AI game master
+                                                                  │                    │
+                                                                  ▼                    ▼
+                                                           Action processor       LLM providers
+                                                                  │
+                                              ┌───────────────────┼───────────────────┐
+                                              ▼                   ▼                   ▼
+                                       Action handlers   Adventure progression   Bot turn service
 ```
 
 ### Runtime game engine
 
-Gameplay is processed against isolated, in-memory state for each active room instead of mutating database models directly. `GameStateManager` owns the room state, `EntityResolver` maps runtime objects to persistent entities, and `ActionProcessor` dispatches typed commands to focused action handlers. This keeps combat rules, turn progression and persistence boundaries testable.
+Gameplay is processed against isolated, in-memory state for each active room instead of mutating database models directly. `GameStateManager` owns room state and `EntityResolver` maps runtime objects to persistent entities. WebSocket input is delegated through `GameActionService` to `ActionProcessor`, which dispatches typed commands to focused `AttackAction`, `MoveAction`, `InspectAction` and `TalkAction` handlers. Deterministic quest transitions are isolated in `AdventureProgressionService`.
 
-The server owns turn order and canonical state. It tracks connected participants, skips disconnected players, advances deterministic bot turns and sends a complete state snapshot when a player reconnects.
+The server owns turn order and canonical state. It tracks connected participants, skips disconnected players, delegates deterministic AI continuation to `BotTurnService` and sends a complete state snapshot when a player reconnects. This separation keeps transport, application orchestration and game rules independently testable.
 
 ### AI layer
 
@@ -85,9 +90,10 @@ Core actions still have deterministic behavior and narration fallbacks, so game 
 2. The host creates a room, chooses or generates an adventure and can add an AI companion.
 3. Django creates the runtime room state and broadcasts the canonical game snapshot.
 4. The active participant submits a structured choice or a natural-language action over WebSocket.
-5. The action processor resolves entities, applies game rules and produces an event.
-6. Updated game and turn state is broadcast to every connected client.
-7. The next human or AI turn begins; reconnecting players receive the current state.
+5. `GameActionService` validates and normalizes the input, then delegates the command to `ActionProcessor`.
+6. A focused action handler applies the game rule; `AdventureProgressionService` advances deterministic quest state when its trigger matches.
+7. Updated game and turn state is broadcast to every connected client.
+8. `BotTurnService` continues AI turns when required; reconnecting players receive the current canonical state.
 
 ## Tech stack
 
@@ -148,7 +154,6 @@ The backend suite covers the action processor contract, combat, multiplayer sync
 
 GitHub Actions runs Django checks and Pytest for the backend, plus Jest and a production Webpack build for the frontend on pushes and pull requests to `main`.
 
-> This README was prepared from the repository state without executing the application or test suites.
 
 ## Production configuration
 

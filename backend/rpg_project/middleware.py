@@ -1,4 +1,3 @@
-import traceback
 import logging
 
 logger = logging.getLogger("django.request")
@@ -12,7 +11,5 @@ class ExceptionLoggingMiddleware:
         return self.get_response(request)
 
     def process_exception(self, request, exception):
-        logger.error("🔥 Unhandled exception", exc_info=exception)
-        print("🔥 TRACEBACK:")
-        print(traceback.format_exc())
+        logger.error("Unhandled exception", exc_info=exception)
         return None
