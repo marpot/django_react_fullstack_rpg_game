@@ -1,6 +1,5 @@
 import json
 import logging
-import re
 import asyncio
 
 from asgiref.sync import sync_to_async
@@ -13,62 +12,9 @@ from game.services.game_action_service import GameActionService, NO_ACTION
 from game.services.game_turn_service import GameTurnService
 from game.services.bot_player_service import BotPlayerService
 from game.services.bot_turn_service import BotTurnService
+from game.utils.narration import normalize_narration_text
 
 logger = logging.getLogger(__name__)
-
-
-def safe_text(text: any) -> str:
-    """Radzi sobie z czystym JSON-em zwracanym przez LLM."""
-    if not text:
-        return "Nic się nie stało..."
-
-    if isinstance(text, (dict, list)):
-        text = json.dumps(text, ensure_ascii=False)
-
-    if not isinstance(text, str):
-        return str(text)
-
-    original_text = text.strip()
-    text = re.sub(r'```(?:json)?\s*|\s*```', '', original_text).strip()
-
-    if text.startswith(('{' , '[')) or ('"action"' in text or '"target"' in text or '"method"' in text):
-        try:
-            parsed = json.loads(text)
-            if isinstance(parsed, dict):
-                for key in ["text", "narration", "description", "content", "story", "message", "response"]:
-                    if key in parsed and isinstance(parsed[key], str) and len(parsed[key].strip()) > 5:
-                        return parsed[key].strip()
-
-                action = parsed.get("action")
-                target = parsed.get("target")
-                method = parsed.get("method")
-
-                if action == "attack":
-                    if target:
-                        method_part = f" {method}" if method else ""
-                        return f"Atakujesz {target}{method_part}."
-                    return "Wykonujesz atak."
-                if action == "move":
-                    target_name = target or "nowego miejsca"
-                    return f"Przemieszczasz się do {target_name}."
-                if action in {"inspect", "look"}:
-                    return "Rozglądasz się uważnie po okolicy."
-                return original_text
-        except (json.JSONDecodeError, TypeError, KeyError):
-            pass
-
-    try:
-        match = re.search(r'(\{[\s\S]*?\})', original_text)
-        if match:
-            parsed = json.loads(match.group(1))
-            if isinstance(parsed, dict):
-                for key in ["text", "narration", "description"]:
-                    if key in parsed and isinstance(parsed[key], str) and len(parsed[key]) > 5:
-                        return parsed[key].strip()
-    except Exception:
-        pass
-
-    return original_text
 
 
 class GameConsumer(BaseConsumer):
@@ -240,7 +186,7 @@ class GameConsumer(BaseConsumer):
             await self._broadcast_action_result(result)
 
     async def _broadcast_action_result(self, result):
-        cleaned_text = safe_text(result.get("text", ""))
+        cleaned_text = normalize_narration_text(result.get("text", ""))
         room_state = self.state_manager.get_room(self.room_name)
         actor_id = result.pop("_actor_id", getattr(self, "participant_id", None))
         actor = room_state.players.get(actor_id) if room_state is not None else None
@@ -270,100 +216,131 @@ class GameConsumer(BaseConsumer):
         try:
             data = json.loads(text_data)
             if data.get("type") == "init":
-                # Frontend może wysłać character_id — NIE traktujemy tego jako
-                # źródła autoryzacji ani identyfikacji tury.
-                # participant_id jest ustalany przez _resolve_participant() z DB.
-                frontend_char_id = data.get("character_id")
-                if self.participant_id is not None and self.character_id is not None:
-                    if frontend_char_id is not None and frontend_char_id != self.character_id:
-                        logger.warning(
-                            f"[GAME CONSUMER] frontend character_id={frontend_char_id} "
-                            f"mismatches database character_id={self.character_id}; "
-                            f"ignoring frontend value"
-                        )
+                self._handle_init_message(data)
                 return
 
-            has_command = "command" in data
-            if not has_command:
-                user_input = data.get("message", "")
-                if not isinstance(user_input, str) or not user_input.strip():
-                    return
-
-            if self.participant_id is None:
-                logger.warning(
-                    "[GAME CONSUMER] no participant_id resolved for user; "
-                    "rejecting action"
-                )
-                await self._send_game_event(
-                    "error",
-                    {"reason": "no_participant", "details": "Nie jesteś uczestnikiem tego pokoju."},
-                    text="Nie jesteś uczestnikiem tego pokoju.",
-                )
+            if not self._has_valid_player_input(data):
                 return
 
-            if self.character_id is None:
-                await self._send_game_event(
-                    "error",
-                    {
-                        "reason": "no_character",
-                        "details": "Wybierz postać przed rozpoczęciem rozgrywki.",
-                    },
-                    text="Wybierz postać przed rozpoczęciem rozgrywki.",
-                )
+            if not await self._validate_player_context():
                 return
 
-            result = await sync_to_async(self.game_action_service.execute)(
-                data,
-                state_manager=self.state_manager,
-                room=self.room_name,
-                participant_id=self.participant_id,
-                adventure=self.adventure_id,
-                world=self.world,
-            )
+            result = await self._execute_player_action(data)
             if result is NO_ACTION:
                 return
 
-            cleaned_text = safe_text(result.get("text", ""))
-
-            turn_state = result.get("turn_state", {}) or {}
-
-            room_state = self.state_manager.get_room(self.room_name)
-            game_state = await self._build_game_state(room_state) if room_state is not None else {}
-
-            payload = {
-                "data": result,
-                "user": self.scope["user"].username,
-                "actor": {
-                    "participant_id": self.participant_id,
-                    "name": room_state.players[self.participant_id].name,
-                    "is_ai": self.participant_id in room_state.ai_participants,
-                },
-                "text": cleaned_text,
-                "turn_state": turn_state,
-                "game_state": game_state,
-                "choices": result.get("choices", []),
-            }
-
-            await self._send_game_event(
-                "action_result",
-                payload,
-                text=cleaned_text
-            )
-            if room_state.current_player_id in room_state.ai_participants:
-                await asyncio.sleep(3)
-            await self._run_bot_turn_if_needed()
+            room_state = await self._broadcast_player_action(result)
+            await self._continue_with_bot_turns(room_state)
 
         except Exception as e:
-            logger.error(f"GAME ERROR: {repr(e)}", exc_info=True)
+            await self._handle_receive_error(e)
 
+    def _handle_init_message(self, data):
+        # Frontend może wysłać character_id — NIE traktujemy tego jako
+        # źródła autoryzacji ani identyfikacji tury.
+        # participant_id jest ustalany przez _resolve_participant() z DB.
+        frontend_char_id = data.get("character_id")
+        if self.participant_id is not None and self.character_id is not None:
+            if frontend_char_id is not None and frontend_char_id != self.character_id:
+                logger.warning(
+                    f"[GAME CONSUMER] frontend character_id={frontend_char_id} "
+                    f"mismatches database character_id={self.character_id}; "
+                    f"ignoring frontend value"
+                )
+
+    def _has_valid_player_input(self, data):
+        if "command" in data:
+            return True
+
+        user_input = data.get("message", "")
+        return isinstance(user_input, str) and bool(user_input.strip())
+
+    async def _validate_player_context(self):
+        if self.participant_id is None:
+            logger.warning(
+                "[GAME CONSUMER] no participant_id resolved for user; "
+                "rejecting action"
+            )
             await self._send_game_event(
                 "error",
                 {
-                    "reason": "exception",
-                    "details": str(e),
+                    "reason": "no_participant",
+                    "details": "Nie jesteś uczestnikiem tego pokoju.",
                 },
-                text=str(e)
+                text="Nie jesteś uczestnikiem tego pokoju.",
             )
+            return False
+
+        if self.character_id is None:
+            await self._send_game_event(
+                "error",
+                {
+                    "reason": "no_character",
+                    "details": "Wybierz postać przed rozpoczęciem rozgrywki.",
+                },
+                text="Wybierz postać przed rozpoczęciem rozgrywki.",
+            )
+            return False
+
+        return True
+
+    async def _execute_player_action(self, data):
+        return await sync_to_async(self.game_action_service.execute)(
+            data,
+            state_manager=self.state_manager,
+            room=self.room_name,
+            participant_id=self.participant_id,
+            adventure=self.adventure_id,
+            world=self.world,
+        )
+
+    async def _broadcast_player_action(self, result):
+        cleaned_text = normalize_narration_text(result.get("text", ""))
+        turn_state = result.get("turn_state", {}) or {}
+        room_state = self.state_manager.get_room(self.room_name)
+        game_state = (
+            await self._build_game_state(room_state)
+            if room_state is not None
+            else {}
+        )
+
+        payload = {
+            "data": result,
+            "user": self.scope["user"].username,
+            "actor": {
+                "participant_id": self.participant_id,
+                "name": room_state.players[self.participant_id].name,
+                "is_ai": self.participant_id in room_state.ai_participants,
+            },
+            "text": cleaned_text,
+            "turn_state": turn_state,
+            "game_state": game_state,
+            "choices": result.get("choices", []),
+        }
+
+        await self._send_game_event(
+            "action_result",
+            payload,
+            text=cleaned_text,
+        )
+        return room_state
+
+    async def _continue_with_bot_turns(self, room_state):
+        if room_state.current_player_id in room_state.ai_participants:
+            await asyncio.sleep(3)
+        await self._run_bot_turn_if_needed()
+
+    async def _handle_receive_error(self, error):
+        logger.error(f"GAME ERROR: {repr(error)}", exc_info=True)
+
+        await self._send_game_event(
+            "error",
+            {
+                "reason": "exception",
+                "details": str(error),
+            },
+            text=str(error),
+        )
 
     async def game_event(self, event):
         if event.get("event") == "game_started":
